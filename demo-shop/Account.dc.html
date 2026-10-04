@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<title>Demo Shop — Prijava i registracija</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./shop.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700;800&amp;family=Red+Hat+Text:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="ds" style="font-family: 'Red Hat Text', 'Avenir Next', 'Helvetica Neue', sans-serif; color: #0E2730; background: #FFFFFF">
+  <dc-import name="Header" hint-size="100%,100px"></dc-import>
+
+  <section style="padding: 16px 0 clamp(56px, 7vw, 104px)">
+    <div class="wrap" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr)); gap: clamp(24px, 4vw, 72px); align-items: stretch">
+      <!-- SLIKA -->
+      <div class="ph" style="border-radius: 36px; min-height: clamp(300px, 52vw, 760px); color: #FFFFFF; background: #0A1E25">
+        <img class="img kb" src="/_blob/17180b9ffc400f7e5b3ab58aefeb2cac" alt="Kožna sofa sa žutim jastukom">
+        <div style="position: absolute; inset: 0; background: rgba(8, 22, 28, .3)"></div>
+        <div style="position: absolute; left: clamp(22px, 3vw, 44px); right: clamp(22px, 3vw, 44px); bottom: clamp(22px, 3vw, 44px); display: flex; flex-direction: column; gap: 12px">
+          <div class="display h-m a1" style="max-width: 15ch">Sve vaše porudžbine na jednom mestu</div>
+          <p class="a2" style="color: #DDE5E6; max-width: 38ch">Pratite isporuku, sačuvajte omiljene modele i poručite uzorke tkanina.</p>
+        </div>
+      </div>
+
+      <!-- FORMA -->
+      <div style="display: flex; flex-direction: column; justify-content: center; padding: clamp(8px, 2vw, 32px) 0">
+        <div style="max-width: 470px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 30px">
+          <div class="seg" role="tablist" style="align-self: flex-start">
+            <button role="tab" aria-selected="{{loginSel}}" class="{{loginTab}}" onClick="{{toLogin}}">Prijava</button>
+            <button role="tab" aria-selected="{{regSel}}" class="{{regTab}}" onClick="{{toReg}}">Registracija</button>
+          </div>
+
+          <sc-if value="{{isLogin}}" hint-placeholder-val="{{true}}">
+            <form class="a1" style="display: flex; flex-direction: column; gap: 22px; animation-delay: 0s">
+              <div style="display: flex; flex-direction: column; gap: 8px">
+                <h1 class="display h-l">Dobro došli nazad</h1>
+                <p class="muted">Prijavite se da biste pratili porudžbine i sačuvane modele.</p>
+              </div>
+              <div class="f"><label for="l-email">Email adresa</label><input id="l-email" type="email" autocomplete="email" placeholder="ime@primer.rs"></div>
+              <div class="f"><label for="l-pass">Lozinka</label><input id="l-pass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 15px">
+                <label style="display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #0E2730; margin: 0"> Zapamti me</label>
+                <a class="ul keep" href="Contact.dc.html">Zaboravljena lozinka?</a>
+              </div>
+              <button class="btn full" type="button">Prijavi se</button>
+              <button class="btn ghost full" type="button">Nastavi sa Google nalogom</button>
+              <p class="muted" style="font-size: 15px; text-align: center">Nemate nalog? <button class="txt-btn" type="button" onClick="{{toReg}}" style="color: #0E2730; font-size: 15px">Registrujte se</button></p>
+            </form>
+          </sc-if>
+
+          <sc-if value="{{isReg}}" hint-placeholder-val="{{false}}">
+            <form class="a1" style="display: flex; flex-direction: column; gap: 22px; animation-delay: 0s">
+              <div style="display: flex; flex-direction: column; gap: 8px">
+                <h1 class="display h-l">Napravite nalog</h1>
+                <p class="muted">Brža kupovina, praćenje isporuke i 10% popusta na prvu porudžbinu.</p>
+              </div>
+              <div class="fgrid">
+                <div class="f"><label for="r-name">Ime</label><input id="r-name" type="text" autocomplete="given-name"></div>
+                <div class="f"><label for="r-last">Prezime</label><input id="r-last" type="text" autocomplete="family-name"></div>
+              </div>
+              <div class="f"><label for="r-email">Email adresa</label><input id="r-email" type="email" autocomplete="email" placeholder="ime@primer.rs"></div>
+              <div class="f"><label for="r-pass">Lozinka</label><input id="r-pass" type="password" autocomplete="new-password" placeholder="Najmanje 8 karaktera"></div>
+              <label style="display: flex; align-items: flex-start; gap: 12px; font-size: 15px; cursor: pointer; min-height: 44px"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #0E2730; margin: 3px 0 0; flex-shrink: 0"> <span>Želim da primam novosti i ponude na email.</span></label>
+              <button class="btn full" type="button">Napravi nalog</button>
+              <p class="muted" style="font-size: 14px; text-align: center">Registracijom prihvatate <a href="Faq.dc.html">uslove korišćenja</a> i <a href="Faq.dc.html">politiku privatnosti</a>.</p>
+            </form>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <dc-import name="Footer" hint-size="100%,800px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"startOn":{"editor":"enum","options":["Prijava","Registracija"],"default":"Prijava"},"$preview":{"width":1440,"height":1650}}'>
+class Component extends DCLogic {
+  state = { tab: null };
+  renderVals() {
+    const tab = this.state.tab ?? ((this.props.startOn ?? 'Prijava') === 'Registracija' ? 'reg' : 'login');
+    const login = tab === 'login';
+    return {
+      isLogin: login, isReg: !login,
+      loginSel: login ? 'true' : 'false', regSel: login ? 'false' : 'true',
+      loginTab: login ? 'chip on' : 'chip', regTab: login ? 'chip' : 'chip on',
+      toLogin: () => this.setState({ tab: 'login' }),
+      toReg: () => this.setState({ tab: 'reg' })
+    };
+  }
+}
+</script>
+</body>
+</html>

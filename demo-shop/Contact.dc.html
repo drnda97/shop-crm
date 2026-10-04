@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<title>Demo Shop — Kontakt</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./shop.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700;800&amp;family=Red+Hat+Text:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="ds" style="font-family: 'Red Hat Text', 'Avenir Next', 'Helvetica Neue', sans-serif; color: #0E2730; background: #FFFFFF">
+  <dc-import name="Header" hint-size="100%,100px"></dc-import>
+
+  <section style="padding: clamp(48px, 6vw, 96px) 0 clamp(28px, 4vw, 48px)">
+    <div class="wrap" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 20px 64px">
+      <h1 class="display h-xl"><span class="ln"><span>Javite se</span></span></h1>
+      <p class="lead a1" style="max-width: 38ch; padding-bottom: 10px">Pitanje o modelu, uzorci tkanina ili savet oko rasporeda. Odgovaramo u roku od jednog radnog dana.</p>
+    </div>
+  </section>
+
+  <section style="padding-bottom: clamp(56px, 7vw, 104px)">
+    <div class="wrap" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch">
+      <!-- FORMA -->
+      <form class="panel a2" style="flex: 999 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 22px; background: #FFFFFF; box-shadow: inset 0 0 0 1.500px rgba(14, 39, 48, .1)">
+        <h2 class="display h-m">Pošaljite poruku</h2>
+        <div class="fgrid">
+          <div class="f"><label for="k-name">Ime i prezime</label><input id="k-name" type="text" autocomplete="name"></div>
+          <div class="f"><label for="k-email">Email adresa</label><input id="k-email" type="email" autocomplete="email" placeholder="ime@primer.rs"></div>
+        </div>
+        <div class="f">
+          <label for="k-topic">Tema</label>
+          <select id="k-topic">
+            <option>Pitanje o proizvodu</option>
+            <option>Uzorci tkanina</option>
+            <option>Savet dizajnera</option>
+            <option>Moja porudžbina</option>
+            <option>Povrat ili reklamacija</option>
+          </select>
+        </div>
+        <div class="f"><label for="k-msg">Poruka</label><textarea id="k-msg" placeholder="Kako možemo da pomognemo?"></textarea></div>
+        <div>
+          <button class="btn" type="button">Pošalji poruku
+            <i><svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6h14M10 1l5 5-5 5"></path></svg></i>
+          </button>
+        </div>
+      </form>
+
+      <!-- PODACI -->
+      <div class="panel a3" style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 22px">
+        <div style="display: flex; gap: 16px; align-items: center">
+          <span class="icon-c" style="background: #FFFFFF"><svg width="20" height="16" viewBox="0 0 20 16" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="1" width="18" height="14" rx="3"></rect><path d="M2 3l8 6 8-6"></path></svg></span>
+          <div><div class="muted" style="font-size: 14.500px">Email</div><a class="display h-s ul" href="Contact.dc.html">[EMAIL ADRESA]</a></div>
+        </div>
+        <div style="display: flex; gap: 16px; align-items: center">
+          <span class="icon-c" style="background: #FFFFFF"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1h4l2 5-2.500 1.500a11 11 0 005 5L14 10l5 2v4a2 2 0 01-2 2A16 16 0 012 3a2 2 0 012-2z"></path></svg></span>
+          <div><div class="muted" style="font-size: 14.500px">Telefon</div><a class="display h-s ul" href="Contact.dc.html">[BROJ TELEFONA]</a></div>
+        </div>
+        <div style="display: flex; gap: 16px; align-items: center">
+          <span class="icon-c" style="background: #FFFFFF"><svg width="18" height="22" viewBox="0 0 18 22" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21s8-7 8-12.500A8 8 0 001 8.500C1 14 9 21 9 21z"></path><circle cx="9" cy="8.500" r="3"></circle></svg></span>
+          <div><div class="muted" style="font-size: 14.500px">Salon</div><div class="display h-s">[ULICA I BROJ], [GRAD]</div></div>
+        </div>
+        <div style="background: #FFFFFF; border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; margin-top: auto">
+          <div class="lab">Radno vreme salona</div>
+          <div style="display: flex; justify-content: space-between; gap: 16px"><span>Ponedeljak do petka</span><span>[OD] do [DO]</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 16px"><span>Subota</span><span>[OD] do [DO]</span></div>
+          <div class="muted" style="display: flex; justify-content: space-between; gap: 16px"><span>Nedelja</span><span>Zatvoreno</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-bottom: clamp(48px, 6vw, 88px)">
+    <div class="wrap">
+      <div class="ph rv" style="border-radius: 36px; min-height: 440px; display: flex; align-items: flex-end; color: #FFFFFF; background: #0A1E25">
+        <img class="img" src="/_blob/b401dbf7ed0e8118005105e973ff9780" alt="Izložbeni prostor sa sofom i foteljama" style="object-position: center 60%">
+        <div style="position: absolute; inset: 0; background: rgba(8, 22, 28, .4)"></div>
+        <div style="position: relative; width: 100%; padding: clamp(28px, 5vw, 64px); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px 48px">
+          <div style="display: flex; flex-direction: column; gap: 12px; max-width: 560px">
+            <h2 class="display h-l">Dođite u salon</h2>
+            <p style="color: #DDE5E6">Svi modeli su izloženi, a uzorke tkanina i drveta možete poneti kući.</p>
+          </div>
+          <a class="btn light" href="Contact.dc.html">Otvori mapu
+            <i><svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6h14M10 1l5 5-5 5"></path></svg></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <dc-import name="Footer" hint-size="100%,800px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2300}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    if (!('IntersectionObserver' in window)) return;
+    document.documentElement.classList.add('js');
+    const io = new IntersectionObserver((es) => {
+      es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -6% 0px' });
+    this._io = io;
+    document.querySelectorAll('.rv:not(.in)').forEach((el) => io.observe(el));
+  }
+  componentWillUnmount() { if (this._io) this._io.disconnect(); }
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

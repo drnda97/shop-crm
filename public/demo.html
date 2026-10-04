@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="sr-Latn">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Probna prodavnica</title>
+    <!--
+      Najmanja moguća prodavnica nad ShopCRM-om: spisak proizvoda, korpa i poručivanje.
+      Služi kao proba da CRM radi i kao primer za pravi sajt — sve što sajtu treba je sdk.js.
+    -->
+    <style>
+      :root { --bg: #fff; --surface: #f4f4f2; --text: #1b1b1f; --accent: #2f5bd7; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 16px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--text); }
+      header { padding: 16px 24px; background: var(--surface); display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+      header h1 { margin: 0; font-size: 20px; }
+      main { max-width: 1100px; margin: 0 auto; padding: 24px; display: grid; gap: 32px; grid-template-columns: minmax(0, 1fr); }
+      @media (min-width: 900px) { main { grid-template-columns: minmax(0, 1fr) 340px; } }
+      h2 { font-size: 18px; margin: 0 0 12px; }
+      .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+      .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+      .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+      .card img, .card .noimg { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 4px; background: var(--surface); }
+      .muted { color: #666; font-size: 14px; }
+      .old { text-decoration: line-through; color: #666; margin-right: 6px; }
+      button { font: inherit; min-height: 40px; padding: 0 14px; border-radius: 6px; border: 1px solid var(--text); background: var(--text); color: var(--bg); cursor: pointer; }
+      button.quiet { background: transparent; color: var(--text); border-color: #bbb; }
+      button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+      button:disabled { opacity: 0.4; cursor: default; }
+      aside { background: var(--surface); border-radius: 8px; padding: 16px; align-self: start; }
+      .line { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; align-items: center; }
+      .qty { display: flex; align-items: center; gap: 6px; }
+      .qty button { min-height: 28px; padding: 0 9px; }
+      label { display: block; font-size: 14px; color: #555; margin-top: 10px; }
+      input, textarea, select { font: inherit; width: 100%; min-height: 40px; padding: 6px 10px; border: 1px solid #bbb; border-radius: 6px; background: #fff; }
+      .error { color: #b00020; font-size: 14px; }
+      .total { font-weight: 600; border-top: 1px solid #ccc; margin-top: 6px; }
+      #message { padding: 12px; border-radius: 6px; background: #fff; border: 1px solid #ccc; margin-bottom: 12px; white-space: pre-line; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1 id="store-name">Probna prodavnica</h1>
+      <span class="muted">U korpi: <strong id="cart-count">0</strong></span>
+    </header>
+    <main>
+      <section>
+        <div class="filters" id="filters"></div>
+        <div class="grid" id="products"></div>
+      </section>
+      <aside>
+        <div id="message" hidden></div>
+        <h2>Korpa</h2>
+        <div id="cart"></div>
+        <label>Kod za popust <input id="code" autocomplete="off" /></label>
+        <div class="error" id="code-error"></div>
+        <button class="quiet" id="apply" style="margin-top: 8px">Primeni kod</button>
+
+        <h2 style="margin-top: 20px">Poručivanje</h2>
+        <form id="checkout" novalidate>
+          <label>Ime i prezime <input name="name" autocomplete="name" /></label>
+          <label>Telefon <input name="phone" autocomplete="tel" /></label>
+          <label>Email <input name="email" type="email" autocomplete="email" /></label>
+          <label>Ulica i broj <input name="street" autocomplete="street-address" /></label>
+          <label>Poštanski broj <input name="postalCode" autocomplete="postal-code" /></label>
+          <label>Mesto <input name="city" autocomplete="address-level2" /></label>
+          <label>Napomena <textarea name="note" rows="2"></textarea></label>
+          <label>Plaćanje <select name="paymentMethod" id="payment"></select></label>
+          <div class="error" id="form-error" style="margin-top: 8px"></div>
+          <button type="submit" style="margin-top: 12px; width: 100%">Poruči</button>
+        </form>
+      </aside>
+    </main>
+
+    <script src="/sdk.js"></script>
+    <script>
+      const shop = ShopCRM.init();
+      const $ = (id) => document.getElementById(id);
+      const escape = (text) =>
+        String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+      let store = null;
+      let category = "";
+
+      const price = (value) => shop.formatPrice(value, store.currency);
+
+      async function showProducts() {
+        const { products } = await shop.getProducts({ category });
+        $("products").innerHTML =
+          products
+            .map(
+              (product) => `
+            <div class="card">
+              ${product.image ? `<img src="${escape(product.image)}" alt="" loading="lazy">` : `<div class="noimg"></div>`}
+              <strong>${escape(product.name)}</strong>
+              <span class="muted">${escape(product.summary)}</span>
+              <span>
+                ${product.onSale ? `<span class="old">${price(product.price)}</span>` : ""}
+                ${product.currentPrice === null ? "" : price(product.currentPrice)}
+              </span>
+              ${product.lowStockLabel ? `<span class="muted">${escape(product.lowStockLabel)}</span>` : ""}
+              <button data-add="${escape(product.slug)}" ${product.available ? "" : "disabled"}>
+                ${product.available ? "Dodaj u korpu" : "Nema na stanju"}
+              </button>
+            </div>`,
+            )
+            .join("") || `<p class="muted">Još nema proizvoda. Dodajte ih u admin panelu.</p>`;
+      }
+
+      async function showCart() {
+        $("cart-count").textContent = shop.cart.count();
+        const result = await shop.cart.price();
+        $("code-error").textContent = result.discountError || "";
+        if (result.lines.length === 0) {
+          $("cart").innerHTML = `<p class="muted">Korpa je prazna.</p>`;
+          return;
+        }
+        const { pricing } = result;
+        $("cart").innerHTML =
+          result.lines
+            .map(
+              (line) => `
+            <div class="line">
+              <span>${escape(line.product.name)}
+                <span class="qty">
+                  <button class="quiet" data-qty="${escape(line.product.slug)}" data-value="${line.qty - 1}">−</button>
+                  ${line.qty}
+                  <button class="quiet" data-qty="${escape(line.product.slug)}" data-value="${line.qty + 1}" ${line.qty >= line.product.maxQty ? "disabled" : ""}>+</button>
+                </span>
+              </span>
+              <span>${price(line.lineTotal)}</span>
+            </div>`,
+            )
+            .join("") +
+          `<div class="line muted"><span>Međuzbir</span><span>${price(pricing.subtotal)}</span></div>` +
+          (pricing.discount
+            ? `<div class="line muted"><span>Popust ${result.discount.percent}%</span><span>−${price(pricing.discount)}</span></div>`
+            : "") +
+          `<div class="line muted"><span>Dostava</span><span>${pricing.delivery ? price(pricing.delivery) : "besplatna"}</span></div>` +
+          `<div class="line total"><span>Ukupno</span><span>${price(pricing.total)}</span></div>`;
+      }
+
+      document.addEventListener("click", (event) => {
+        const { add, qty, value, category: chosen } = event.target.dataset || {};
+        if (add) shop.cart.add(add, 1);
+        if (qty) shop.cart.setQty(qty, Number(value));
+        if (chosen !== undefined) {
+          category = chosen;
+          document.querySelectorAll("[data-category]").forEach((button) => {
+            button.setAttribute("aria-pressed", String(button.dataset.category === category));
+          });
+          showProducts();
+        }
+      });
+
+      $("apply").addEventListener("click", () => {
+        shop.cart.setDiscountCode($("code").value);
+        showCart();
+      });
+
+      $("checkout").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(event.target));
+        const { paymentMethod, ...customer } = data;
+        const result = await shop.placeOrder({ customer, paymentMethod });
+        if (!result.ok) {
+          $("form-error").textContent = [result.message, ...Object.values(result.errors || {})]
+            .filter(Boolean)
+            .join(" ");
+          return;
+        }
+        $("form-error").textContent = "";
+        event.target.reset();
+        $("code").value = "";
+        $("message").hidden = false;
+        $("message").textContent =
+          `Hvala! Porudžbina #${result.orderNumber} je primljena. Ukupno: ${price(result.total)}.` +
+          (result.paymentInstructions ? `\n\nPodaci za uplatu:\n${result.paymentInstructions}` : "");
+        showProducts();
+      });
+
+      (async () => {
+        store = await shop.getStore();
+        document.title = store.name;
+        $("store-name").textContent = store.name;
+        const root = document.documentElement.style;
+        root.setProperty("--bg", store.colors.background);
+        root.setProperty("--surface", store.colors.surface);
+        root.setProperty("--text", store.colors.text);
+        root.setProperty("--accent", store.colors.accent);
+        $("payment").innerHTML = store.paymentMethods
+          .map((method) => `<option value="${method.id}">${escape(method.label)}</option>`)
+          .join("");
+        $("code").value = shop.cart.discountCode();
+
+        const { categories } = await shop.getCategories();
+        $("filters").innerHTML = [{ id: "", label: "Sve" }, ...categories]
+          .map(
+            (item) =>
+              `<button class="quiet" data-category="${escape(item.id)}" aria-pressed="${item.id === ""}">${escape(item.label)}</button>`,
+          )
+          .join("");
+
+        shop.cart.subscribe(showCart);
+        showProducts();
+        showCart();
+      })();
+    </script>
+  </body>
+</html>

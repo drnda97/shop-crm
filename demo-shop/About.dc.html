@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<title>Demo Shop — O nama</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./shop.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700;800&amp;family=Red+Hat+Text:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="ds" style="font-family: 'Red Hat Text', 'Avenir Next', 'Helvetica Neue', sans-serif; color: #0E2730; background: #FFFFFF">
+  <dc-import name="Header" hint-size="100%,100px"></dc-import>
+
+  <!-- UVOD -->
+  <section style="padding: clamp(48px, 6vw, 96px) 0 clamp(32px, 4vw, 56px)">
+    <div class="wrap" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px 64px">
+      <h1 class="display h-xl" style="max-width: 12ch">
+        <span class="ln"><span>Pravimo nameštaj</span></span>
+        <span class="ln"><span class="d2">koji se nasleđuje.</span></span>
+      </h1>
+      <p class="lead a1" style="max-width: 40ch; padding-bottom: 10px">Demo Shop je nastao iz jedne radionice i uverenja da stolica treba da traje duže od kredita kojim je kupljena.</p>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="ph" style="border-radius: 36px; aspect-ratio: 16 / 8; min-height: 280px"><img class="img kb" src="/_blob/614d701bb0d0541724935a77f8e31e08" alt="Dnevna soba sa kožnom ugaonom sofom i pogledom na baštu" style="object-position: center 60%"></div>
+  </div>
+
+  <!-- PRIČA -->
+  <section class="sec">
+    <div class="wrap" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: clamp(28px, 5vw, 96px)">
+      <h2 class="display h-l rv">Počeli smo sa jednim stolom i tri majstora</h2>
+      <div class="rv t1" style="display: flex; flex-direction: column; gap: 20px; color: #56666B; max-width: 58ch">
+        <p>Radimo sa malim radionicama koje poznajemo lično. Svaki komad prolazi kroz naše ruke pre nego što stigne do vas, i svaki nosi ime majstora koji ga je sastavio.</p>
+        <p>Ne pratimo sezone. Kolekciju dopunjujemo samo kada napravimo nešto što zaslužuje mesto u njoj, a ono što jednom uvrstimo ostaje u ponudi godinama, zajedno sa rezervnim delovima.</p>
+        <p style="color: #0E2730">[Ovde dopunite priču svog brenda: godina osnivanja, ko stoji iza prodavnice i šta vas izdvaja.]</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- VREDNOSTI -->
+  <section style="padding-bottom: clamp(72px, 9vw, 136px)">
+    <div class="wrap" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 20px">
+      <div class="panel rv" style="display: flex; flex-direction: column; gap: 14px">
+        <span class="icon-c" style="background: #FFFFFF"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20V9M11 9C11 5 8 3 4 3c0 4 2 7 7 6zM11 12c0-3 2.500-5 7-5 0 3.500-2 6-7 5z"></path></svg></span>
+        <h3 class="display h-m" style="margin-top: 12px">Materijal</h3>
+        <p class="muted">Masivno drvo iz kontrolisane seče, vuna, lan i biljno štavljena koža. Bez iverice i bez plastike na vidljivim mestima.</p>
+      </div>
+      <div class="panel rv t1" style="display: flex; flex-direction: column; gap: 14px">
+        <span class="icon-c" style="background: #FFFFFF"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3l5 5-9 9-6 1 1-6z"></path><path d="M12 5l5 5"></path></svg></span>
+        <h3 class="display h-m" style="margin-top: 12px">Izrada</h3>
+        <p class="muted">Male serije i ručna završna obrada. Spojevi su klasični stolarski, pa se svaki deo može rastaviti i popraviti.</p>
+      </div>
+      <div class="panel rv t2" style="display: flex; flex-direction: column; gap: 14px; background: #0E2730; color: #F3F5F4">
+        <span class="icon-c" style="background: #E3A72F; color: #0E2730"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"><path d="M11 1l8 3v6c0 5-3.500 9-8 11-4.500-2-8-6-8-11V4z"></path><path d="M7.500 11l2.500 2.500L15 8.500"></path></svg></span>
+        <h3 class="display h-m" style="margin-top: 12px">Odgovornost</h3>
+        <p style="color: #B9C6C9">Pet godina garancije na svaki komad i deset godina dostupnosti rezervnih delova. Stojimo iza svega što prodamo.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCES: stvarni redosled, pa su koraci numerisani -->
+  <section style="padding-bottom: clamp(72px, 9vw, 136px)">
+    <div class="wrap split">
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start">
+        <div class="ph zoom rv" style="aspect-ratio: 3 / 4"><img class="img" src="/_blob/6a353af474c4c1a39c23c667d658509c" alt="Ručno dletovanje drveta"></div>
+        <div class="ph zoom rv t1" style="aspect-ratio: 3 / 4; margin-top: 56px"><img class="img" src="/_blob/1d04cc1d67c853ac079b001274ae3c61" alt="Detalj stolice od trske"></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 26px">
+        <h2 class="display h-l rv">Od daske do vašeg doma</h2>
+        <ol class="rv t1" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+          <li style="display: flex; gap: 20px; padding: 22px 0; border-top: 1px solid rgba(14, 39, 48, .1)"><span class="display h-s" style="color: #8F6200; min-width: 28px">1</span><div><div class="display h-s">Crtež i prototip</div><p class="muted" style="margin-top: 4px">Svaki model mesecima koristimo u sopstvenim domovima pre nego što uđe u ponudu.</p></div></li>
+          <li style="display: flex; gap: 20px; padding: 22px 0; border-top: 1px solid rgba(14, 39, 48, .1)"><span class="display h-s" style="color: #8F6200; min-width: 28px">2</span><div><div class="display h-s">Izrada po porudžbini</div><p class="muted" style="margin-top: 4px">Birate tkaninu i drvo, a mi komad pravimo za vas. Bez zaliha koje završavaju na rasprodaji.</p></div></li>
+          <li style="display: flex; gap: 20px; padding: 22px 0; border-top: 1px solid rgba(14, 39, 48, .1); border-bottom: 1px solid rgba(14, 39, 48, .1)"><span class="display h-s" style="color: #8F6200; min-width: 28px">3</span><div><div class="display h-s">Dostava i montaža</div><p class="muted" style="margin-top: 4px">Naš tim unosi, sastavlja i odnosi ambalažu. Vi samo sednete.</p></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- POZIV -->
+  <section style="padding-bottom: clamp(48px, 6vw, 88px)">
+    <div class="wrap">
+      <div class="ph rv" style="border-radius: 36px; min-height: 460px; display: flex; align-items: flex-end; color: #FFFFFF; background: #0A1E25">
+        <img class="img" src="/_blob/3b5d9a9a03f22ca1bf972b59ff283e5b" alt="Zelena sofa" style="object-position: center 55%">
+        <div style="position: absolute; inset: 0; background: rgba(8, 22, 28, .4)"></div>
+        <div style="position: relative; width: 100%; padding: clamp(28px, 5vw, 64px); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px 48px">
+          <h2 class="display h-l" style="max-width: 14ch">Pogledajte šta smo napravili</h2>
+          <a class="btn gold" href="Collection.dc.html">Otvorite kolekciju
+            <i><svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6h14M10 1l5 5-5 5"></path></svg></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <dc-import name="Footer" hint-size="100%,800px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4000}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    if (!('IntersectionObserver' in window)) return;
+    document.documentElement.classList.add('js');
+    const io = new IntersectionObserver((es) => {
+      es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -6% 0px' });
+    this._io = io;
+    document.querySelectorAll('.rv:not(.in)').forEach((el) => io.observe(el));
+  }
+  componentWillUnmount() { if (this._io) this._io.disconnect(); }
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

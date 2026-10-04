@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<title>Zaglavlje</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./shop.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700;800&amp;family=Red+Hat+Text:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<header class="{{rootCls}}" style="font-family: 'Red Hat Text', 'Avenir Next', 'Helvetica Neue', sans-serif; color: #0E2730; background: transparent">
+  <div class="wrap">
+    <div class="pill-nav">
+      <div style="display: flex; align-items: center; gap: 6px">
+        <button class="icon-btn menu-btn" aria-label="Meni" aria-expanded="{{menuOpen}}" onClick="{{toggleMenu}}">
+          <svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round"><path d="M1 1h18M1 7h18M1 13h11"></path></svg>
+        </button>
+        <a class="logo" href="Main.dc.html"><b></b>Demo Shop</a>
+      </div>
+      <nav class="nav-links" aria-label="Glavna navigacija">
+        <a class="ul" href="Collection.dc.html">Kolekcija</a>
+        <a class="ul" href="About.dc.html">O nama</a>
+        <a class="ul" href="Faq.dc.html">Pitanja</a>
+        <a class="ul" href="Contact.dc.html">Kontakt</a>
+      </nav>
+      <div class="nav-right">
+        <a class="icon-btn hide-s" href="Collection.dc.html" aria-label="Pretraga">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round"><circle cx="8.500" cy="8.500" r="6.500"></circle><path d="M13.500 13.500L18.500 18.500"></path></svg>
+        </a>
+        <a class="icon-btn" href="Account.dc.html" aria-label="Nalog">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round"><circle cx="10" cy="6.500" r="3.800"></circle><path d="M2.500 18.500c1-4 4-5.500 7.500-5.500s6.500 1.500 7.500 5.500"></path></svg>
+        </a>
+        <button class="cart-btn" aria-label="Otvori korpu" onClick="{{openCart}}">Korpa <span>{{count}}</span></button>
+      </div>
+    </div>
+    <div class="{{menuCls}}">
+      <div>
+        <nav aria-label="Meni">
+          <a href="Collection.dc.html">Kolekcija</a>
+          <a href="About.dc.html">O nama</a>
+          <a href="Faq.dc.html">Česta pitanja</a>
+          <a href="Contact.dc.html">Kontakt</a>
+          <a href="Account.dc.html">Moj nalog</a>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <div class="{{cartCls}}">
+    <button class="drawer-scrim" aria-label="Zatvori korpu" onClick="{{closeCart}}"></button>
+    <aside class="drawer-panel" aria-label="Korpa">
+      <dc-import name="CartDrawer" on-close="{{closeCart}}" on-count="{{setCount}}" hint-size="450px,900px"></dc-import>
+    </aside>
+  </div>
+</header>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"overlay":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":100}}'>
+class Component extends DCLogic {
+  state = { cart: false, menu: false, count: 2 };
+  componentDidMount() {
+    this._onAdd = () => this.setState({ cart: true });
+    window.addEventListener('demoshop:add', this._onAdd);
+  }
+  componentWillUnmount() { window.removeEventListener('demoshop:add', this._onAdd); }
+  renderVals() {
+    this._open = this._open || (() => this.setState({ cart: true }));
+    this._close = this._close || (() => this.setState({ cart: false }));
+    this._count = this._count || ((n) => this.setState({ count: n }));
+    this._menu = this._menu || (() => this.setState({ menu: !this.state.menu }));
+    return {
+      rootCls: this.props.overlay ? 'ds hdr over' : 'ds hdr',
+      count: this.state.count,
+      menuOpen: this.state.menu ? 'true' : 'false',
+      cartCls: this.state.cart ? 'drawer open' : 'drawer',
+      menuCls: this.state.menu ? 'mnav open' : 'mnav',
+      openCart: this._open, closeCart: this._close, setCount: this._count, toggleMenu: this._menu
+    };
+  }
+}
+</script>
+</body>
+</html>
