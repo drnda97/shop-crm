@@ -240,6 +240,9 @@ function generateCode(prefix: string): string {
   return code;
 }
 
+/** Početak napomene porudžbine koju kupac preuzima u salonu. */
+export const PICKUP_NOTE = "Preuzimanje u salonu.";
+
 class CodeAlreadyUsed extends Error {}
 class OutOfStock extends Error {}
 
@@ -382,7 +385,7 @@ async function insertOrder(
  * prodavcu i kupcu, prema podešavanjima u panelu (lib/order-email.ts).
  */
 export async function submitOrder(input: unknown): Promise<OrderResult> {
-  const { customer, items, discountCode, paymentMethod } = parseOrder(input);
+  const { customer, items, discountCode, paymentMethod, deliveryMethod } = parseOrder(input);
 
   const errors = validateCustomer(customer);
   if (Object.keys(errors).length > 0) {
@@ -394,6 +397,10 @@ export async function submitOrder(input: unknown): Promise<OrderResult> {
   const payment = payments.find((method) => method === paymentMethod) as PaymentMethod | undefined;
   if (paymentMethod !== "" && !payment) {
     return { ok: false, errors: {}, message: "Izabrani način plaćanja nije dostupan." };
+  }
+  const pickup = deliveryMethod === "pickup";
+  if (pickup && !settings.shipping.pickupEnabled) {
+    return { ok: false, errors: {}, message: "Preuzimanje u salonu nije dostupno." };
   }
 
   // Cene i stanje se uzimaju iz proizvoda na serveru, nikad iz onoga što pošalje sajt.
@@ -421,7 +428,7 @@ export async function submitOrder(input: unknown): Promise<OrderResult> {
   const { shipping } = settings;
   const pricing = getPricing(lines, {
     discountPercent: applied?.percent,
-    deliveryPrice: shipping.price,
+    deliveryPrice: pickup ? 0 : shipping.price,
     freeShippingFrom: shipping.freeEnabled ? shipping.freeFrom : null,
   });
   const useCode = applied && pricing.discount > 0 ? applied : null;
@@ -433,7 +440,8 @@ export async function submitOrder(input: unknown): Promise<OrderResult> {
         receivedAt: new Date().toISOString(),
         status: "new",
         customerKey: customerKey(customer, settings.store.phonePrefix),
-        customer,
+        // Preuzimanje se upisuje u napomenu, pa ga prodavac vidi u panelu i u emailu.
+        customer: pickup ? { ...customer, note: `${PICKUP_NOTE} ${customer.note}`.trim() } : customer,
         items: lines.map((line) => ({
           slug: line.product.slug,
           name: line.product.name,

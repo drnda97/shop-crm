@@ -26,6 +26,7 @@ Prvo otvorite **Podešavanja**: naziv prodavnice, valuta i zapis iznosa (celi iz
 | Pregled | prodaja i porudžbine za 30 dana, najprodavaniji proizvodi, gradovi, stvari koje traže pažnju |
 | Porudžbine | pretraga, statusi (nova → potvrđena → poslata → isporučena, otkazana), beleška uz porudžbinu, izvoz u CSV |
 | Kupci | svi kupci sa brojem porudžbina i potrošnjom, istorija porudžbina kupca, beleška o kupcu, izvoz u CSV |
+| Poruke | poruke iz kontakt forme prodavnice i adrese prijavljene na novosti |
 | Proizvodi | cena i akcija, šifra, stanje (ručno ili po broju komada), oznaka „pri kraju", slike, nacrt/objavljen, redosled |
 | Kategorije, Kolekcije | kategorija je jedna po proizvodu; kolekcija je ručno složena grupa |
 | Popusti | promo kodovi (sa brojem korišćenja i rokom) i nagrade: kod koji kupac dobija emailom posle porudžbine |
@@ -73,6 +74,28 @@ Iznosi u API-ju su celi brojevi u najmanjim jedinicama valute (uz `currency.deci
 
 Cene, stanje, popust i dostava se uvek računaju u CRM-u; sajt šalje samo šta je u korpi. Kada sajt bude objavljen, upišite njegovu adresu u Podešavanja → Prodavnica → „Sajtovi koji smeju da zovu API".
 
+## Demo prodavnica
+
+Uz panel ide i gotova javna prodavnica (`app/(shop)/`, na adresi `/`). Čita proizvode, kategorije, popuste i podešavanja direktno iz baze i šalje porudžbine istim putem kao API (`submitOrder`). Ima sopstveni izgled (`app/(shop)/shop.css`), odvojen od panela.
+
+```bash
+npm run seed:demo   # 11 proizvoda iz dizajna, kategorije, oznake, kod DOBRODOSLI10, dostava i plaćanje
+```
+
+Skripta dodaje samo ono čega nema, pa postojeći sadržaj ne dira.
+
+| U prodavnici | Odakle dolazi u panelu |
+|---|---|
+| Proizvodi, cene, akcija, slike | Proizvodi (kratak opis je podrazumevana varijanta u korpi) |
+| Oznake „Novo" i „Bestseler" na karticama | Kolekcije sa tim oznakama (`novo`, `bestseler`) |
+| Dostava, prag besplatne dostave, preuzimanje u salonu | Podešavanja → Dostava |
+| Načini plaćanja i podaci za uplatu | Podešavanja → Plaćanje |
+| Promo kod pri plaćanju | Popusti |
+| Kontakt forma i prijava na novosti | Poruke |
+| Nalozi kupaca | tabele `shop_users` i `shop_sessions`; kupac u nalogu vidi porudžbine napravljene dok je bio prijavljen |
+
+Izabrana tkanina i postolje idu u napomenu porudžbine, jer proizvod u CRM-u nema varijante.
+
 ## Hosting i rezervna kopija
 
 Hosting mora da podržava Node.js aplikacije. Na njemu se prave prazna baza i promenljive iz `.env.example`; `PUBLIC_URL` je javna adresa CRM-a i ulazi u adrese slika.
@@ -96,7 +119,8 @@ U bazi su lični podaci kupaca i lozinka email naloga, pa kopije ne treba držat
 | Kupci | `lib/customers.ts` |
 | Email | `lib/order-email.ts`, `lib/email-template.ts` |
 | Javni API | `app/api/v1/[...path]/route.ts`, `lib/api.ts` |
-| Panel | `app/admin/` (sve izmene idu kroz `app/admin/actions.ts`) |
+| Panel | `app/(crm)/admin/` (sve izmene idu kroz `app/(crm)/admin/actions.ts`) |
+| Demo prodavnica | `app/(shop)/`, `lib/storefront/`, `scripts/seed-demo.mjs` |
 | Veza za sajt | `public/sdk.js`, primer `public/demo.html` |
 
 ## Ograničenja

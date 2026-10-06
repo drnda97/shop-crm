@@ -60,6 +60,8 @@ export type ShippingSettings = {
   freeEnabled: boolean;
   /** Vrednost proizvoda (posle popusta) od koje je dostava besplatna. */
   freeFrom: number;
+  /** Kupac može da izabere preuzimanje u salonu; tada se dostava ne naplaćuje. */
+  pickupEnabled: boolean;
 };
 
 export type PaymentMethod = "cod" | "bank";
@@ -119,7 +121,7 @@ export const defaultSettings: Settings = {
     allowedOrigins: "",
   },
   colors: defaultColors,
-  shipping: { price: 0, freeEnabled: false, freeFrom: 0 },
+  shipping: { price: 0, freeEnabled: false, freeFrom: 0, pickupEnabled: false },
   payment: { cod: true, bank: false, bankInstructions: "" },
   mail: {
     notifySeller: true,

@@ -19,6 +19,8 @@ export type OrderInput = {
   discountCode: string;
   /** Način plaćanja koji je kupac izabrao; prazan znači prvi uključen. */
   paymentMethod: string;
+  /** "pickup": kupac preuzima u salonu; sve ostalo je dostava. */
+  deliveryMethod: string;
 };
 
 export type CustomerField = keyof OrderCustomer;
@@ -156,6 +158,7 @@ export function parseOrder(input: unknown): OrderInput {
     items: parseItems(raw.items),
     discountCode: normalizeCode(asText(raw.discountCode, 64)),
     paymentMethod: asText(raw.paymentMethod, 20),
+    deliveryMethod: asText(raw.deliveryMethod, 20),
   };
 }
 

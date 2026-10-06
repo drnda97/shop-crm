@@ -113,6 +113,8 @@ export function publicStore(settings: Settings, base: string) {
       price: shipping.price,
       /** Vrednost od koje je dostava besplatna; null kada je isključena. */
       freeFrom: shipping.freeEnabled ? shipping.freeFrom : null,
+      /** Kupac može da izabere preuzimanje u salonu (deliveryMethod: "pickup"). */
+      pickup: shipping.pickupEnabled,
     },
     paymentMethods: enabledPayments(settings).map((id) => ({
       id,

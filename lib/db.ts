@@ -141,6 +141,42 @@ const TABLES = [
     price INT NOT NULL,
     KEY order_items_order (order_number)
   )`,
+  // Nalozi kupaca na sajtu prodavnice. Lozinka je scrypt heš sa solju.
+  `CREATE TABLE IF NOT EXISTS shop_users (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(191) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    pass_hash VARCHAR(255) NOT NULL,
+    created_at DATETIME(3) NOT NULL,
+    UNIQUE KEY shop_users_email (email)
+  )`,
+  // Prijave kupaca: u kolačiću je nasumičan žeton, ovde njegov heš.
+  `CREATE TABLE IF NOT EXISTS shop_sessions (
+    token_hash CHAR(64) NOT NULL PRIMARY KEY,
+    user_id INT NOT NULL,
+    expires_at DATETIME(3) NOT NULL,
+    KEY shop_sessions_user (user_id)
+  )`,
+  // Porudžbine napravljene dok je kupac bio prijavljen; samo njih vidi u svom nalogu.
+  `CREATE TABLE IF NOT EXISTS shop_user_orders (
+    user_id INT NOT NULL,
+    order_number INT NOT NULL,
+    PRIMARY KEY (user_id, order_number)
+  )`,
+  // Poruke iz kontakt forme i prijave na novosti (deo Poruke).
+  `CREATE TABLE IF NOT EXISTS shop_messages (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    created_at DATETIME(3) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    topic VARCHAR(100) NOT NULL,
+    body TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS shop_subscribers (
+    email VARCHAR(191) NOT NULL PRIMARY KEY,
+    created_at DATETIME(3) NOT NULL
+  )`,
   // Beleške prodavca o kupcu (deo Kupci).
   `CREATE TABLE IF NOT EXISTS customer_notes (
     customer_key VARCHAR(191) NOT NULL PRIMARY KEY,

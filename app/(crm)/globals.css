@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+/*
+ * Izgled panela prati dizajn prodavnice (app/(shop)/shop.css): petrolej i senf, Red Hat
+ * fontovi, zaobljene kartice i dugmad u obliku pilule. Boje prodavnice iz podešavanja
+ * (Podešavanja → Izgled) i dalje važe samo za email, ne za panel.
+ */
+@theme {
+  --color-paper: #ffffff;
+  --color-band: #f2f3f0;
+  --color-ph: #e7e9e4;
+
+  --color-ink: #0e2730;
+  --color-ink-2: #173640;
+  --color-muted: #56666b;
+  /* Senf: pozadine oznaka i istaknutih delova, uvek sa tamnim tekstom. */
+  --color-gold: #e3a72f;
+  --color-gold-l: #f3c766;
+  /* Tamni senf: tekst i linije na svetloj pozadini. */
+  --color-accent: #8f6200;
+
+  --color-line: rgba(14, 39, 48, 0.1);
+  --color-line-strong: rgba(14, 39, 48, 0.22);
+
+  /* Fontovi stižu preko next/font (app/(crm)/layout.tsx). */
+  --font-sans: var(--font-red-hat-text), "Avenir Next", "Helvetica Neue", sans-serif;
+  --font-display: var(--font-red-hat-display), "Avenir Next", "Helvetica Neue", sans-serif;
+
+  --ease-shop: cubic-bezier(0.32, 0.72, 0, 1);
+  --shadow-soft: 0 1px 0 rgba(14, 39, 48, 0.05), 0 18px 40px -24px rgba(14, 39, 48, 0.3);
+  --shadow-lift: 0 30px 60px -30px rgba(14, 39, 48, 0.35);
+
+  /* Ulazak: naslov izranja, sadržaj se pojavljuje, stubići grafikona rastu. */
+  --animate-up: up 1.2s var(--ease-shop) both;
+  --animate-fade: fade 1.1s var(--ease-shop) both;
+  --animate-kb: kb 2.4s var(--ease-shop) both;
+  --animate-grow-y: grow-y 1s var(--ease-shop) both;
+  --animate-grow-x: grow-x 1.1s var(--ease-shop) both;
+
+  @keyframes up {
+    from {
+      transform: translateY(110%);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes kb {
+    from {
+      transform: scale(1.08);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+  @keyframes grow-y {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @keyframes grow-x {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: none;
+    }
+  }
+}
+
+@layer base {
+  body {
+    background: var(--color-band);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  legend {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  a {
+    text-underline-offset: 4px;
+    transition: color 0.3s;
+  }
+
+  a:hover {
+    color: var(--color-accent);
+  }
+
+  :focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  /* Sadržaj stranice ulazi redom, deo po deo, pri svakom otvaranju stranice. */
+  .enter > * {
+    animation: var(--animate-fade);
+  }
+  .enter > :nth-child(2) {
+    animation-delay: 0.06s;
+  }
+  .enter > :nth-child(3) {
+    animation-delay: 0.12s;
+  }
+  .enter > :nth-child(4) {
+    animation-delay: 0.18s;
+  }
+  .enter > :nth-child(5) {
+    animation-delay: 0.24s;
+  }
+  .enter > :nth-child(n + 6) {
+    animation-delay: 0.3s;
+  }
+
+  /* Red naslova koji izranja odozdo, kao u prodavnici (.ln). */
+  .rise {
+    display: block;
+    overflow: hidden;
+    padding-bottom: 0.12em;
+    margin-bottom: -0.12em;
+  }
+  .rise > span {
+    display: block;
+    animation: var(--animate-up);
+  }
+
+  /* Natpis iznad grupe, sa crticom ispred (.over u prodavnici). */
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-accent);
+  }
+  .eyebrow::before {
+    content: "";
+    width: 18px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
