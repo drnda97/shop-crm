@@ -1,3 +1,4 @@
+import { accentText } from "@/lib/theme";
 import path from "node:path";
 import nodemailer from "nodemailer";
 import { getSettings, getStoredValue, setStoredValue, uploadPath } from "@/lib/content";
@@ -80,14 +81,14 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
   // Podaci za uplatu idu samo kupcu, i samo kada je izabrao uplatu na račun.
   const showBank = bank && recipient === "customer" && payment.bankInstructions !== "";
   const paymentBlock = showBank
-    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:${colors.surface};"><tr><td style="padding:18px 20px;font-size:15px;color:${colors.text};"><div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:${colors.accent};padding-bottom:6px;">Podaci za uplatu</div>${escapeHtml(payment.bankInstructions).replace(/\n/g, "<br>")}<div style="padding-top:8px;">Iznos: <strong>${amount(order.total)}</strong> · poziv na broj: <strong>${escapeHtml(order.number)}</strong></div></td></tr></table>`
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:${colors.surface};"><tr><td style="padding:18px 20px;font-size:15px;color:${colors.text};"><div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:${accentText(colors)};padding-bottom:6px;">Podaci za uplatu</div>${escapeHtml(payment.bankInstructions).replace(/\n/g, "<br>")}<div style="padding-top:8px;">Iznos: <strong>${amount(order.total)}</strong> · poziv na broj: <strong>${escapeHtml(order.number)}</strong></div></td></tr></table>`
     : "";
 
   // Kod za sledeću kupovinu: kupcu istaknut okvir, prodavcu samo napomena da je poslat.
   const issued = order.issuedCode;
   let discountBlock = "";
   if (issued && recipient === "customer") {
-    discountBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border:2px dashed ${colors.accent};"><tr><td align="center" style="padding:18px 20px;font-size:15px;color:${colors.text};"><div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:${colors.accent};">Poklon za sledeću kupovinu</div><div style="padding:6px 0 0;font-size:24px;line-height:1.2;">${escapeHtml(issued.title)}</div><div style="padding:2px 0;font-size:17px;">${issued.percent}% popusta</div><div style="padding:6px 0;"><span style="display:inline-block;padding:8px 16px;background:${colors.text};color:${colors.background};font-family:'Courier New',monospace;font-size:20px;letter-spacing:3px;">${escapeHtml(issued.code)}</span></div><div>Upišite kod pri sledećoj porudžbini. Važi za jednu kupovinu, uz isti email ili telefon.</div></td></tr></table>`;
+    discountBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border:2px dashed ${colors.accent};"><tr><td align="center" style="padding:18px 20px;font-size:15px;color:${colors.text};"><div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:${accentText(colors)};">Poklon za sledeću kupovinu</div><div style="padding:6px 0 0;font-size:24px;line-height:1.2;">${escapeHtml(issued.title)}</div><div style="padding:2px 0;font-size:17px;">${issued.percent}% popusta</div><div style="padding:6px 0;"><span style="display:inline-block;padding:8px 16px;background:${colors.text};color:${colors.background};font-family:'Courier New',monospace;font-size:20px;letter-spacing:3px;">${escapeHtml(issued.code)}</span></div><div>Upišite kod pri sledećoj porudžbini. Važi za jednu kupovinu, uz isti email ili telefon.</div></td></tr></table>`;
   } else if (issued) {
     discountBlock = `<p style="margin:16px 0 0;font-size:15px;">Kupcu je uz potvrdu poslat kod <strong>${escapeHtml(issued.code)}</strong> za ${issued.percent}% popusta pri sledećoj kupovini.</p>`;
   }

@@ -1,34 +1,21 @@
 import type { Currency } from "@/lib/format";
+import { defaultSite, mergeSite, type SiteSettings } from "@/lib/site";
+import { mergeTemplates, type Templates } from "@/lib/templates";
+import {
+  defaultColors,
+  defaultFonts,
+  isFontId,
+  isHexColor,
+  type ThemeColors,
+  type ThemeFonts,
+} from "@/lib/theme";
+
+export { colorLabels, defaultColors, isHexColor, type ThemeColors } from "@/lib/theme";
 
 /**
  * Podešavanja prodavnice koja se menjaju u admin panelu. Ovde su tipovi i
  * početne vrednosti; sačuvane vrednosti su u bazi (tabela settings).
  */
-
-export type ThemeColors = {
-  /** Pozadina sajta i emaila. */
-  background: string;
-  /** Pozadina traka i istaknutih delova. */
-  surface: string;
-  /** Tekst i dugmad. */
-  text: string;
-  /** Akcenat: linkovi, oznake. */
-  accent: string;
-};
-
-export const defaultColors: ThemeColors = {
-  background: "#ffffff",
-  surface: "#f4f4f2",
-  text: "#1b1b1f",
-  accent: "#2f5bd7",
-};
-
-export const colorLabels: Record<keyof ThemeColors, string> = {
-  background: "Pozadina",
-  surface: "Pozadina traka",
-  text: "Tekst i dugmad",
-  accent: "Akcenat",
-};
 
 export type StoreSettings = {
   name: string;
@@ -97,9 +84,15 @@ export type MailSettings = {
 
 export type Settings = {
   store: StoreSettings;
+  /** Boje sajta i emaila, i fontovi sajta (lib/theme.ts). */
   colors: ThemeColors;
+  fonts: ThemeFonts;
   logo?: string;
   favicon?: string;
+  /** Meni, podnožje i traka sa obaveštenjem (lib/site.ts). */
+  site: SiteSettings;
+  /** Tekstovi i fotografije stranica sa stalnim rasporedom (lib/templates.ts). */
+  templates: Templates;
   shipping: ShippingSettings;
   payment: PaymentSettings;
   mail: MailSettings;
@@ -121,6 +114,9 @@ export const defaultSettings: Settings = {
     allowedOrigins: "",
   },
   colors: defaultColors,
+  fonts: defaultFonts,
+  site: defaultSite,
+  templates: mergeTemplates(undefined),
   shipping: { price: 0, freeEnabled: false, freeFrom: 0, pickupEnabled: false },
   payment: { cod: true, bank: false, bankInstructions: "" },
   mail: {
@@ -137,13 +133,28 @@ export const defaultSettings: Settings = {
   },
 };
 
+function mergeColors(saved: Partial<ThemeColors> | undefined): ThemeColors {
+  const colors = { ...defaultColors };
+  for (const key of Object.keys(colors) as (keyof ThemeColors)[]) {
+    const value = saved?.[key];
+    if (isHexColor(value)) colors[key] = value.toLowerCase();
+  }
+  return colors;
+}
+
 /** Spajanje sa početnim vrednostima, da podešavanje dodato kasnije ne fali u starom zapisu. */
 export function mergeSettings(saved: Partial<Settings>): Settings {
   return {
     ...defaultSettings,
     ...saved,
     store: { ...defaultSettings.store, ...saved.store },
-    colors: { ...defaultSettings.colors, ...saved.colors },
+    colors: mergeColors(saved.colors),
+    fonts: {
+      display: isFontId(saved.fonts?.display) ? saved.fonts.display : defaultFonts.display,
+      body: isFontId(saved.fonts?.body) ? saved.fonts.body : defaultFonts.body,
+    },
+    site: mergeSite(saved.site),
+    templates: mergeTemplates(saved.templates),
     shipping: { ...defaultSettings.shipping, ...saved.shipping },
     payment: { ...defaultSettings.payment, ...saved.payment },
     mail: { ...defaultSettings.mail, ...saved.mail },
@@ -165,8 +176,4 @@ export function allowedOrigins(store: StoreSettings): string[] {
     .split(/[\s,]+/)
     .map((origin) => origin.trim().replace(/\/+$/, ""))
     .filter(Boolean);
-}
-
-export function isHexColor(value: string): boolean {
-  return /^#[0-9a-f]{6}$/i.test(value);
 }

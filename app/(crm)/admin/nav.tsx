@@ -75,6 +75,19 @@ const icons = {
       <path d="M11.500 2.500V6H15M7.500 10h5M7.500 13.500h5" />
     </svg>
   ),
+  layout: (
+    <svg {...stroke}>
+      <rect x="2.500" y="2.500" width="15" height="15" rx="3" />
+      <path d="M2.500 7h15M7.500 7v10.500" />
+    </svg>
+  ),
+  images: (
+    <svg {...stroke}>
+      <rect x="2.500" y="3.500" width="15" height="13" rx="3" />
+      <circle cx="7" cy="8" r="1.500" />
+      <path d="M3 14.500l4-4 3 3 3-4 4 5" />
+    </svg>
+  ),
   settings: (
     <svg {...stroke}>
       <path d="M3 6h7M14 6h3M3 14h3M10 14h7" />
@@ -147,7 +160,14 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, logout
         { href: `${base}/kategorije`, label: "Kategorije", icon: icons.categories },
         { href: `${base}/kolekcije`, label: "Kolekcije", icon: icons.collections },
         { href: `${base}/popusti`, label: "Popusti", icon: icons.discounts },
+      ],
+    },
+    {
+      title: "Sajt",
+      items: [
         { href: `${base}/stranice`, label: "Stranice", icon: icons.pages },
+        { href: `${base}/izgled`, label: "Izgled sajta", icon: icons.layout },
+        { href: `${base}/slike`, label: "Slike", icon: icons.images },
       ],
     },
     {

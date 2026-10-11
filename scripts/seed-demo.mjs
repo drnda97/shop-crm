@@ -6,9 +6,10 @@
 // Dodaje samo ono čega nema: postojeći proizvodi, kolekcije, popusti i podešavanja se ne
 // menjaju, pa je bezbedno pokrenuti je više puta. Podatke za bazu čita iz .env.local.
 // Tabele pravi sama aplikacija pri prvom pokretanju (npm run dev), pa nju pokrenite pre skripte.
-import { copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import mysql from "mysql2/promise";
+import { makeSizes } from "../lib/images.ts";
 
 const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, UPLOADS_DIR } = process.env;
 if (!DB_HOST || !DB_USER || !DB_NAME) {
@@ -34,12 +35,26 @@ const products = [
     price: 39900,
     image: "ds-p-swivel.jpg",
     gallery: ["ds-armchair-plant.jpg", "ds-detail-b.jpg", "ds-living-window.jpg"],
+    // Opcije koje kupac bira i istaknuti deo stranice proizvoda.
+    options: [
+      { name: "Tkanina", values: [{ label: "Pesak", color: "#b9ab98" }, { label: "Grafit", color: "#3c4346" }, { label: "Maslina", color: "#6b6a45" }] },
+      { name: "Postolje", values: [{ label: "Hrast" }, { label: "Orah" }, { label: "Crni jasen" }] },
+    ],
+    highlight: {
+      heading: "Napravljena da se popravlja, ne da se baca",
+      text: "Navlaka se skida i pere, a sedište i postolje se menjaju posebno. Rezervne delove čuvamo deset godina.",
+      specs: [
+        { label: "Širina", value: "72 cm" },
+        { label: "Visina sedišta", value: "41 cm" },
+        { label: "Nosivost", value: "130 kg" },
+      ],
+      image: "ds-detail-a.jpg",
+    },
     description:
       "Niska fotelja koja se okreće za 360°, sa sedištem od hladno livene pene i postoljem od masivnog hrasta. Dovoljno mala za ugao, dovoljno udobna za celo veče.",
     attributes: [
       { title: "Opis", text: "Sedište je oblikovano od hladno livene pene preko čeličnog rama, pa zadržava formu godinama. Okretni mehanizam je skriven u postolju i radi bez zvuka." },
       { title: "Materijali i održavanje", text: "Tkanina: 62% vuna, 38% lan. Postolje: masivni hrast, uljen. Navlaka se skida i pere na 30°C. Drvo brisati suvom krpom i jednom godišnje premazati uljem." },
-      { title: "Dostava i povrat", text: "Isporuka za 5 do 10 radnih dana, sa unošenjem i montažom. Dostava je besplatna za porudžbine preko 50.000 RSD, a proizvod možete vratiti u roku od 30 dana." },
     ],
   },
   { slug: "barska-stolica-nord", name: "Barska stolica Nord", category: "barske", summary: "Crna, bukva", price: 12900, image: "ds-p-black.jpg" },
@@ -77,10 +92,15 @@ const sourceDir = path.join(process.cwd(), "public", "shop");
 const uploadsDir = UPLOADS_DIR ?? path.join(process.cwd(), "storage", "uploads");
 mkdirSync(uploadsDir, { recursive: true });
 
-function media(file) {
-  const target = path.join(uploadsDir, file);
-  if (!existsSync(target)) copyFileSync(path.join(sourceDir, file), target);
-  return `/media/${file}`;
+// Kao i slike ubačene iz panela: WebP u više širina (lib/images.ts).
+async function media(file) {
+  const base = file.replace(/\.[a-z]+$/, "");
+  if (!existsSync(path.join(uploadsDir, `${base}-full.webp`))) {
+    for (const item of await makeSizes(readFileSync(path.join(sourceDir, file)), base)) {
+      writeFileSync(path.join(uploadsDir, item.name), item.data);
+    }
+  }
+  return `/media/${base}-full.webp`;
 }
 
 const db = await mysql.createConnection({
@@ -128,7 +148,8 @@ try {
     await db.query(
       `INSERT INTO products (slug, position, name, sku, category, active, summary, description,
         attributes, price, sale_price, weight, in_stock, stock_qty, low_stock_mode,
-        low_stock_threshold, image) VALUES (?, ?, ?, '', ?, 1, ?, ?, ?, ?, ?, NULL, 1, NULL, 'off', NULL, ?)`,
+        low_stock_threshold, image, options, highlight)
+        VALUES (?, ?, ?, '', ?, 1, ?, ?, ?, ?, ?, NULL, 1, NULL, 'off', NULL, ?, ?, ?)`,
       [
         product.slug,
         position++,
@@ -139,14 +160,20 @@ try {
         JSON.stringify(product.attributes ?? []),
         product.price,
         product.salePrice ?? null,
-        media(product.image),
+        await media(product.image),
+        JSON.stringify(product.options ?? []),
+        JSON.stringify(
+          product.highlight
+            ? { ...product.highlight, image: await media(product.highlight.image) }
+            : { heading: "", text: "", specs: [] },
+        ),
       ],
     );
     for (const [index, file] of (product.gallery ?? []).entries()) {
       await db.query("INSERT INTO product_images (product_slug, position, src) VALUES (?, ?, ?)", [
         product.slug,
         index,
-        media(file),
+        await media(file),
       ]);
     }
     added.proizvodi++;

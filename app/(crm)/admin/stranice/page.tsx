@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
+import { pagePath } from "@/lib/catalog";
 import { getPages } from "@/lib/content";
 import { buttonClass, cardClass, PageHeader, quietButtonClass, rowClass } from "../ui";
 
@@ -14,7 +15,7 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
     <>
       <PageHeader
         title="Stranice"
-        hint="Tekstovi i fotografije koje sajt čita preko API-ja: uslovi kupovine, o nama, ali i delovi početne strane (npr. stranica „Početna — baner“ čije fotografije sajt prikazuje na vrhu)."
+        hint="Stranice sajta: početna, o nama, pitanja, kontakt, uslovi kupovine. Svaka je složena od sekcija koje dodajete, pomerate i menjate. Meni i podnožje su u delu Izgled sajta."
         error={greska}
         action={
           <Link href={`${ADMIN_PATH}/stranice/nova`} className={buttonClass}>
@@ -26,10 +27,16 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
         {pages.map((page) => (
           <div key={page.slug} className={rowClass}>
             <div className="min-w-[180px] grow">
-              <div className="text-[17px]">{page.title}</div>
+              <div className="flex flex-wrap items-center gap-[10px] text-[17px]">
+                {page.title}
+                {!page.published && (
+                  <span className="rounded-full bg-band px-[10px] py-[2px] font-display text-[12.5px] font-bold">
+                    nacrt
+                  </span>
+                )}
+              </div>
               <div className="text-[14px] text-muted">
-                oznaka za API: {page.slug} · fotografija: {page.images.length}
-                {page.showInFooter && " · u podnožju"}
+                {pagePath(page.slug)} · sekcija: {page.sections.length}
               </div>
             </div>
             <Link href={`${ADMIN_PATH}/stranice/${page.slug}`} className={quietButtonClass}>

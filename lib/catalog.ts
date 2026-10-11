@@ -3,6 +3,8 @@
  * koja ne zavise od baze, pa ih koriste i panel i API.
  */
 
+import type { Section } from "@/lib/sections";
+
 export type LowStockMode = "off" | "always" | "auto";
 
 export type Product = {
@@ -36,22 +38,119 @@ export type Product = {
   image?: string;
   /** Dodatne slike, redom kojim su dodate. */
   gallery: string[];
+  /**
+   * Opcije koje kupac bira (tkanina, veličina…). Izbor ide u porudžbinu uz naziv proizvoda;
+   * cena i stanje su isti za sve opcije.
+   */
+  options: ProductOption[];
+  /** Istaknuti deo stranice proizvoda: tamna traka sa naslovom, tekstom, merama i slikom. */
+  highlight: ProductHighlight;
 };
+
+export type ProductOption = {
+  name: string;
+  /** `color` (#rrggbb) pretvara vrednost u kružić u toj boji. */
+  values: { label: string; color?: string }[];
+};
+
+export type ProductHighlight = {
+  heading: string;
+  text: string;
+  /** Mere i druge kratke činjenice, npr. „Širina" → „72 cm". */
+  specs: { label: string; value: string }[];
+  image?: string;
+};
+
+export const emptyHighlight: ProductHighlight = { heading: "", text: "", specs: [] };
+
+/** Redovi oblika „Naziv: vrednost"; red bez dvotačke je samo naziv. */
+export function parsePairs(text: string): [string, string][] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const colon = line.indexOf(":");
+      return colon === -1
+        ? [line, ""]
+        : [line.slice(0, colon).trim(), line.slice(colon + 1).trim()];
+    });
+}
+
+/**
+ * Opcije iz forme proizvoda: jedan red po opciji, vrednosti razdvojene zarezom, uz vrednost
+ * po želji boja — „Tkanina: Pesak #B9AB98, Grafit #3C4346".
+ */
+export function parseOptions(text: string): ProductOption[] {
+  return parsePairs(text)
+    .map(([name, list]) => ({
+      name: name.slice(0, 60),
+      values: list
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, 24)
+        .map((item) => {
+          const color = item.match(/\s(#[0-9a-f]{6})$/i)?.[1];
+          const label = (color ? item.slice(0, -color.length) : item).trim().slice(0, 60);
+          return color ? { label, color: color.toLowerCase() } : { label };
+        })
+        .filter((value) => value.label),
+    }))
+    .filter((option) => option.name && option.values.length > 0)
+    .slice(0, 6);
+}
+
+export function formatOptions(options: ProductOption[]): string {
+  return options
+    .map(
+      (option) =>
+        `${option.name}: ${option.values.map((value) => (value.color ? `${value.label} ${value.color}` : value.label)).join(", ")}`,
+    )
+    .join("\n");
+}
+
 
 export type Category = { id: string; label: string };
 
 /** Ručno složena grupa proizvoda, npr. „Izdvojeno" ili „Za poklon". */
 export type Collection = { id: string; name: string; description: string; productSlugs: string[] };
 
-/** Stranica sa tekstom i fotografijama; sajt je čita preko API-ja po `slug`-u. */
+/** Stranica sajta, složena od sekcija. Na sajtu je na adresi /{slug}; početna je HOME_SLUG. */
 export type Page = {
   slug: string;
   title: string;
-  /** Običan tekst; prazan red razdvaja pasuse. */
-  body: string;
+  sections: Section[];
+  /** Naslov i opis za pretraživače; prazno: naslov stranice, odnosno opis prodavnice. */
+  seoTitle: string;
+  seoDescription: string;
+  /** Nacrt (false) se na sajtu ne vidi. */
+  published: boolean;
+  /** API je vraća u spisku „footerPages". */
   showInFooter: boolean;
-  images: { id: string; src: string; alt: string }[];
 };
+
+export const HOME_SLUG = "pocetna";
+
+/** Adrese koje već pripadaju prodavnici i panelu, pa stranica ne može da ih zauzme. */
+export const RESERVED_SLUGS = [
+  "admin",
+  "api",
+  "kolekcija",
+  "media",
+  "nalog",
+  "nova",
+  "placanje",
+  "proizvod",
+  "robots.txt",
+  "shop",
+  "sitemap.xml",
+];
+
+/** Adresa stranice na sajtu. */
+export function pagePath(slug: string): string {
+  return slug === HOME_SLUG ? "/" : `/${slug}`;
+}
 
 export function isOnSale(product: Product): boolean {
   return product.price !== null && product.salePrice !== null && product.salePrice < product.price;

@@ -1,4 +1,5 @@
 import mysql, { type Pool } from "mysql2/promise";
+import { runMigrations } from "@/lib/migrations";
 
 /**
  * Veza sa MySQL bazom. Podaci za pristup su u okruženju (.env.local):
@@ -6,6 +7,8 @@ import mysql, { type Pool } from "mysql2/promise";
  *
  * Tabele se prave same pri prvom povezivanju — na hostingu je dovoljno
  * napraviti praznu bazu i upisati podatke za pristup. Samo za server.
+ *
+ * TABLES je polazna šema i više se ne menja; kasnije izmene su migracije (lib/migrations.ts).
  */
 
 // TEXT umesto JSON kolona: radi isto na MySQL-u i na MariaDB-u, koji je čest na hostingu.
@@ -185,24 +188,11 @@ const TABLES = [
   )`,
 ];
 
-/** Kolone dodate posle prve verzije tabele: [tabela, kolona, definicija]. Baza koja već postoji dobija ih pri pokretanju. */
-const ADDED_COLUMNS: [string, string, string][] = [];
-
 async function createSchema(pool: Pool) {
   for (const table of TABLES) {
     await pool.query(`${table} ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
   }
-
-  for (const [table, column, definition] of ADDED_COLUMNS) {
-    const [existing] = await pool.query<mysql.RowDataPacket[]>(
-      `SELECT 1 FROM information_schema.columns
-       WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?`,
-      [table, column],
-    );
-    if (existing.length === 0) {
-      await pool.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
-    }
-  }
+  await runMigrations(pool);
 }
 
 /**

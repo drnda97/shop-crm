@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { getSettings } from "@/lib/content";
 import { orderStatusLabels } from "@/lib/orders";
 import { paymentLabels } from "@/lib/settings";
 import { getCurrentUser, getUserOrders } from "@/lib/storefront/auth";
 import { getWelcomeCode } from "@/lib/storefront/catalog";
+import { getShopSettings } from "@/lib/storefront/pages";
 import { AccountPanel, type Account } from "../_components/account-panel";
 import { Footer } from "../_components/footer";
 import { Header } from "../_components/header";
 import { DS_STYLE, Photo } from "../_components/ui";
 
-export const metadata: Metadata = { title: "Demo Shop — Prijava i registracija" };
+export const metadata: Metadata = { title: "Prijava i registracija", robots: { index: false, follow: false } };
 
 /** Prijavljeni kupac sa porudžbinama iz CRM-a, ili null. */
 async function loadAccount(): Promise<Account | null> {
@@ -17,7 +17,7 @@ async function loadAccount(): Promise<Account | null> {
   if (!user) return null;
   const [orders, settings, welcomeCode] = await Promise.all([
     getUserOrders(user.id),
-    getSettings(),
+    getShopSettings(),
     getWelcomeCode(),
   ]);
   const date = new Intl.DateTimeFormat(settings.store.locale, {
@@ -43,7 +43,9 @@ async function loadAccount(): Promise<Account | null> {
 }
 
 export default async function AccountPage() {
-  const account = await loadAccount();
+  const [account, settings] = await Promise.all([loadAccount(), getShopSettings()]);
+  // Tekstovi i fotografija su iz panela: Izgled sajta → Nalog kupca.
+  const texts = settings.templates.account;
 
   return (
     <div className="ds" style={DS_STYLE}>
@@ -60,9 +62,11 @@ export default async function AccountPage() {
           }}
         >
           {/* SLIKA */}
-          <div className="ph" style={{ borderRadius: "36px", minHeight: "clamp(300px, 52vw, 760px)", color: "#FFFFFF", background: "#0A1E25" }}>
-            <Photo className="img kb" src="/shop/ds-cognac.jpg" alt="Kožna sofa sa žutim jastukom" sizes="(max-width: 900px) 100vw, 640px" preload />
-            <div style={{ position: "absolute", inset: 0, background: "rgba(8, 22, 28, .3)" }}></div>
+          <div className="ph" style={{ borderRadius: "36px", minHeight: "clamp(300px, 52vw, 760px)", color: "#FFFFFF", background: "var(--ink-deep)" }}>
+            {texts.image.src && (
+              <Photo className="img kb" src={texts.image.src} alt={texts.image.alt} sizes="(max-width: 900px) 100vw, 640px" position={texts.image.position || undefined} preload />
+            )}
+            <div style={{ position: "absolute", inset: 0, background: "color-mix(in srgb, var(--ink-deep) 30%, transparent)" }}></div>
             <div
               style={{
                 position: "absolute",
@@ -74,10 +78,8 @@ export default async function AccountPage() {
                 gap: "12px",
               }}
             >
-              <div className="display h-m a1" style={{ maxWidth: "15ch" }}>Sve vaše porudžbine na jednom mestu</div>
-              <p className="a2" style={{ color: "#DDE5E6", maxWidth: "38ch" }}>
-                Pratite isporuku, sačuvajte omiljene modele i poručite uzorke tkanina.
-              </p>
+              <div className="display h-m a1" style={{ maxWidth: "15ch" }}>{texts.imageHeading}</div>
+<p className="a2" style={{ color: "var(--on-dark-soft)", maxWidth: "38ch" }}>{texts.imageText}</p>
             </div>
           </div>
 

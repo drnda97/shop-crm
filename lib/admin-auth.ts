@@ -70,6 +70,27 @@ export async function isAdmin(): Promise<boolean> {
   return Number(expires) > Date.now();
 }
 
+const PREVIEW_SECONDS = 60 * 60 * 12;
+
+/**
+ * Žeton za pregled nesačuvanih izmena stranice na sajtu. Kolačić panela važi samo za /admin,
+ * pa uređivač sajtu šalje ovaj žeton u adresi; važi dvanaest sati i samo dok se lozinka ne promeni.
+ */
+export function previewToken(): string {
+  const expected = credentials();
+  if (!expected) return "";
+  const expires = String(Date.now() + PREVIEW_SECONDS * 1000);
+  return `${expires}.${sign(`preview:${expires}`, expected.password)}`;
+}
+
+export function isPreviewToken(token: string | undefined): boolean {
+  const expected = credentials();
+  const [expires, signature] = (token ?? "").split(".");
+  if (!expected || !expires || !signature) return false;
+  if (!safeEqual(signature, sign(`preview:${expires}`, expected.password))) return false;
+  return Number(expires) > Date.now();
+}
+
 /** Za stranice i akcije panela: ko nije prijavljen, vraća se na prijavu. */
 export async function requireAdmin() {
   if (!(await isAdmin())) redirect(ADMIN_PATH);

@@ -5,7 +5,6 @@ import {
   publicPage,
   publicProduct,
   publicStore,
-  tooManyOrders,
 } from "@/lib/api";
 import { getPricing, toLines } from "@/lib/cart";
 import { currentPrice, getCollectionProducts } from "@/lib/catalog";
@@ -18,6 +17,7 @@ import {
 } from "@/lib/content";
 import { checkCode, submitOrder } from "@/lib/order-store";
 import { parseItems } from "@/lib/orders";
+import { clientIp, TOO_MANY, tooMany } from "@/lib/rate-limit";
 import type { Settings } from "@/lib/settings";
 
 /**
@@ -70,7 +70,7 @@ export async function GET(request: Request, { params }: Context) {
   if (extra !== undefined) return notFound(request, settings);
 
   if (resource === "store" && !id) {
-    const pages = await getPages();
+    const pages = (await getPages()).filter((page) => page.published);
     return reply(request, settings, {
       ...publicStore(settings, base),
       footerPages: pages
@@ -127,7 +127,8 @@ export async function GET(request: Request, { params }: Context) {
   }
 
   if (resource === "pages") {
-    const pages = await getPages();
+    // Nacrti se ne vide.
+    const pages = (await getPages()).filter((page) => page.published);
     if (!id) {
       return reply(request, settings, {
         pages: pages.map(({ slug, title, showInFooter }) => ({ slug, title, showInFooter })),
@@ -174,17 +175,16 @@ export async function POST(request: Request, { params }: Context) {
   }
 
   if (route === "discounts/check") {
+    // Protiv nagađanja kodova.
+    if (tooMany("promo", clientIp(request.headers), 40)) {
+      return reply(request, settings, { ok: false, message: TOO_MANY }, 429);
+    }
     return reply(request, settings, await checkCode(body.code));
   }
 
   if (route === "orders") {
-    if (tooManyOrders(request)) {
-      return reply(
-        request,
-        settings,
-        { ok: false, errors: {}, message: "Previše pokušaja. Sačekajte nekoliko minuta." },
-        429,
-      );
+    if (tooMany("order", clientIp(request.headers), 10)) {
+      return reply(request, settings, { ok: false, errors: {}, message: TOO_MANY }, 429);
     }
     const result = await submitOrder(body);
     return reply(request, settings, result, result.ok ? 201 : 422);

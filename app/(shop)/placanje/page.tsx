@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/storefront/auth";
+import { getShopSettings } from "@/lib/storefront/pages";
 import { CheckoutView } from "../_components/checkout-view";
 import { DS_STYLE } from "../_components/ui";
 
-export const metadata: Metadata = { title: "Demo Shop — Plaćanje" };
+export const metadata: Metadata = { title: "Plaćanje", robots: { index: false, follow: false } };
 
 export default async function CheckoutPage() {
-  const user = await getCurrentUser();
+  const [user, settings] = await Promise.all([getCurrentUser(), getShopSettings()]);
+  const { name } = settings.store;
 
   return (
     <div className="ds" style={DS_STYLE}>
@@ -23,7 +25,8 @@ export default async function CheckoutPage() {
               <span className="hide-s">Nazad u prodavnicu</span>
             </Link>
             <Link className="logo" href="/">
-              <b></b>Demo Shop
+              <b></b>
+              {name}
             </Link>
             <span className="muted" style={{ fontSize: "15px", display: "flex", alignItems: "center", gap: "8px" }}>
               <svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="currentColor" strokeWidth="1.600" strokeLinecap="round" strokeLinejoin="round">

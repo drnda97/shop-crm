@@ -1,9 +1,9 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { templatePlaceholders } from "@/lib/email-template";
 import { fromMinor } from "@/lib/format";
-import { colorLabels, type ThemeColors } from "@/lib/settings";
 import {
   resetTemplateAction,
   saveAppearanceAction,
@@ -14,7 +14,6 @@ import {
   sendTestEmailAction,
   uploadTemplateAction,
 } from "../actions";
-import { ColorField } from "../color-field";
 import {
   buttonClass,
   cardClass,
@@ -26,6 +25,7 @@ import {
   PageHeader,
   quietButtonClass,
   Thumb,
+  textLinkClass,
 } from "../ui";
 
 type SettingsPageProps = {
@@ -45,7 +45,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   await requireAdmin();
   const { greska, ok } = await searchParams;
   // Lozinka za SMTP se namerno ne šalje u formu.
-  const { store, colors, logo, favicon, mail, shipping, payment } = await getSettings();
+  const { store, logo, favicon, mail, shipping, payment } = await getSettings();
   const previewPath = `${ADMIN_PATH}/podesavanja/pregled`;
   const decimals = store.currencyDecimals;
   const priceStep = decimals === 0 ? "1" : "0.01";
@@ -281,23 +281,15 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         </div>
         <div className={columnClass}>
           <section className={sectionClass}>
-            <h2 className={sectionTitle}>Izgled</h2>
+            <h2 className={sectionTitle}>Logo i favicon</h2>
             <p className={sectionHint}>
-              Boje i logo važe za email o porudžbini, a sajt ih dobija preko API-ja. Panel uvek
-              izgleda isto.
+              Logo se prikazuje u zaglavlju sajta i u emailu o porudžbini. Boje i fontovi su u delu{" "}
+              <Link href={`${ADMIN_PATH}/izgled`} className={textLinkClass}>
+                Izgled sajta
+              </Link>
+              .
             </p>
             <form action={saveAppearanceAction} className="flex flex-col gap-[16px]">
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(160px,100%),1fr))] gap-[16px]">
-                {(Object.keys(colorLabels) as (keyof ThemeColors)[]).map((key) => (
-                  <ColorField
-                    key={key}
-                    name={key}
-                    label={colorLabels[key]}
-                    defaultValue={colors[key]}
-                  />
-                ))}
-              </div>
-
               <div className={twoColumns}>
                 <div className={labelClass}>
                   Logo (PNG ili WebP providne pozadine)
@@ -341,7 +333,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
               <div>
                 <button type="submit" className={buttonClass}>
-                  Sačuvaj izgled
+                  Sačuvaj logo i favicon
                 </button>
               </div>
             </form>

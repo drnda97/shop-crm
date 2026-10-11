@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "./cart";
@@ -7,12 +8,12 @@ import { CartDrawer } from "./cart-drawer";
 
 export function Header({ overlay = false }: { overlay?: boolean }) {
   const [menu, setMenu] = useState(false);
-  const { count, open, openCart, closeCart } = useCart();
+  const { config, count, open, openCart, closeCart } = useCart();
 
   return (
     <header
       className={overlay ? "ds hdr over" : "ds hdr"}
-      style={{ fontFamily: "var(--sans)", color: "#0E2730", background: "transparent" }}
+      style={{ fontFamily: "var(--sans)", color: "var(--ink)", background: "transparent" }}
     >
       <div className="wrap">
         <div className="pill-nav">
@@ -23,14 +24,20 @@ export function Header({ overlay = false }: { overlay?: boolean }) {
               </svg>
             </button>
             <Link className="logo" href="/">
-              <b></b>Demo Shop
+              {config.logo ? (
+                <Image src={config.logo} alt={config.storeName} width={160} height={36} style={{ width: "auto", height: "36px" }} />
+              ) : (
+                <>
+                  <b></b>
+                  {config.storeName}
+                </>
+              )}
             </Link>
           </div>
           <nav className="nav-links" aria-label="Glavna navigacija">
-            <Link className="ul" href="/kolekcija">Kolekcija</Link>
-            <Link className="ul" href="/o-nama">O nama</Link>
-            <Link className="ul" href="/pitanja">Pitanja</Link>
-            <Link className="ul" href="/kontakt">Kontakt</Link>
+            {config.menu.map((item, index) => (
+              <Link className="ul" href={item.href} key={index}>{item.label}</Link>
+            ))}
           </nav>
           <div className="nav-right">
             <Link className="icon-btn hide-s" href="/kolekcija?pretraga=1" aria-label="Pretraga">
@@ -53,10 +60,9 @@ export function Header({ overlay = false }: { overlay?: boolean }) {
         <div className={menu ? "mnav open" : "mnav"}>
           <div>
             <nav aria-label="Meni">
-              <Link href="/kolekcija">Kolekcija</Link>
-              <Link href="/o-nama">O nama</Link>
-              <Link href="/pitanja">Česta pitanja</Link>
-              <Link href="/kontakt">Kontakt</Link>
+              {config.menu.map((item, index) => (
+                <Link href={item.href} key={index}>{item.label}</Link>
+              ))}
               <Link href="/nalog">Moj nalog</Link>
             </nav>
           </div>

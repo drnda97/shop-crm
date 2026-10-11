@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ADMIN_PATH } from "@/lib/admin-auth";
-import type { Category, Product } from "@/lib/catalog";
+import { formatOptions, type Category, type Product } from "@/lib/catalog";
 import { fromMinor, type Currency } from "@/lib/format";
 import { saveProductAction } from "./actions";
 import {
@@ -131,6 +131,77 @@ export function ProductForm({ product, categories, currency, error }: ProductFor
                   className={textareaClass}
                 />
               </label>
+            </section>
+            <section className={panelClass}>
+              <h2 className={panelTitleClass}>Opcije</h2>
+              <label className={labelClass}>
+                Šta kupac bira — jedan red po opciji, vrednosti razdvojene zarezom
+                <textarea
+                  name="options"
+                  defaultValue={formatOptions(product?.options ?? [])}
+                  placeholder={"Veličina: S, M, L\nBoja: Pesak #B9AB98, Grafit #3C4346"}
+                  className={textareaClass}
+                />
+              </label>
+              <p className="mt-[-8px] text-[14px] text-muted">
+                Izbor kupca stiže uz porudžbinu. Šifra boje (#rrggbb) iza vrednosti prikazuje je
+                kao kružić u toj boji. Cena i stanje su isti za sve opcije.
+              </p>
+            </section>
+            <section className={panelClass}>
+              <h2 className={panelTitleClass}>Istaknuti deo stranice</h2>
+              <p className="mt-[-8px] text-[14px] text-muted">
+                Tamna traka ispod podataka o proizvodu: naslov, tekst, mere i fotografija. Bez
+                naslova se ne prikazuje.
+              </p>
+              <label className={labelClass}>
+                Naslov
+                <input
+                  name="highlightHeading"
+                  maxLength={200}
+                  defaultValue={product?.highlight.heading}
+                  className={inputClass}
+                />
+              </label>
+              <label className={labelClass}>
+                Tekst
+                <textarea
+                  name="highlightText"
+                  maxLength={2000}
+                  defaultValue={product?.highlight.text}
+                  className={textareaClass}
+                />
+              </label>
+              <label className={labelClass}>
+                Mere i činjenice — jedan red po stavci, u obliku {'„Naziv: vrednost"'}
+                <textarea
+                  name="highlightSpecs"
+                  defaultValue={(product?.highlight.specs ?? [])
+                    .map((spec) => `${spec.label}: ${spec.value}`)
+                    .join("\n")}
+                  placeholder={"Širina: 72 cm\nNosivost: 130 kg"}
+                  className={textareaClass}
+                />
+              </label>
+              <div className={labelClass}>
+                Fotografija
+                <div className="flex flex-wrap items-center gap-[16px]">
+                  <Thumb src={product?.highlight.image} alt="" />
+                  <input
+                    type="file"
+                    name="highlightImage"
+                    accept={IMAGE_ACCEPT}
+                    aria-label="Fotografija istaknutog dela"
+                    className={fileClass}
+                  />
+                </div>
+                {product?.highlight.image && (
+                  <label className="flex cursor-pointer items-center gap-[10px] text-ink">
+                    <Checkbox name="highlightImageRemove" />
+                    Ukloni fotografiju
+                  </label>
+                )}
+              </div>
             </section>
           </div>
           <div className={stackClass}>

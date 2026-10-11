@@ -1,0 +1,175 @@
+import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
+import { DEFAULT_PAGES } from "@/lib/default-pages";
+import { normalizeSections } from "@/lib/sections";
+
+/**
+ * Izmene šeme baze posle prve verzije. Tabele iz lib/db.ts (TABLES) su polazno stanje i
+ * više se ne menjaju: svaka nova kolona, tabela ili prepis podataka je nova migracija ovde.
+ *
+ * Pri pokretanju se izvrše redom one koje ova baza još nema; šta je izvršeno piše u tabeli
+ * schema_migrations. Tako i nova i postojeća prodavnica stignu do iste šeme, bez gubitka podataka.
+ *
+ * Pravila:
+ * - Nova migracija ide na kraj, sa sledećim brojem. Jednom objavljena se ne menja i ne briše.
+ * - MySQL ne vraća izmene šeme pri grešci, pa jedna migracija treba da radi jednu stvar:
+ *   ako stane na pola, ostatak se ispravlja ručno.
+ */
+export type Migration = {
+  id: number;
+  /** Kratak opis, za tabelu schema_migrations. */
+  name: string;
+  up: (connection: PoolConnection) => Promise<void>;
+};
+
+export const MIGRATIONS: Migration[] = [
+  {
+    id: 1,
+    name: "stranice: sekcije, SEO i nacrt",
+    up: async (connection) => {
+      await connection.query(
+        `ALTER TABLE pages
+          ADD COLUMN sections MEDIUMTEXT NULL,
+          ADD COLUMN seo_title VARCHAR(255) NOT NULL DEFAULT '',
+          ADD COLUMN seo_description VARCHAR(500) NOT NULL DEFAULT '',
+          ADD COLUMN published TINYINT(1) NOT NULL DEFAULT 1`,
+      );
+    },
+  },
+  {
+    id: 2,
+    name: "stranice: tekst i fotografije iz prve verzije postaju sekcije",
+    up: async (connection) => {
+      const [pages] = await connection.query<RowDataPacket[]>(
+        "SELECT slug, body FROM pages WHERE sections IS NULL",
+      );
+      const [images] = await connection.query<RowDataPacket[]>(
+        "SELECT page_slug, src, alt FROM page_images ORDER BY position",
+      );
+      for (const page of pages) {
+        const sections = normalizeSections([
+          { id: "text", type: "text", data: { heading: "", body: page.body } },
+          ...images
+            .filter((image) => image.page_slug === page.slug)
+            .map((image) => ({
+              id: "photo",
+              type: "photo",
+              data: { image: { src: image.src, alt: image.alt } },
+            })),
+        ]);
+        await connection.query("UPDATE pages SET sections = ? WHERE slug = ?", [
+          JSON.stringify(sections),
+          page.slug,
+        ]);
+      }
+    },
+  },
+  {
+    id: 3,
+    name: "stranice: početni sadržaj sajta",
+    up: async (connection) => {
+      const [rows] = await connection.query<RowDataPacket[]>(
+        "SELECT slug, position FROM pages",
+      );
+      const taken = new Set(rows.map((row) => row.slug as string));
+      let position = Math.max(-1, ...rows.map((row) => Number(row.position)));
+      // Stranica koju je vlasnik već napravio pod istom adresom ostaje njegova.
+      for (const page of DEFAULT_PAGES.filter((candidate) => !taken.has(candidate.slug))) {
+        position += 1;
+        await connection.query(
+          `INSERT INTO pages (slug, position, title, body, show_in_footer, sections, seo_title,
+            seo_description, published) VALUES (?, ?, ?, '', ?, ?, ?, ?, ?)`,
+          [
+            page.slug,
+            position,
+            page.title,
+            page.showInFooter,
+            JSON.stringify(page.sections),
+            page.seoTitle,
+            page.seoDescription,
+            page.published,
+          ],
+        );
+      }
+    },
+  },
+  {
+    id: 4,
+    name: "proizvodi: opcije i istaknuti deo stranice",
+    up: async (connection) => {
+      await connection.query(
+        "ALTER TABLE products ADD COLUMN options TEXT NULL, ADD COLUMN highlight TEXT NULL",
+      );
+    },
+  },
+  {
+    id: 5,
+    name: "podešavanja: boje iz prve verzije ustupaju mesto bojama teme",
+    up: async (connection) => {
+      // Do sada su boje važile samo za email, sa plavim akcentom kao početnom vrednošću. Od sada
+      // boje sajt i email, pa netaknuta početna paleta prelazi na boje teme; izmenjena ostaje.
+      const [rows] = await connection.query<RowDataPacket[]>(
+        "SELECT value FROM settings WHERE name = 'settings'",
+      );
+      if (rows.length === 0) return;
+      const settings = JSON.parse(rows[0].value);
+      const old = { background: "#ffffff", surface: "#f4f4f2", text: "#1b1b1f", accent: "#2f5bd7" };
+      const untouched = Object.entries(old).every(
+        ([key, value]) => String(settings.colors?.[key] ?? value).toLowerCase() === value,
+      );
+      if (!untouched) return;
+      delete settings.colors;
+      await connection.query("UPDATE settings SET value = ? WHERE name = 'settings'", [
+        JSON.stringify(settings),
+      ]);
+    },
+  },
+];
+
+// GET_LOCK važi za ceo MySQL server, pa ime sadrži i bazu (najviše 64 znaka).
+const LOCK_NAME = `shopcrm-migrations:${process.env.DB_NAME ?? ""}`.slice(0, 64);
+
+/** Migracije koje baza još nema, redom po broju. */
+export function pendingMigrations(migrations: Migration[], applied: Set<number>): Migration[] {
+  const ids = new Set<number>();
+  for (const { id } of migrations) {
+    if (!Number.isInteger(id) || id < 1) throw new Error(`Migracija ima neispravan broj: ${id}.`);
+    if (ids.has(id)) throw new Error(`Dve migracije imaju isti broj: ${id}.`);
+    ids.add(id);
+  }
+  return migrations.filter((migration) => !applied.has(migration.id)).sort((a, b) => a.id - b.id);
+}
+
+export async function runMigrations(pool: Pool, migrations: Migration[] = MIGRATIONS) {
+  const connection = await pool.getConnection();
+  try {
+    await connection.query(
+      `CREATE TABLE IF NOT EXISTS schema_migrations (
+        id INT NOT NULL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        applied_at DATETIME(3) NOT NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    );
+    // Zaključavanje na nivou baze: dva procesa pokrenuta u istom trenutku ne izvršavaju istu migraciju.
+    const [lock] = await connection.query<RowDataPacket[]>("SELECT GET_LOCK(?, 30) AS locked", [
+      LOCK_NAME,
+    ]);
+    if (Number(lock[0]?.locked) !== 1) {
+      throw new Error("Migracije baze su zauzete u drugom procesu. Pokušajte ponovo.");
+    }
+    try {
+      const [rows] = await connection.query<RowDataPacket[]>("SELECT id FROM schema_migrations");
+      const applied = new Set(rows.map((row) => Number(row.id)));
+      for (const migration of pendingMigrations(migrations, applied)) {
+        await migration.up(connection);
+        await connection.query(
+          "INSERT INTO schema_migrations (id, name, applied_at) VALUES (?, ?, ?)",
+          [migration.id, migration.name, new Date()],
+        );
+      }
+    } finally {
+      await connection.query("SELECT RELEASE_LOCK(?)", [LOCK_NAME]);
+    }
+  } finally {
+    connection.release();
+  }
+}

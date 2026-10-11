@@ -1,0 +1,44 @@
+import Link from "next/link";
+import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
+import { getSettings } from "@/lib/content";
+import { THEME_FIELDS } from "@/lib/site";
+import { PageHeader, textLinkClass } from "../ui";
+import { editorOptions, HOME_PREVIEW, previewUrl, tabs } from "./parts";
+import { SettingsEditor } from "./settings-editor";
+
+export default async function ThemePage() {
+  await requireAdmin();
+  const [settings, all] = await Promise.all([getSettings(), editorOptions()]);
+  const options = { collections: all.collections, products: all.products, links: all.links, media: all.media };
+
+  return (
+    <>
+      <PageHeader
+        title="Izgled sajta"
+        hint={
+          <>
+            Boje, fontovi, meni, podnožje i tekstovi na stranicama prodavnice. Stranice od sekcija (početna,
+            o nama…) su u delu{" "}
+            <Link href={`${ADMIN_PATH}/stranice`} className={textLinkClass}>
+              Stranice
+            </Link>
+            , a naziv prodavnice i logo u{" "}
+            <Link href={`${ADMIN_PATH}/podesavanja`} className={textLinkClass}>
+              Podešavanjima
+            </Link>
+            .
+          </>
+        }
+      />
+      <SettingsEditor
+        tabs={tabs("tema")}
+        target={{ part: "theme" }}
+        hint="Četiri boje i dva fonta. Nijanse, tekst na tamnim sekcijama i tekst na dugmadima sajt računa sam, da ostane čitljiv. Boje važe i za email o porudžbini."
+        fields={THEME_FIELDS}
+        value={{ ...settings.colors, fontDisplay: settings.fonts.display, fontBody: settings.fonts.body }}
+        previewUrl={previewUrl(HOME_PREVIEW)}
+        options={options}
+      />
+    </>
+  );
+}

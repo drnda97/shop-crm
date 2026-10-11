@@ -37,6 +37,7 @@ type Totals = { subtotal: number; discount: number; promoCode: string; pickup: b
 
 export function CheckoutView({ user }: { user: User | null }) {
   const { config, items, count, subtotal, clear } = useCart();
+  const texts = config.texts.checkout;
   const [fields, setFields] = useState<Fields>({
     email: user?.email ?? "",
     phone: "",
@@ -115,12 +116,12 @@ export function CheckoutView({ user }: { user: User | null }) {
       <form onSubmit={submit} noValidate style={{ flex: "999 1 520px", minWidth: 0, display: "flex", flexDirection: "column", gap: "44px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
           <h1 className="display h-l">
-            <span className="ln"><span>Završite porudžbinu</span></span>
+            <span className="ln"><span>{texts.heading}</span></span>
           </h1>
           <ol className="a1" style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexWrap: "wrap", gap: "8px" }}>
             <li className="chip on" style={{ display: "flex", alignItems: "center", cursor: "default", color: "#FFFFFF" }}>1. Podaci</li>
-            <li className="chip" style={{ display: "flex", alignItems: "center", cursor: "default", color: "#56666B" }}>2. Dostava</li>
-            <li className="chip" style={{ display: "flex", alignItems: "center", cursor: "default", color: "#56666B" }}>3. Plaćanje</li>
+            <li className="chip" style={{ display: "flex", alignItems: "center", cursor: "default", color: "var(--soft)" }}>2. Dostava</li>
+            <li className="chip" style={{ display: "flex", alignItems: "center", cursor: "default", color: "var(--soft)" }}>3. Plaćanje</li>
           </ol>
         </div>
 
@@ -160,9 +161,9 @@ export function CheckoutView({ user }: { user: User | null }) {
           <label className="opt">
             <input type="radio" name="ship" checked={!pickup} onChange={() => setPickup(false)} />
             <span style={{ flex: 1 }}>
-              <strong style={strong}>Dostava sa unošenjem i montažom</strong>
+              <strong style={strong}>{texts.deliveryLabel}</strong>
               <br />
-              <span className="muted" style={hint}>5 do 10 radnih dana, termin dogovaramo telefonom</span>
+              <span className="muted" style={hint}>{texts.deliveryHint}</span>
             </span>
             <span style={strong}>{ship.price === 0 ? "Besplatno" : formatPrice(ship.price)}</span>
           </label>
@@ -170,9 +171,9 @@ export function CheckoutView({ user }: { user: User | null }) {
             <label className="opt">
               <input type="radio" name="ship" checked={pickup} onChange={() => setPickup(true)} />
               <span style={{ flex: 1 }}>
-                <strong style={strong}>Preuzimanje u salonu</strong>
+                <strong style={strong}>{texts.pickupLabel}</strong>
                 <br />
-                <span className="muted" style={hint}>[ADRESA SALONA], spremno za 3 radna dana</span>
+                <span className="muted" style={hint}>{texts.pickupHint}</span>
               </span>
               <span style={strong}>Besplatno</span>
             </label>
@@ -203,7 +204,7 @@ export function CheckoutView({ user }: { user: User | null }) {
             Potvrdi porudžbinu, {formatPrice(total)}
           </button>
           <p className="muted" style={{ fontSize: "14px", textAlign: "center" }}>
-            Potvrdom prihvatate <Link href="/pitanja">uslove kupovine</Link>. Povrat je moguć u roku od 30 dana.
+            Potvrdom prihvatate <Link href={texts.termsHref || "/"}>uslove kupovine</Link>. {texts.termsNote}
           </p>
         </div>
       </form>
@@ -238,7 +239,7 @@ export function CheckoutView({ user }: { user: User | null }) {
                     applyPromo();
                   }
                 }}
-                style={{ background: "#FFFFFF" }}
+                style={{ background: "var(--paper)" }}
               />
             </div>
             <button className="btn ghost" type="button" onClick={applyPromo} disabled={pending} style={{ minHeight: "56px", padding: "0 22px" }}>
@@ -254,7 +255,7 @@ export function CheckoutView({ user }: { user: User | null }) {
         </div>
 
         {config.freeFrom !== null && (
-          <div style={{ background: "#FFFFFF", borderRadius: "18px", padding: "16px 18px" }}>
+          <div style={{ background: "var(--paper)", borderRadius: "18px", padding: "16px 18px" }}>
             {ship.isFree ? (
               <div style={{ fontSize: "15px", display: "flex", alignItems: "center", gap: "10px" }}>
                 <CheckIcon />
@@ -283,7 +284,7 @@ function Lines({ items }: { items: CartItem[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
       {items.map((it) => (
-        <div style={{ display: "flex", gap: "14px", alignItems: "center", background: "#FFFFFF", borderRadius: "20px", padding: "10px 16px 10px 10px" }} key={cartKey(it)}>
+        <div style={{ display: "flex", gap: "14px", alignItems: "center", background: "var(--paper)", borderRadius: "20px", padding: "10px 16px 10px 10px" }} key={cartKey(it)}>
           <div className="ph" style={{ width: "72px", height: "84px", flexShrink: 0, borderRadius: "14px" }}>
             {it.image && <Photo src={it.image} alt="" sizes="72px" />}
           </div>
@@ -301,6 +302,8 @@ function Lines({ items }: { items: CartItem[] }) {
 }
 
 function TotalRows({ subtotal, discount, promoCode, pickup, delivery, total }: Totals) {
+  const texts = useCart().config.texts.checkout;
+  const { priceNote } = texts;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "16px" }}>
       <div style={row}>
@@ -314,7 +317,7 @@ function TotalRows({ subtotal, discount, promoCode, pickup, delivery, total }: T
         </div>
       )}
       <div style={row}>
-        <span className="muted">{pickup ? "Preuzimanje u salonu" : "Dostava sa montažom"}</span>
+        <span className="muted">{pickup ? texts.pickupLabel : texts.deliveryLabel}</span>
         <span>{delivery === 0 ? (pickup ? "Besplatno" : "Besplatna") : formatPrice(delivery)}</span>
       </div>
       <hr className="rule" style={{ margin: "6px 0" }} />
@@ -322,27 +325,28 @@ function TotalRows({ subtotal, discount, promoCode, pickup, delivery, total }: T
         <span className="lab">Ukupno</span>
         <span className="display" style={{ fontSize: "32px" }}>{formatPrice(total)}</span>
       </div>
-      <div className="muted" style={{ fontSize: "14px", textAlign: "right" }}>PDV je uračunat u cenu</div>
+      {priceNote && <div className="muted" style={{ fontSize: "14px", textAlign: "right" }}>{priceNote}</div>}
     </div>
   );
 }
 
 /** Potvrda posle porudžbine, sa obračunom iz CRM-a. U dizajnu ne postoji, pa je složena od postojećih elemenata. */
 function Confirmation({ order, lines }: { order: PlacedOrder; lines: CartItem[] }) {
+  const texts = useCart().config.texts.checkout;
   return (
     <div className="wrap" style={wrapStyle}>
       <div style={{ flex: "999 1 520px", minWidth: 0, display: "flex", flexDirection: "column", gap: "22px", alignItems: "flex-start" }}>
-        <span className="icon-c a1" style={{ background: "#E3A72F" }}>
+        <span className="icon-c a1" style={{ background: "var(--gold)" }}>
           <CheckIcon />
         </span>
         <h1 className="display h-l">
           <span className="ln"><span>Hvala na porudžbini</span></span>
         </h1>
         <p className="lead a1">
-          Porudžbina broj <strong style={{ color: "#0E2730" }}>{order.number}</strong> je primljena, {order.firstName}.{" "}
+          Porudžbina broj <strong style={{ color: "var(--ink)" }}>{order.number}</strong> je primljena, {order.firstName}.{" "}
           {order.pickup
-            ? "Preuzimanje u salonu: [ADRESA SALONA], spremno za 3 radna dana."
-            : "Isporuka za 5 do 10 radnih dana, termin dogovaramo telefonom."}{" "}
+            ? texts.thanksPickup
+            : texts.thanksDelivery}{" "}
           {order.paymentMethod === "cod" ? "Plaćate pri isporuci." : "Plaćate uplatom na račun."}
         </p>
         {order.paymentInstructions && (

@@ -1,11 +1,15 @@
-import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readdir, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { cache } from "react";
-import type { Category, Collection, Page, Product } from "@/lib/catalog";
+import { emptyHighlight, type Category, type Collection, type Page, type Product } from "@/lib/catalog";
 import { getDb } from "@/lib/db";
 import type { Discount } from "@/lib/discounts";
+import { detectImage, makeSizes, type ImageFile } from "@/lib/images";
+import { IMAGE_WIDTHS, sizedSrc, VARIANT_FILE } from "@/lib/media";
+import { collectImages, normalizeSections, sectionType } from "@/lib/sections";
 import { mergeSettings, type Settings } from "@/lib/settings";
+import { TEMPLATES } from "@/lib/templates";
 
 /**
  * Sadržaj koji se menja iz admin panela: proizvodi, kategorije, kolekcije,
@@ -23,7 +27,7 @@ export const UPLOADS_DIR =
 
 /** Javna putanja pod kojom app/media/[file]/route.ts služi ubačene slike. */
 const MEDIA_PREFIX = "/media/";
-export const MEDIA_FILE_PATTERN = /^[a-z0-9-]+\.(jpg|png|webp)$/;
+export const MEDIA_FILE_PATTERN = /^[a-z0-9-]+\.(jpg|png|webp|svg)$/;
 
 export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 
@@ -44,7 +48,6 @@ const CONTENT_TABLES = [
   "collections",
   "collection_products",
   "pages",
-  "page_images",
   "discounts",
 ];
 
@@ -57,7 +60,6 @@ async function loadContent(db: Pool | PoolConnection): Promise<Content> {
   const collections = await select("SELECT * FROM collections ORDER BY position");
   const collectionProducts = await select("SELECT * FROM collection_products ORDER BY position");
   const pages = await select("SELECT * FROM pages ORDER BY position");
-  const pageImages = await select("SELECT * FROM page_images ORDER BY position");
   const discounts = await select("SELECT * FROM discounts ORDER BY position");
   const settings = await select("SELECT value FROM settings WHERE name = 'settings'");
   const saved = settings.length > 0 ? (JSON.parse(settings[0].value) as Partial<Settings>) : {};
@@ -83,6 +85,8 @@ async function loadContent(db: Pool | PoolConnection): Promise<Content> {
       gallery: productImages
         .filter((image) => image.product_slug === row.slug)
         .map((image) => image.src),
+      options: JSON.parse(row.options ?? "[]"),
+      highlight: { ...emptyHighlight, ...JSON.parse(row.highlight ?? "{}") },
     })),
     categories: categories.map((row) => ({ id: row.id, label: row.label })),
     collections: collections.map((row) => ({
@@ -96,11 +100,11 @@ async function loadContent(db: Pool | PoolConnection): Promise<Content> {
     pages: pages.map((row) => ({
       slug: row.slug,
       title: row.title,
-      body: row.body,
+      sections: normalizeSections(JSON.parse(row.sections ?? "[]")),
+      seoTitle: row.seo_title,
+      seoDescription: row.seo_description,
+      published: row.published === 1,
       showInFooter: row.show_in_footer === 1,
-      images: pageImages
-        .filter((image) => image.page_slug === row.slug)
-        .map((image) => ({ id: image.id, src: image.src, alt: image.alt })),
     })),
     discounts: discounts.map((row) => ({
       id: row.id,
@@ -128,7 +132,7 @@ async function storeContent(connection: PoolConnection, content: Content) {
     connection,
     `INSERT INTO products (slug, position, name, sku, category, active, summary, description,
       attributes, price, sale_price, weight, in_stock, stock_qty, low_stock_mode,
-      low_stock_threshold, image) VALUES ?`,
+      low_stock_threshold, image, options, highlight) VALUES ?`,
     content.products.map((product, index) => [
       product.slug,
       index,
@@ -147,6 +151,8 @@ async function storeContent(connection: PoolConnection, content: Content) {
       product.lowStockMode,
       product.lowStockThreshold,
       product.image ?? null,
+      JSON.stringify(product.options),
+      JSON.stringify(product.highlight),
     ]),
   );
   await insertRows(
@@ -173,23 +179,22 @@ async function storeContent(connection: PoolConnection, content: Content) {
       [...new Set(item.productSlugs)].map((slug, index) => [item.id, slug, index]),
     ),
   );
+  // Kolona body je iz prve verzije (tekst bez sekcija); ostaje prazna.
   await insertRows(
     connection,
-    "INSERT INTO pages (slug, position, title, body, show_in_footer) VALUES ?",
+    `INSERT INTO pages (slug, position, title, body, show_in_footer, sections, seo_title,
+      seo_description, published) VALUES ?`,
     content.pages.map((page, index) => [
       page.slug,
       index,
       page.title,
-      page.body,
+      "",
       page.showInFooter,
+      JSON.stringify(page.sections),
+      page.seoTitle,
+      page.seoDescription,
+      page.published,
     ]),
-  );
-  await insertRows(
-    connection,
-    "INSERT INTO page_images (page_slug, id, position, src, alt) VALUES ?",
-    content.pages.flatMap((page) =>
-      page.images.map((image, index) => [page.slug, image.id, index, image.src, image.alt]),
-    ),
   );
   await insertRows(
     connection,
@@ -314,28 +319,26 @@ export async function getDiscounts(): Promise<Discount[]> {
   return (await readContent()).discounts;
 }
 
-/** Tip se čita iz početnih bajtova fajla, ne iz imena ni iz onoga što javi pregledač. */
-function detectExtension(bytes: Buffer): "jpg" | "png" | "webp" | null {
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpg";
-  if (bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
-    return "png";
-  }
-  if (
-    bytes.subarray(0, 4).toString("ascii") === "RIFF" &&
-    bytes.subarray(8, 12).toString("ascii") === "WEBP"
-  ) {
-    return "webp";
-  }
-  return null;
-}
-
 export type UploadResult = { ok: true; src: string } | { ok: false; error: string };
 
+type UploadOptions = {
+  /**
+   * Čuva fajl kakav jeste, bez pretvaranja u WebP. Za logo i favicon: logo ide i u email,
+   * a neki programi za poštu ne prikazuju WebP.
+   */
+  original?: boolean;
+};
+
 /**
- * Čuva ubačenu sliku u storage/uploads i vraća njenu javnu putanju.
+ * Čuva ubačenu sliku u storage/uploads i vraća njenu javnu putanju. Fotografija se pretvara
+ * u WebP u više širina (lib/images.ts); SVG se čuva kakav jeste.
  * Svaka slika dobija novo ime, pa pregledač nikad ne prikaže staru iz keša.
  */
-export async function saveUpload(file: File, name: string): Promise<UploadResult> {
+export async function saveUpload(
+  file: File,
+  name: string,
+  options: UploadOptions = {},
+): Promise<UploadResult> {
   if (file.size > MAX_IMAGE_BYTES) {
     return {
       ok: false,
@@ -343,17 +346,28 @@ export async function saveUpload(file: File, name: string): Promise<UploadResult
     };
   }
   const bytes = Buffer.from(await file.arrayBuffer());
-  const extension = detectExtension(bytes);
-  if (!extension) {
-    return { ok: false, error: "Slika mora biti JPG, PNG ili WebP." };
+  const kind = detectImage(bytes);
+  if (!kind) {
+    return { ok: false, error: "Slika mora biti JPG, PNG, WebP ili SVG." };
   }
 
   // Vreme i nasumičan dodatak: više slika ubačenih u istom trenutku ne dobija isto ime.
   const unique = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-  const fileName = `${name}-${unique}.${extension}`;
+  const base = `${name}-${unique}`;
+  let files: ImageFile[];
+  if (kind === "svg" || options.original) {
+    files = [{ name: `${base}.${kind}`, data: bytes }];
+  } else {
+    try {
+      files = await makeSizes(bytes, base);
+    } catch {
+      return { ok: false, error: "Slika je oštećena ili nije u ispravnom formatu." };
+    }
+  }
+
   await mkdir(UPLOADS_DIR, { recursive: true });
-  await writeFile(path.join(UPLOADS_DIR, fileName), bytes);
-  return { ok: true, src: `${MEDIA_PREFIX}${fileName}` };
+  for (const item of files) await writeFile(path.join(UPLOADS_DIR, item.name), item.data);
+  return { ok: true, src: `${MEDIA_PREFIX}${files[0].name}` };
 }
 
 /** Putanja na disku do ubačene slike, ili null ako `src` nije iz storage/uploads. */
@@ -363,8 +377,62 @@ export function uploadPath(src: string | undefined): string | null {
   return MEDIA_FILE_PATTERN.test(fileName) ? path.join(UPLOADS_DIR, fileName) : null;
 }
 
-/** Briše ubačenu sliku koja se više ne koristi. */
+/**
+ * Briše ubačenu sliku, osim ako je sadržaj još koristi: ista slika iz biblioteke može
+ * biti i na proizvodu i u sekciji stranice. Poziva se posle izmene sadržaja, pa se
+ * upotreba čita iz baze iznova, ne iz keša zahteva.
+ */
 export async function removeUpload(src: string | undefined) {
   const file = uploadPath(src);
-  if (file) await unlink(file).catch(() => {});
+  if (!file || !src) return;
+  if (usedImages(await loadContent(await getDb())).has(src)) return;
+  await unlink(file).catch(() => {});
+  // Manje veličine iste slike.
+  for (const width of IMAGE_WIDTHS) {
+    const sized = uploadPath(sizedSrc(src, width));
+    if (sized && sized !== file) await unlink(sized).catch(() => {});
+  }
+}
+
+export type MediaFile = { src: string; bytes: number; addedAt: number };
+
+/** Sve ubačene slike (biblioteka slika u panelu), najnovije prve. */
+export async function listUploads(): Promise<MediaFile[]> {
+  const names = await readdir(UPLOADS_DIR).catch(() => [] as string[]);
+  const files = await Promise.all(
+    names
+      // Manje veličine nisu posebne slike u biblioteci.
+      .filter((name) => MEDIA_FILE_PATTERN.test(name) && !VARIANT_FILE.test(name))
+      .map(async (name) => {
+        const info = await stat(path.join(UPLOADS_DIR, name));
+        return { src: `${MEDIA_PREFIX}${name}`, bytes: info.size, addedAt: info.mtimeMs };
+      }),
+  );
+  return files.sort((a, b) => b.addedAt - a.addedAt);
+}
+
+function usedImages({ products, pages, settings }: Content): Set<string> {
+  const used = new Set<string>();
+  for (const product of products) {
+    if (product.image) used.add(product.image);
+    if (product.highlight.image) used.add(product.highlight.image);
+    for (const src of product.gallery) used.add(src);
+  }
+  for (const item of TEMPLATES) {
+    for (const image of collectImages(item.fields, settings.templates[item.id])) used.add(image.src);
+  }
+  for (const page of pages) {
+    for (const section of page.sections) {
+      const fields = sectionType(section.type)?.fields ?? [];
+      for (const image of collectImages(fields, section.data)) used.add(image.src);
+    }
+  }
+  if (settings.logo) used.add(settings.logo);
+  if (settings.favicon) used.add(settings.favicon);
+  return used;
+}
+
+/** Putanje slika koje sadržaj trenutno koristi: proizvodi, stranice, logo i favicon. */
+export async function getUsedImages(): Promise<Set<string>> {
+  return usedImages(await readContent());
 }

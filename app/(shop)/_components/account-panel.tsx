@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition, type CSSProperties, type FormEvent } from "react";
 import { countLabel, formatPrice } from "@/lib/storefront/products";
 import { loginAction, logoutAction, registerAction, type RegisterErrors } from "../actions";
+import { useCart } from "./cart";
 import { ERROR_STYLE, Field } from "./field";
 
 /** Prijavljeni kupac, kako ga stranica naloga pročita iz CRM-a. */
@@ -26,7 +27,7 @@ export type Account = {
 
 const formStyle: CSSProperties = { display: "flex", flexDirection: "column", gap: "22px", animationDelay: "0s" };
 const headStyle: CSSProperties = { display: "flex", flexDirection: "column", gap: "8px" };
-const checkStyle: CSSProperties = { width: "18px", height: "18px", accentColor: "#0E2730" };
+const checkStyle: CSSProperties = { width: "18px", height: "18px", accentColor: "var(--ink)" };
 
 /** Desna kolona stranice naloga: prijava i registracija, a posle prijave pregled naloga. */
 export function AccountPanel({ account }: { account: Account | null }) {
@@ -55,6 +56,7 @@ export function AccountPanel({ account }: { account: Account | null }) {
 }
 
 function LoginForm({ toReg }: { toReg: () => void }) {
+  const texts = useCart().config.texts.account;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [email, setEmail] = useState("");
@@ -74,8 +76,8 @@ function LoginForm({ toReg }: { toReg: () => void }) {
   return (
     <form className="a1" style={formStyle} onSubmit={submit} noValidate>
       <div style={headStyle}>
-        <h1 className="display h-l">Dobro došli nazad</h1>
-        <p className="muted">Prijavite se da biste pratili porudžbine i sačuvane modele.</p>
+        <h1 className="display h-l">{texts.loginHeading}</h1>
+        <p className="muted">{texts.loginText}</p>
       </div>
       <Field id="l-email" label="Email adresa" type="email" autoComplete="email" placeholder="ime@primer.rs" value={email} onChange={(e) => { setEmail(e.target.value); setError(""); }} />
       <Field id="l-pass" label="Lozinka" type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} />
@@ -92,7 +94,7 @@ function LoginForm({ toReg }: { toReg: () => void }) {
       </button>
       <p className="muted" style={{ fontSize: "15px", textAlign: "center" }}>
         Nemate nalog?{" "}
-        <button className="txt-btn" type="button" onClick={toReg} style={{ color: "#0E2730", fontSize: "15px" }}>
+        <button className="txt-btn" type="button" onClick={toReg} style={{ color: "var(--ink)", fontSize: "15px" }}>
           Registrujte se
         </button>
       </p>
@@ -101,6 +103,7 @@ function LoginForm({ toReg }: { toReg: () => void }) {
 }
 
 function RegisterForm() {
+  const texts = useCart().config.texts.account;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [fields, setFields] = useState({ firstName: "", lastName: "", email: "", password: "" });
@@ -123,8 +126,8 @@ function RegisterForm() {
   return (
     <form className="a1" style={formStyle} onSubmit={submit} noValidate>
       <div style={headStyle}>
-        <h1 className="display h-l">Napravite nalog</h1>
-        <p className="muted">Brža kupovina, praćenje isporuke i 10% popusta na prvu porudžbinu.</p>
+        <h1 className="display h-l">{texts.registerHeading}</h1>
+        <p className="muted">{texts.registerText}</p>
       </div>
       <div className="fgrid">
         <Field id="r-name" label="Ime" type="text" autoComplete="given-name" value={fields.firstName} onChange={set("firstName")} error={errors.firstName} />
@@ -138,7 +141,7 @@ function RegisterForm() {
       </label>
       <button className="btn full" type="submit" disabled={pending}>Napravi nalog</button>
       <p className="muted" style={{ fontSize: "14px", textAlign: "center" }}>
-        Registracijom prihvatate <Link href="/pitanja">uslove korišćenja</Link> i <Link href="/pitanja">politiku privatnosti</Link>.
+        Registracijom prihvatate <Link href={texts.termsHref || "/"}>uslove korišćenja</Link> i <Link href={texts.privacyHref || "/"}>politiku privatnosti</Link>.
       </p>
     </form>
   );

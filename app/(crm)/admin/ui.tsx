@@ -1,5 +1,5 @@
-import Image from "next/image";
 import type { ReactNode } from "react";
+import { sizedSrc } from "@/lib/media";
 
 /** Zajednički stilovi i sitni delovi admin panela. */
 
@@ -11,7 +11,7 @@ export const buttonClass =
   "inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-full bg-ink px-[26px] font-display text-[15px] font-bold whitespace-nowrap text-paper transition-[background-color,box-shadow,scale] duration-500 ease-shop hover:bg-ink-2 hover:text-paper hover:shadow-lift active:scale-[.98] disabled:cursor-default disabled:opacity-60";
 /** Sporedno dugme: pilula sa tankim okvirom. */
 export const quietButtonClass =
-  "inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-full px-[22px] font-display text-[14px] font-bold whitespace-nowrap text-ink shadow-[inset_0_0_0_1.5px_var(--color-line-strong)] transition-[background-color,box-shadow,scale] duration-500 ease-shop hover:bg-band hover:text-ink hover:shadow-[inset_0_0_0_1.5px_var(--color-ink)] active:scale-[.98]";
+  "inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-full px-[22px] font-display text-[14px] font-bold whitespace-nowrap text-ink shadow-[inset_0_0_0_1.5px_var(--color-line-strong)] transition-[background-color,box-shadow,scale] duration-500 ease-shop hover:bg-band hover:text-ink hover:shadow-[inset_0_0_0_1.5px_var(--color-ink)] active:scale-[.98] disabled:cursor-default disabled:opacity-50";
 export const fileClass =
   "max-w-full font-sans text-[14px] font-normal text-muted file:mr-[12px] file:min-h-[40px] file:cursor-pointer file:rounded-full file:border-0 file:bg-band file:px-[18px] file:font-display file:text-[14px] file:font-bold file:text-ink";
 export const cardClass = "rounded-[26px] bg-white p-[24px] shadow-soft";
@@ -36,8 +36,8 @@ export const textLinkClass =
 export const rowClass =
   "flex flex-wrap items-center gap-[16px] border-t border-line py-[12px] first:border-t-0";
 
-export const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp";
-export const IMAGE_HINT = "JPG, PNG ili WebP, do 15 MB";
+export const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/svg+xml";
+export const IMAGE_HINT = "JPG, PNG, WebP ili SVG, do 15 MB";
 
 type PageHeaderProps = {
   title: string;
@@ -154,13 +154,14 @@ export function Thumb({
     );
   }
   return (
-    <Image
-      src={src}
+    // Sličica je najmanja veličina slike; stare slike i SVG se prikazuju kakvi jesu.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={sizedSrc(src, 320)}
       alt={alt}
       width={64}
       height={80}
-      // SVG (podrazumevani favicon) ne prolazi kroz optimizaciju slika.
-      unoptimized={src.endsWith(".svg")}
+      loading="lazy"
       className={`${contain ? "object-contain p-[6px]" : "object-cover"} ${frame}`}
     />
   );

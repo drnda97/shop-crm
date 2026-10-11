@@ -33,7 +33,7 @@ export function CollectionGrid({ initialCategory, search }: { initialCategory: s
           <input
             id="search"
             type="search"
-            placeholder="Naziv, kategorija ili tkanina"
+            placeholder={config.texts.collection.searchPlaceholder}
             autoFocus
             value={query}
             onChange={(event) => {
@@ -92,7 +92,7 @@ export function CollectionGrid({ initialCategory, search }: { initialCategory: s
             <span className="muted" style={{ fontSize: "15px" }}>
               Prikazano {shown} od {countLabel(n)}
             </span>
-            <div style={{ width: "220px", height: "6px", borderRadius: "3px", background: "#E7E9E4", position: "relative", overflow: "hidden" }}>
+            <div style={{ width: "220px", height: "6px", borderRadius: "3px", background: "var(--mist-2)", position: "relative", overflow: "hidden" }}>
               <div
                 style={{
                   position: "absolute",
@@ -101,7 +101,7 @@ export function CollectionGrid({ initialCategory, search }: { initialCategory: s
                   bottom: 0,
                   width: Math.round((shown / n) * 100) + "%",
                   borderRadius: "3px",
-                  background: "#0E2730",
+                  background: "var(--ink)",
                 }}
               ></div>
             </div>

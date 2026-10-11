@@ -10,7 +10,7 @@ Merilo da je gotovo: vlasnik prodavnice koji ne zna da programira može da posta
 
 Radi: proizvodi, kategorije, kolekcije, porudžbine sa statusima, kupci, poruke, promo kodovi i nagrade, email potvrde, pouzeće i uplata na račun, javni API i `sdk.js`, demo prodavnica sa korpom, plaćanjem i nalozima kupaca.
 
-Najveća rupa u odnosu na cilj: **sadržaj demo prodavnice je upisan u kod.** Hero, prednosti, prostorije, utisci, cela stranica „O nama", pitanja, meni u zaglavlju i naziv „Demo Shop" su u `app/(shop)/`. Deo „Stranice" u panelu postoji, ali ga prodavnica ne čita. Iz panela se danas menjaju samo proizvodi, cene, dostava, plaćanje i popusti.
+Od Faze 1 se iz panela menjaju i stranice sajta, meni i podnožje, boje i fontovi, i tekstovi na stranicama kolekcije, proizvoda, naloga, plaćanja i korpe. U temi su još natpisi na dugmadima i poljima formi.
 
 ## Poređenje
 
@@ -39,36 +39,56 @@ Najveća rupa u odnosu na cilj: **sadržaj demo prodavnice je upisan u kod.** He
 
 ## Predlog redosleda
 
-### Faza 0 — Učvrstiti postojeće
+### Faza 0 — Učvrstiti postojeće ✅
 
-- Komitovati trenutno stanje (premeštanje u `app/(crm)` i `app/(shop)` još nije u gitu).
-- Verzionisane migracije baze umesto spiska `ADDED_COLUMNS`: sledeće faze menjaju šemu više puta, a žive prodavnice ne smeju da izgube podatke.
-- Testovi za obračun korpe, popuste i upis porudžbine.
-- Ograničenje broja pokušaja prijave i slanja porudžbina i poruka.
+Završeno 11. 10. 2026.
+
+- Trenutno stanje je u gitu.
+- Migracije baze (`lib/migrations.ts`): tabele iz `lib/db.ts` su polazna šema, svaka kasnija izmena je numerisana migracija koja se izvrši sama pri pokretanju.
+- Testovi (`npm test`) za cene i stanje, obračun korpe, popuste, proveru podataka porudžbine, ograničenje pokušaja i migracije.
+- Ograničenje pokušaja je na jednom mestu (`lib/rate-limit.ts`) i sada pokriva i prijavu u panel i proveru koda preko API-ja.
+
+Ostalo za kasnije: test upisa porudžbine u bazu (`submitOrder`) traži probnu bazu, pa ide uz Fazu 3, kada se taj deo menja.
 
 ### Faza 1 — Ceo sajt se uređuje iz panela
 
-Ovo je glavni zahtev i najveći posao.
+Prvi deo završen 11. 10. 2026.
 
-- **Sekcije.** Stranica je uređen spisak sekcija (hero, tekst sa slikom, prednosti, mreža proizvoda, kolekcija, utisci, pitanja, prijava na novosti, slobodan tekst). Svaka vrsta sekcije je komponenta u kodu sa opisom svojih polja; panel iz tog opisa pravi formu. U bazi se čuva redosled i sadržaj.
-- **Uređivač stranice** u panelu: dodavanje, brisanje i pomeranje sekcija, forma sa strane, živ pregled sajta pored.
-- **Meniji**: glavni meni i kolone podnožja; stavka vodi na stranicu, kategoriju, kolekciju ili adresu.
-- **Izgled**: logo, boje, fontovi, traka sa obaveštenjem, društvene mreže. Boje iz Podešavanja već postoje, ali ih prodavnica ne koristi.
-- **Biblioteka slika**: jedno mesto za sve slike, izbor postojeće slike u bilo kojoj formi, smanjivanje pri ubacivanju.
-- **Stranice**: postojeće „Stranice" postaju stranice od sekcija; uslovi kupovine, privatnost i povraćaj dolaze kao gotovi nacrti.
-- **SEO**: naslov i opis za svaku stranicu, proizvod i kategoriju, slika za deljenje, `sitemap.xml`, `robots.txt`, podaci o proizvodu za Google, preusmerenja starih adresa.
-- **Blog**: jednostavne objave. Manje je važan od ostalog i može u kasniju fazu.
+Urađeno:
+
+- **Sekcije** (`lib/sections.ts`, izgled u `app/(shop)/_sections/`): 16 vrsta — glavni baner, prednosti, pločice, proizvodi, tekst sa slikom, baner, utisci, novosti, naslov stranice, fotografija, tekst, kartice, koraci, pitanja, poziv, kontakt. Vrsta sekcije je opis polja; panel iz njega pravi formu.
+- **Uređivač stranice** (Stranice → Izmeni): dodavanje, brisanje i pomeranje sekcija, forma levo, pregled sajta desno. Pregled prati izmene dok se kuca, a kupci ih vide tek posle „Sačuvaj".
+- **Stranice**: početna, o nama, pitanja i kontakt su sada stranice iz baze, sa sadržajem iz dizajna. Nova stranica dobija adresu `/{oznaka}` i nastaje kao nacrt. Uslovi kupovine, povrat i privatnost dolaze kao nacrti sa mestima za dopunu.
+- **Izgled sajta**: glavni meni, kolone podnožja, opis prodavnice, traka sa obaveštenjem. Naziv prodavnice u zaglavlju, podnožju i naslovima stranica je iz Podešavanja.
+- **Slike**: biblioteka svih ubačenih slika, izbor postojeće slike u svakoj sekciji, zaštita od brisanja slike koja je na sajtu.
+- **SEO**: naslov i opis po stranici, `sitemap.xml`, `robots.txt`, podaci o proizvodu za Google (schema.org), kanonske adrese.
+
+Drugi deo završen 12. 10. 2026.
+
+- **Tema** (Izgled sajta → Tema, `lib/theme.ts`): četiri boje i dva fonta od devet ponuđenih. Tema više nema upisane boje: sve idu kroz promenljive u `app/(shop)/shop.css`, a nijanse i boju teksta na dugmadima i tamnim sekcijama sajt računa iz izabrane palete. Iste boje važe i za email.
+- **Tekstovi stranica sa stalnim rasporedom** (Izgled sajta → Kolekcija, Proizvod, Nalog kupca, Plaćanje, Korpa; `lib/templates.ts`), sa pregledom kao i stranice.
+- **Proizvod**: opcije koje kupac bira (bez posebne cene i stanja) i istaknuti deo stranice (naslov, tekst, mere, fotografija) upisuju se uz proizvod. Izmišljene tkanine, postolja, mere i rezervni tekstovi iz dizajna su izbačeni; slični proizvodi su iz iste kategorije.
+- **Slike** (`lib/images.ts`, `lib/media.ts`): fotografija se pri ubacivanju pretvara u WebP u pet širina (320, 640, 1024, 1600 i do 2400 px), a sajt i panel sami biraju odgovarajuću. SVG se čuva kakav jeste. `npm run images:optimize` obrađuje slike ubačene ranije.
+
+Ostalo:
+
+- Natpisi na dugmadima i poljima formi („Dodaj u korpu", „Email adresa") su u temi; idu uz prevod u Fazi 6.
+- Zaobljenost i razmaci teme se ne menjaju iz panela.
+- Teme kontakt forme („Uzorci tkanina"…) su u kodu.
+- Dugme „Nastavi sa Google nalogom" na stranici naloga ne radi; korpa novog posetioca kreće sa dva proizvoda iz dizajna (ako postoje u katalogu). Oba su ostatak demo dizajna.
+- SEO polja za proizvod i kategoriju, slika za deljenje po stranici, preusmerenja starih adresa.
+- Blog.
 
 ### Faza 2 — Katalog
 
-- Varijante: opcije (veličina, boja, tkanina) sa sopstvenom cenom, šifrom, stanjem i slikom. Demo prodavnica ih sada upisuje u napomenu porudžbine.
+- Varijante: opcije proizvoda postoje od Faze 1 (izbor ide u porudžbinu), ali bez sopstvene cene, šifre, stanja i slike po varijanti — to je posao ove faze.
 - Podkategorije, proizvod u više kategorija, filteri po osobinama i ceni, sortiranje.
 - Uvoz i izvoz proizvoda u CSV-u, uključujući uvoz Shopify i WooCommerce izvoza: to je put kojim postojeće prodavnice prelaze.
 - Izmena više proizvoda odjednom, povezani proizvodi, istorija promena stanja.
 
 ### Faza 3 — Porudžbine, plaćanje, dostava
 
-- Plaćanje karticom kroz zajednički sloj za procesore, pa prvi procesor prema banci prve prave prodavnice.
+- Plaćanje karticom: opcija u Podešavanja → Plaćanje, isključena dok se ne poveže procesor. U kodu zajednički sloj za procesore (pokretanje plaćanja, povratak kupca, potvrda od banke), tako da onaj ko ima ugovor sa bankom dopiše samo svoj procesor.
 - Dostava: zone, cena po težini ili iznosu, više načina dostave, broj pošiljke i link za praćenje u emailu.
 - PDV i račun u PDF-u.
 - Ručna porudžbina iz panela, izmena porudžbine, povraćaj (delimičan i ceo), istorija događaja na porudžbini.
@@ -96,16 +116,16 @@ Ovo je glavni zahtev i najveći posao.
 - Webhook-ovi i API ključevi za spoljne sisteme.
 - Uputstvo za postavljanje, za izradu teme i za doprinos; CI; javna demo adresa.
 
-## Odluke koje treba doneti
+## Odluke
 
-| Pitanje | Predlog |
+| Pitanje | Odluka |
 |---|---|
-| Koliko slobodan uređivač stranica? | Sekcije sa poljima, kao Shopify. Slobodno prevlačenje elemenata kao Elementor je višestruko veći posao, a vlasnicima lakše kvari izgled. |
-| Jedna instalacija za više prodavnica? | Ne. Jedna prodavnica, jedna instalacija i baza; umesto toga postavljanje treba da traje nekoliko minuta. |
-| Dodaci kao u WordPress-u? | Ne u prvoj verziji. Webhook-ovi i API pokrivaju većinu potreba; sistem dodataka tek ako ga korisnici traže. |
-| Licenca | MIT ako je cilj da ga koristi što više ljudi; AGPL ako ne želite da neko od njega napravi zatvoren plaćeni servis. |
-| Koji procesor kartica prvi? | Zavisi od banke prve prodavnice koja ga traži; Stripe ne otvara naloge firmama iz Srbije. |
-| Jezici | Srpski i engleski pred objavljivanje; prevod se priprema u kodu od Faze 1, da se kasnije ne prepisuje. |
+| Uređivač stranica | Sekcije sa poljima, kao Shopify; bez slobodnog prevlačenja elemenata. |
+| Više prodavnica | Jedna prodavnica po instalaciji i bazi; postavljanje treba da traje nekoliko minuta. |
+| Plaćanje karticom | Opcija postoji, isključena je po podrazumevanom; procesor se dopisuje kada neko ima ugovor sa bankom. Stripe ne otvara naloge firmama iz Srbije. |
+| Licenca | Otvoreno do Faze 6. MIT ako je cilj što više korisnika; AGPL ako ne želite da neko od koda napravi zatvoren plaćeni servis. |
+| Dodaci kao u WordPress-u | Ne u prvoj verziji; webhook-ovi i API, a sistem dodataka tek ako ga korisnici traže. (predlog, nije potvrđeno) |
+| Jezici | Srpski i engleski pred objavljivanje; prevod se priprema u kodu od Faze 1. (predlog, nije potvrđeno) |
 
 ## Šta svesno ne ulazi
 

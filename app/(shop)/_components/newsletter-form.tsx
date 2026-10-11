@@ -45,13 +45,13 @@ export function NewsletterForm() {
             setEmail(event.target.value);
             setState({ kind: "idle" });
           }}
-          style={{ flex: 1, minWidth: 0, height: "48px", background: "none", border: 0, outline: 0, color: "#FFFFFF", font: "500 16px var(--sans)" }}
+          style={{ flex: 1, minWidth: 0, height: "48px", background: "none", border: 0, outline: 0, color: "var(--on-dark)", font: "500 16px var(--sans)" }}
         />
         <button className="btn gold" type="submit" disabled={pending} style={{ minHeight: "48px", padding: "0 24px" }}>
           Prijavi me
         </button>
       </div>
-      <span role="status" style={{ fontSize: "14px", color: state.kind === "idle" ? "#B9C6C9" : "#F3C766" }}>
+      <span role="status" style={{ fontSize: "14px", color: state.kind === "idle" ? "var(--on-dark-mute)" : "var(--gold-l)" }}>
         {state.kind === "idle" && "Bez spama. Odjava jednim klikom."}
         {state.kind === "error" && state.message}
         {state.kind === "done" &&

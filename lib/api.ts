@@ -9,6 +9,8 @@ import {
   type Page,
   type Product,
 } from "@/lib/catalog";
+import { imageSizes } from "@/lib/media";
+import { collectImages, sectionType } from "@/lib/sections";
 import {
   allowedOrigins,
   enabledPayments,
@@ -54,6 +56,11 @@ function mediaUrl(src: string | undefined, base: string): string | null {
   return src ? `${base}${src}` : null;
 }
 
+function sizes(src: string | undefined, base: string) {
+  const all = src ? imageSizes(src) : null;
+  return all && Object.fromEntries(Object.entries(all).map(([name, path]) => [name, `${base}${path}`]));
+}
+
 export function publicProduct(product: Product, base: string) {
   return {
     slug: product.slug,
@@ -74,7 +81,12 @@ export function publicProduct(product: Product, base: string) {
     maxQty: isAvailable(product) ? maxQty(product) : 0,
     lowStockLabel: lowStockLabel(product),
     image: mediaUrl(product.image, base),
+    /** Ista slika u manjim širinama (thumb, small, medium, large, full); null za staru sliku. */
+    imageSizes: sizes(product.image, base),
     gallery: product.gallery.map((src) => `${base}${src}`),
+    gallerySizes: product.gallery.map((src) => sizes(src, base)),
+    options: product.options,
+    highlight: { ...product.highlight, image: mediaUrl(product.highlight.image, base) },
   };
 }
 
@@ -88,12 +100,32 @@ export function publicCollection(collection: Collection) {
 }
 
 export function publicPage(page: Page, base: string) {
+  const withUrl = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(withUrl);
+    if (typeof value !== "object" || value === null) return value;
+    const entries = Object.entries(value).map(([key, item]) => [
+      key,
+      // Slike dobijaju punu adresu, da ih sajt na drugoj adresi može prikazati.
+      key === "src" && typeof item === "string" && item ? `${base}${item}` : withUrl(item),
+    ]);
+    return Object.fromEntries(entries);
+  };
+  const images = page.sections.flatMap((section) =>
+    collectImages(sectionType(section.type)?.fields ?? [], section.data),
+  );
   return {
     slug: page.slug,
     title: page.title,
-    body: page.body,
+    seoTitle: page.seoTitle,
+    seoDescription: page.seoDescription,
     showInFooter: page.showInFooter,
-    images: page.images.map((image) => ({ src: `${base}${image.src}`, alt: image.alt })),
+    sections: page.sections.map((section) => ({ ...section, data: withUrl(section.data) })),
+    /** Tekst svih sekcija „Tekst" i sve slike stranice — oblik iz prve verzije API-ja. */
+    body: page.sections
+      .filter((section) => section.type === "text")
+      .map((section) => [section.data.heading, section.data.body].filter(Boolean).join("\n\n"))
+      .join("\n\n"),
+    images: images.map((image) => ({ src: `${base}${image.src}`, alt: image.alt })),
   };
 }
 
@@ -107,6 +139,8 @@ export function publicStore(settings: Settings, base: string) {
     currency: { code: store.currency, decimals: store.currencyDecimals },
     locale: store.locale,
     colors: settings.colors,
+    fonts: settings.fonts,
+    menu: settings.site.menu,
     logo: mediaUrl(settings.logo, base),
     favicon: mediaUrl(settings.favicon, base),
     shipping: {
@@ -122,29 +156,4 @@ export function publicStore(settings: Settings, base: string) {
       ...(id === "bank" ? { instructions: payment.bankInstructions } : {}),
     })),
   };
-}
-
-// Ograničenje broja porudžbina po adresi, protiv automatskog zatrpavanja. Pamti se u
-// memoriji procesa, pa na hostingu sa više procesa važi po procesu — gruba, ali besplatna zaštita.
-const WINDOW_MS = 10 * 60 * 1000;
-const MAX_ORDERS = 10;
-const recent = new Map<string, number[]>();
-
-export function tooManyOrders(request: Request): boolean {
-  const ip = (request.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
-  const now = Date.now();
-  const times = (recent.get(ip) ?? []).filter((time) => now - time < WINDOW_MS);
-  if (times.length >= MAX_ORDERS) {
-    recent.set(ip, times);
-    return true;
-  }
-  times.push(now);
-  recent.set(ip, times);
-  // Da mapa ne raste bez kraja: povremeno se izbace adrese bez skorašnjih zahteva.
-  if (recent.size > 5000) {
-    for (const [key, value] of recent) {
-      if (value.every((time) => now - time >= WINDOW_MS)) recent.delete(key);
-    }
-  }
-  return false;
 }

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   ADMIN_PATH,
@@ -9,7 +10,14 @@ import {
   destroySession,
   requireAdmin,
 } from "@/lib/admin-auth";
-import type { LowStockMode, Product } from "@/lib/catalog";
+import {
+  HOME_SLUG,
+  parseOptions,
+  parsePairs,
+  RESERVED_SLUGS,
+  type LowStockMode,
+  type Product,
+} from "@/lib/catalog";
 import {
   getCategories,
   getCollections,
@@ -17,9 +25,12 @@ import {
   getPages,
   getProducts,
   getSettings,
+  getUsedImages,
   removeUpload,
   saveUpload,
+  setStoredValue,
   updateContent,
+  type UploadResult,
 } from "@/lib/content";
 import { setCustomerNote } from "@/lib/customers";
 import {
@@ -38,8 +49,14 @@ import {
 } from "@/lib/order-email";
 import { setOrderNote, setOrderStatus } from "@/lib/order-store";
 import { orderStatusLabels, type OrderStatus } from "@/lib/orders";
-import { defaultSettings, isHexColor, type ThemeColors } from "@/lib/settings";
+import { clientIp, TOO_MANY, tooMany } from "@/lib/rate-limit";
+import { newSection, normalizeData, normalizeSections } from "@/lib/sections";
+import { defaultSettings, mergeSettings } from "@/lib/settings";
+import { mergeSite } from "@/lib/site";
 import { deleteMessage } from "@/lib/storefront/inbox";
+import { PREVIEW_KEY, type PreviewDraft, type SettingsDraft } from "@/lib/storefront/pages";
+import { template, type Templates } from "@/lib/templates";
+import { isFontId, isHexColor, type ThemeColors } from "@/lib/theme";
 
 function text(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -100,6 +117,7 @@ function refresh() {
 export type LoginState = { error?: string };
 
 export async function login(_previous: LoginState, formData: FormData): Promise<LoginState> {
+  if (tooMany("admin-login", clientIp(await headers()), 10)) return { error: TOO_MANY };
   if (!checkCredentials(text(formData, "username"), text(formData, "password"))) {
     // Usporava nagađanje lozinke.
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -120,16 +138,7 @@ const PRODUCTS_PATH = `${ADMIN_PATH}/proizvodi`;
 
 /** „Naslov: tekst" po redu → dodatne sekcije stranice proizvoda. */
 function parseAttributes(value: string): Product["attributes"] {
-  return value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const colon = line.indexOf(":");
-      return colon === -1
-        ? { title: line, text: "" }
-        : { title: line.slice(0, colon).trim(), text: line.slice(colon + 1).trim() };
-    });
+  return parsePairs(value).map(([title, text]) => ({ title, text }));
 }
 
 export async function saveProductAction(formData: FormData) {
@@ -210,6 +219,17 @@ export async function saveProductAction(formData: FormData) {
   }
   gallery.push(...added);
 
+  // Istaknuti deo: nova slika zamenjuje staru, „Ukloni" je briše.
+  let highlightImage = existing?.highlight.image;
+  const highlightFile = image(formData, "highlightImage");
+  if (highlightFile) {
+    const upload = await saveUpload(highlightFile, slug);
+    if (!upload.ok) backWithError(formPath, upload.error);
+    highlightImage = upload.src;
+  } else if (formData.get("highlightImageRemove") === "on") {
+    highlightImage = undefined;
+  }
+
   const product: Product = {
     slug,
     name,
@@ -228,6 +248,15 @@ export async function saveProductAction(formData: FormData) {
     lowStockThreshold,
     image: imageSrc,
     gallery,
+    options: parseOptions(text(formData, "options")),
+    highlight: {
+      heading: text(formData, "highlightHeading").slice(0, 200),
+      text: text(formData, "highlightText").slice(0, 2000),
+      specs: parsePairs(text(formData, "highlightSpecs"))
+        .slice(0, 8)
+        .map(([label, value]) => ({ label, value })),
+      ...(highlightImage ? { image: highlightImage } : {}),
+    },
   };
   await updateContent((content) => {
     content.products = existing
@@ -235,6 +264,7 @@ export async function saveProductAction(formData: FormData) {
       : [...content.products, product];
   });
   if (file) await removeUpload(existing?.image);
+  if (highlightImage !== existing?.highlight.image) await removeUpload(existing?.highlight.image);
   for (const src of existing?.gallery ?? []) {
     if (removed.includes(src)) await removeUpload(src);
   }
@@ -256,6 +286,7 @@ export async function deleteProductAction(formData: FormData) {
       }
     });
     await removeUpload(product.image);
+    await removeUpload(product.highlight.image);
     for (const src of product.gallery) await removeUpload(src);
     refresh();
   }
@@ -521,102 +552,206 @@ export async function deleteDiscountAction(formData: FormData) {
 
 const PAGES_PATH = `${ADMIN_PATH}/stranice`;
 
-export async function savePageAction(formData: FormData) {
+/** Izmena je vidljiva na sajtu odmah, i na stranicama koje su već otvorene u pregledaču. */
+function refreshSite() {
+  refresh();
+  revalidatePath("/", "layout");
+}
+
+/** Nova stranica: naslov, pa se otvara uređivač. Adresa se pravi iz naslova i više se ne menja. */
+export async function createPageAction(formData: FormData) {
   await requireAdmin();
+  const formPath = `${PAGES_PATH}/nova`;
 
-  const pages = await getPages();
-  const editedSlug = text(formData, "slug");
-  const existing = pages.find((page) => page.slug === editedSlug);
-  const formPath = existing ? `${PAGES_PATH}/${existing.slug}` : `${PAGES_PATH}/nova`;
-  if (editedSlug && !existing) backWithError(PAGES_PATH, "Stranica više ne postoji.");
-
-  const title = text(formData, "title");
+  const title = text(formData, "title").slice(0, 255);
   if (!title) backWithError(formPath, "Upišite naslov stranice.");
-
-  // Oznaka se pravi jednom, iz naslova, i više se ne menja — sajt po njoj čita stranicu.
-  const slug = existing?.slug ?? uniqueSlug(title, ["nova", ...pages.map((page) => page.slug)]);
+  const pages = await getPages();
+  const slug = uniqueSlug(title, [...RESERVED_SLUGS, ...pages.map((page) => page.slug)]);
   if (!slug) backWithError(formPath, "Naslov mora da sadrži bar jedno slovo ili cifru.");
 
-  const fields = {
-    title,
-    body: text(formData, "body"),
-    showInFooter: formData.get("showInFooter") === "on",
-  };
+  const intro = newSection("intro", []);
   await updateContent((content) => {
-    const page = content.pages.find((candidate) => candidate.slug === slug);
-    if (page) Object.assign(page, fields);
-    else content.pages.push({ slug, ...fields, images: [] });
+    content.pages.push({
+      slug,
+      title,
+      sections: intro ? [{ ...intro, data: { ...intro.data, title } }] : [],
+      seoTitle: "",
+      seoDescription: "",
+      // Nova stranica je nacrt dok je vlasnik ne objavi.
+      published: false,
+      showInFooter: false,
+    });
   });
 
   refresh();
   redirect(`${PAGES_PATH}/${slug}`);
+}
+
+export type SavePageInput = {
+  slug: string;
+  title: string;
+  seoTitle: string;
+  seoDescription: string;
+  published: boolean;
+  showInFooter: boolean;
+  sections: unknown;
+};
+
+export type SaveResult = { ok: true } | { ok: false; error: string };
+
+/** Čuva stranicu iz uređivača. Sekcije stižu iz pregledača, pa se svode na opis polja. */
+export async function savePageAction(input: SavePageInput): Promise<SaveResult> {
+  await requireAdmin();
+
+  const slug = typeof input?.slug === "string" ? input.slug : "";
+  const title = typeof input.title === "string" ? input.title.trim().slice(0, 255) : "";
+  if (!title) return { ok: false, error: "Upišite naslov stranice." };
+  if (!(await getPages()).some((page) => page.slug === slug)) {
+    return { ok: false, error: "Stranica više ne postoji." };
+  }
+
+  const fields = {
+    title,
+    seoTitle: typeof input.seoTitle === "string" ? input.seoTitle.trim().slice(0, 255) : "",
+    seoDescription:
+      typeof input.seoDescription === "string" ? input.seoDescription.trim().slice(0, 500) : "",
+    // Početna je uvek objavljena: bez nje sajt nema šta da prikaže.
+    published: slug === HOME_SLUG || input.published === true,
+    showInFooter: input.showInFooter === true,
+    sections: normalizeSections(input.sections),
+  };
+  await updateContent((content) => {
+    const page = content.pages.find((candidate) => candidate.slug === slug);
+    if (page) Object.assign(page, fields);
+  });
+  await setStoredValue(PREVIEW_KEY, null);
+
+  refreshSite();
+  return { ok: true };
+}
+
+/** Deo podešavanja sajta koji uređuje Izgled sajta: tema, meni i podnožje, ili jedan šablon. */
+export type SettingsPart =
+  | { part: "theme"; value: unknown }
+  | { part: "site"; value: unknown }
+  | { part: "template"; id: string; value: unknown };
+
+/** Podaci iz pregledača svedeni na ono što sme u podešavanja; null kada deo ne postoji. */
+function settingsPart(input: SettingsPart): { kind: "settings"; settings: SettingsDraft } | null {
+  const value = (typeof input?.value === "object" && input.value !== null ? input.value : {}) as Record<string, unknown>;
+  if (input.part === "theme") {
+    const colors = Object.fromEntries(
+      (["background", "surface", "text", "accent"] as const).flatMap((key) =>
+        // Boje idu pravo u CSS sajta i HTML emaila, pa prolazi samo oblik #rrggbb.
+        isHexColor(value[key]) ? [[key, value[key].toLowerCase()]] : [],
+      ),
+    );
+    const merged = mergeSettings({
+      // Boja koja nije prošla proveru dobija početnu vrednost (mergeSettings).
+      colors: colors as ThemeColors,
+      fonts: {
+        display: isFontId(value.fontDisplay) ? value.fontDisplay : defaultSettings.fonts.display,
+        body: isFontId(value.fontBody) ? value.fontBody : defaultSettings.fonts.body,
+      },
+    });
+    return { kind: "settings", settings: { colors: merged.colors, fonts: merged.fonts } };
+  }
+  if (input.part === "site") return { kind: "settings", settings: { site: mergeSite(value) } };
+  const definition = template(input.id);
+  if (!definition) return null;
+  return {
+    kind: "settings",
+    settings: {
+      templates: { [definition.id]: normalizeData(definition.fields, value) } as Partial<Templates>,
+    },
+  };
+}
+
+/**
+ * Nesačuvane izmene iz uređivača koji je trenutno otvoren, za pregled na sajtu (?pregled=…).
+ * Kupci ih ne vide: sajt se menja tek kada se izmene sačuvaju.
+ */
+export async function savePreviewAction(slug: string, sections: unknown): Promise<void> {
+  await requireAdmin();
+  if (!(await getPages()).some((page) => page.slug === slug)) return;
+  const draft: PreviewDraft = { kind: "page", slug, sections: normalizeSections(sections) };
+  await setStoredValue(PREVIEW_KEY, JSON.stringify(draft));
+}
+
+export async function saveSettingsPreviewAction(input: SettingsPart): Promise<void> {
+  await requireAdmin();
+  const draft = settingsPart(input);
+  if (draft) await setStoredValue(PREVIEW_KEY, JSON.stringify(draft));
+}
+
+/** Čuva temu, meni i podnožje, ili tekstove jednog šablona. */
+export async function saveSettingsPartAction(input: SettingsPart): Promise<SaveResult> {
+  await requireAdmin();
+  const draft = settingsPart(input);
+  if (!draft) return { ok: false, error: "Ovaj deo sajta više ne postoji." };
+  const { colors, fonts, site, templates } = draft.settings;
+  await updateContent((content) => {
+    if (input.part === "theme" && colors && fonts) Object.assign(content.settings, { colors, fonts });
+    if (site) content.settings.site = site;
+    if (templates) content.settings.templates = { ...content.settings.templates, ...templates };
+  });
+  await setStoredValue(PREVIEW_KEY, null);
+  refreshSite();
+  return { ok: true };
 }
 
 export async function deletePageAction(formData: FormData) {
   await requireAdmin();
 
   const slug = text(formData, "slug");
-  const page = (await getPages()).find((candidate) => candidate.slug === slug);
-  if (page) {
-    await updateContent((content) => {
-      content.pages = content.pages.filter((candidate) => candidate.slug !== slug);
-    });
-    for (const item of page.images) await removeUpload(item.src);
-    refresh();
-  }
+  if (slug === HOME_SLUG) backWithError(PAGES_PATH, "Početna strana ne može da se obriše.");
+  await updateContent((content) => {
+    content.pages = content.pages.filter((candidate) => candidate.slug !== slug);
+  });
+  await setStoredValue(PREVIEW_KEY, null);
+
+  refreshSite();
   redirect(PAGES_PATH);
 }
 
-/** Dodaje fotografiju stranici ili, kada stigne `imageId`, menja postojeću. */
-export async function savePageImageAction(formData: FormData) {
+/* ---------- Slike ---------- */
+
+const MEDIA_PATH = `${ADMIN_PATH}/slike`;
+
+/** Slika ubačena iz uređivača; vraća putanju koja se upisuje u polje. */
+export async function uploadImageAction(formData: FormData): Promise<UploadResult> {
   await requireAdmin();
-
-  const slug = text(formData, "slug");
-  const page = (await getPages()).find((candidate) => candidate.slug === slug);
-  if (!page) backWithError(PAGES_PATH, "Stranica više ne postoji.");
-  const pagePath = `${PAGES_PATH}/${slug}`;
-
-  const imageId = text(formData, "imageId");
-  const existing = page.images.find((item) => item.id === imageId);
   const file = image(formData, "image");
-  if (!file) backWithError(pagePath, "Izaberite sliku pre slanja.");
-
-  const upload = await saveUpload(file, slug);
-  if (!upload.ok) backWithError(pagePath, upload.error);
-  await updateContent((content) => {
-    const target = content.pages.find((candidate) => candidate.slug === slug);
-    if (!target) return;
-    const item = target.images.find((candidate) => candidate.id === imageId);
-    if (item) item.src = upload.src;
-    else
-      target.images.push({
-        id: Date.now().toString(36),
-        src: upload.src,
-        alt: text(formData, "alt"),
-      });
-  });
-  await removeUpload(existing?.src);
-
-  refresh();
-  redirect(pagePath);
+  if (!file) return { ok: false, error: "Izaberite sliku pre slanja." };
+  const result = await saveUpload(file, "slika");
+  if (result.ok) refresh();
+  return result;
 }
 
-export async function deletePageImageAction(formData: FormData) {
+/** Više slika odjednom, sa stranice Slike. */
+export async function uploadImagesAction(formData: FormData) {
   await requireAdmin();
-
-  const slug = text(formData, "slug");
-  const imageId = text(formData, "imageId");
-  const page = (await getPages()).find((candidate) => candidate.slug === slug);
-  const item = page?.images.find((candidate) => candidate.id === imageId);
-  if (item) {
-    await updateContent((content) => {
-      const target = content.pages.find((candidate) => candidate.slug === slug);
-      if (target) target.images = target.images.filter((candidate) => candidate.id !== imageId);
-    });
-    await removeUpload(item.src);
-    refresh();
+  const files = formData
+    .getAll("images")
+    .filter((value): value is File => value instanceof File && value.size > 0);
+  if (files.length === 0) backWithError(MEDIA_PATH, "Izaberite bar jednu sliku.");
+  for (const file of files) {
+    const result = await saveUpload(file, "slika");
+    if (!result.ok) backWithError(MEDIA_PATH, `${file.name}: ${result.error}`);
   }
-  redirect(`${PAGES_PATH}/${slug}`);
+  refresh();
+  redirect(MEDIA_PATH);
+}
+
+export async function deleteImageAction(formData: FormData) {
+  await requireAdmin();
+  const src = text(formData, "src");
+  if ((await getUsedImages()).has(src)) {
+    backWithError(MEDIA_PATH, "Slika se koristi na sajtu. Prvo je zamenite tamo gde je prikazana.");
+  }
+  await removeUpload(src);
+  refresh();
+  redirect(MEDIA_PATH);
 }
 
 /* ---------- Porudžbine i kupci ---------- */
@@ -745,21 +880,13 @@ export async function saveAppearanceAction(formData: FormData) {
   await requireAdmin();
   const current = await getSettings();
 
-  const colors = { ...current.colors };
-  for (const key of Object.keys(colors) as (keyof ThemeColors)[]) {
-    const value = text(formData, key);
-    // Boje idu pravo u HTML emaila i CSS sajta, pa prolazi samo oblik #rrggbb.
-    if (!isHexColor(value)) backWithError(SETTINGS_PATH, "Boja mora biti u obliku #rrggbb.");
-    colors[key] = value.toLowerCase();
-  }
-
   // Slike: nova zamenjuje staru; „Ukloni" je briše.
   const images = { logo: current.logo, favicon: current.favicon };
   const replaced: (string | undefined)[] = [];
   for (const key of ["logo", "favicon"] as const) {
     const file = image(formData, key);
     if (file) {
-      const upload = await saveUpload(file, key);
+      const upload = await saveUpload(file, key, { original: true });
       if (!upload.ok) backWithError(SETTINGS_PATH, upload.error);
       replaced.push(images[key]);
       images[key] = upload.src;
@@ -770,12 +897,12 @@ export async function saveAppearanceAction(formData: FormData) {
   }
 
   await updateContent((content) => {
-    content.settings = { ...content.settings, colors, ...images };
+    content.settings = { ...content.settings, ...images };
   });
   for (const src of replaced) await removeUpload(src);
 
   refresh();
-  backWithNotice("Izgled je sačuvan.");
+  backWithNotice("Logo i favicon su sačuvani.");
 }
 
 export async function saveShippingAction(formData: FormData) {

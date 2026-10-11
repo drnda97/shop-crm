@@ -1,5 +1,6 @@
 import { currentPrice, isAvailable, isOnSale, salePercent } from "@/lib/catalog";
 import { getCategories, getCollections, getDiscounts, getProducts, getSettings } from "@/lib/content";
+import { getShopSettings } from "@/lib/storefront/pages";
 import { isExpired } from "@/lib/discounts";
 import { enabledPayments, paymentLabels } from "@/lib/settings";
 import type { ShopConfig, ShopProduct } from "@/lib/storefront/products";
@@ -41,14 +42,23 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
       description: product.description,
       attributes: product.attributes,
       gallery: product.gallery,
+      options: product.options,
+      highlight: product.highlight,
+      collections: collections
+        .filter((collection) => collection.productSlugs.includes(product.slug))
+        .map((collection) => collection.id),
     };
   });
 }
 
 export async function getShopConfig(): Promise<ShopConfig> {
-  const [settings, categories] = await Promise.all([getSettings(), getCategories()]);
+  const [settings, categories] = await Promise.all([getShopSettings(), getCategories()]);
   const { shipping } = settings;
   return {
+    storeName: settings.store.name,
+    logo: settings.logo ?? null,
+    menu: settings.site.menu,
+    texts: settings.templates,
     categories: ["Sve", ...categories.map((category) => category.label)],
     shippingPrice: shipping.price,
     freeFrom: shipping.freeEnabled ? shipping.freeFrom : null,

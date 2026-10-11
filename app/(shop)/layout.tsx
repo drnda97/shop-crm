@@ -1,47 +1,52 @@
 import type { Metadata } from "next";
-import { Red_Hat_Display, Red_Hat_Text } from "next/font/google";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import Link from "next/link";
 import { getShopConfig, getShopProducts } from "@/lib/storefront/catalog";
+import { getShopSettings, siteUrl } from "@/lib/storefront/pages";
+import { themeVars } from "@/lib/theme";
 import { CartProvider } from "./_components/cart";
+import { fontVariables } from "./fonts";
 import { Reveal } from "./_components/reveal";
 import "./shop.css";
 import "./shop-fonts.css";
-
-// Rezervni fontovi ostaju oni iz shop.css, bez prilagođenog rezervnog fonta koji next/font inače dodaje.
-const display = Red_Hat_Display({
-  subsets: ["latin", "latin-ext"],
-  weight: ["500", "600", "700", "800"],
-  variable: "--font-red-hat-display",
-  display: "swap",
-  adjustFontFallback: false,
-});
-
-const sans = Red_Hat_Text({
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600"],
-  variable: "--font-red-hat-text",
-  display: "swap",
-  adjustFontFallback: false,
-});
 
 // Proizvodi i podešavanja su u bazi i menjaju se iz panela, pa se stranice prave pri svakoj
 // poseti: izmena se vidi odmah, a build ne zavisi od toga da li je baza dostupna.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Demo Shop — Početna",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const [settings, base] = await Promise.all([getShopSettings(), siteUrl()]);
+  const { name } = settings.store;
+  return {
+    metadataBase: new URL(base),
+    title: { default: name, template: `${name} — %s` },
+    ...(settings.site.tagline ? { description: settings.site.tagline } : {}),
+    ...(settings.favicon ? { icons: { icon: settings.favicon } } : {}),
+    openGraph: { siteName: name, type: "website", locale: "sr_RS" },
+  };
+}
 
 /**
  * Prodavnica ima sopstveni root layout, odvojen od panela: stilovi panela
  * (Tailwind, globals.css) se ovde ne učitavaju, a shop.css se ne učitava u panelu.
  */
 export default async function ShopLayout({ children }: { children: ReactNode }) {
-  const [products, config] = await Promise.all([getShopProducts(), getShopConfig()]);
+  const [products, config, settings] = await Promise.all([
+    getShopProducts(),
+    getShopConfig(),
+    getShopSettings(),
+  ]);
+  const { announcement, announcementHref } = settings.site;
 
   return (
-    <html lang="sr" className={`${display.variable} ${sans.variable}`}>
+    // Boje i fontovi iz panela (Izgled sajta → Tema) stižu kao CSS promenljive teme.
+    <html lang="sr" className={fontVariables} style={themeVars(settings.colors, settings.fonts) as CSSProperties}>
       <body>
+        {announcement && (
+          <div className="announce">
+            {announcementHref ? <Link href={announcementHref}>{announcement}</Link> : announcement}
+          </div>
+        )}
         <CartProvider products={products} config={config}>
           {children}
         </CartProvider>

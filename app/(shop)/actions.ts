@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { checkCode, getOrders, submitOrder } from "@/lib/order-store";
 import { validateCustomer, type OrderErrors } from "@/lib/orders";
+import { clientIp, TOO_MANY, tooMany as countAttempt } from "@/lib/rate-limit";
 import type { PaymentMethod } from "@/lib/settings";
 import {
   checkUser,
@@ -32,31 +33,9 @@ function asEmail(value: unknown): string | null {
   return EMAIL_PATTERN.test(email) ? email : null;
 }
 
-// Gruba zaštita od zatrpavanja formi: broj pokušaja po adresi i vrsti, u memoriji procesa.
-const WINDOW_MS = 10 * 60 * 1000;
-const attempts = new Map<string, number[]>();
-
 async function tooMany(kind: string, max: number): Promise<boolean> {
-  const ip = ((await headers()).get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
-  const key = `${kind}:${ip}`;
-  const now = Date.now();
-  const times = (attempts.get(key) ?? []).filter((time) => now - time < WINDOW_MS);
-  if (times.length >= max) {
-    attempts.set(key, times);
-    return true;
-  }
-  times.push(now);
-  attempts.set(key, times);
-  // Da mapa ne raste bez kraja: povremeno se izbace adrese bez skorašnjih pokušaja.
-  if (attempts.size > 5000) {
-    for (const [name, value] of attempts) {
-      if (value.every((time) => now - time >= WINDOW_MS)) attempts.delete(name);
-    }
-  }
-  return false;
+  return countAttempt(kind, clientIp(await headers()), max);
 }
-
-const TOO_MANY = "Previše pokušaja. Sačekajte nekoliko minuta.";
 
 /* ---------- Nalog ---------- */
 

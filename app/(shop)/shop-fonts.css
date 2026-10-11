@@ -1,10 +1,6 @@
 /* Dopuna uz shop.css, koji se prenosi bez izmena. Učitava se posle njega. */
 
-/* Fontovi stižu preko next/font (vidi layout.tsx), pa se varijable iz shop.css vezuju za njih. */
-:root{
-  --display:var(--font-red-hat-display),'Avenir Next','Helvetica Neue',sans-serif;
-  --sans:var(--font-red-hat-text),'Avenir Next','Helvetica Neue',sans-serif;
-}
+/* Fontove (--display, --sans) postavlja layout.tsx iz podešavanja teme. */
 
 /* U originalu je ovo u <helmet> svake stranice. */
 body{margin:0}

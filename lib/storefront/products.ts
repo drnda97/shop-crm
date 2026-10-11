@@ -3,6 +3,9 @@
  * bazi, pa sme i u "use client" komponente; iz CRM-a ga puni lib/storefront/catalog.ts.
  */
 
+import type { ProductHighlight, ProductOption } from "@/lib/catalog";
+import type { Templates } from "@/lib/templates";
+
 export type ShopProduct = {
   /** Isto što i slug: po njemu se proizvod prepoznaje u korpi. */
   id: string;
@@ -20,14 +23,25 @@ export type ShopProduct = {
   image: string | null;
   /** Oznaka na kartici („Novo", „Bestseler", „−15%"), ili prazno. */
   tag: string;
-  /** Sadržaj stranice proizvoda; dok je prazan, stranica prikazuje tekst iz dizajna. */
+  /** Opis na stranici proizvoda. */
   description: string;
   attributes: { title: string; text: string }[];
   gallery: string[];
+  /** Opcije koje kupac bira; izbor ulazi u korpu kao varijanta. */
+  options: ProductOption[];
+  highlight: ProductHighlight;
+  /** Kolekcije u kojima je proizvod (id), za sekciju „Proizvodi". */
+  collections: string[];
 };
 
 /** Podešavanja iz CRM-a koja prodavnici trebaju u pregledaču. */
 export type ShopConfig = {
+  storeName: string;
+  /** Putanja do logoa (/media/…), ili null: tada se ispisuje naziv prodavnice. */
+  logo: string | null;
+  menu: { label: string; href: string }[];
+  /** Tekstovi i fotografije kolekcije, proizvoda, naloga, plaćanja i korpe (Izgled sajta). */
+  texts: Templates;
   /** Filteri u kolekciji i tabovi na početnoj: „Sve", pa kategorije iz CRM-a. */
   categories: string[];
   shippingPrice: number;

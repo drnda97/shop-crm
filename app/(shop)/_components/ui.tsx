@@ -1,8 +1,9 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
+import { srcSet } from "@/lib/media";
 
 /** Inline stil korenog elementa svake stranice, kao u dizajnu. */
-export const DS_STYLE: CSSProperties = { fontFamily: "var(--sans)", color: "#0E2730", background: "#FFFFFF" };
+export const DS_STYLE: CSSProperties = { fontFamily: "var(--sans)", color: "var(--ink)", background: "var(--paper)" };
 
 /** Fotografija koja ispunjava roditelja (.ph), sa istim isecanjem kao u dizajnu. */
 export function Photo({
@@ -20,6 +21,25 @@ export function Photo({
   className?: string;
   preload?: boolean;
 }) {
+  // Slika ubačena iz panela već postoji u više širina (lib/media.ts), pa pregledač sam bira
+  // odgovarajuću; SVG se ne smanjuje. Slike teme i stare slike idu kroz next/image.
+  const sized = srcSet(src);
+  if (sized || src.endsWith(".svg")) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        className={className}
+        src={src}
+        srcSet={sized ?? undefined}
+        sizes={sized ? sizes : undefined}
+        alt={alt}
+        loading={preload ? "eager" : "lazy"}
+        fetchPriority={preload ? "high" : undefined}
+        decoding="async"
+        style={position ? { objectPosition: position } : undefined}
+      />
+    );
+  }
   return (
     <Image
       className={className}
@@ -80,6 +100,15 @@ export function ShieldIcon() {
   );
 }
 
+export function PenIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" strokeWidth="1.600" {...stroke}>
+      <path d="M14 3l5 5-9 9-6 1 1-6z"></path>
+      <path d="M12 5l5 5"></path>
+    </svg>
+  );
+}
+
 export function CheckIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" strokeWidth="1.800" {...stroke}>
@@ -87,4 +116,20 @@ export function CheckIcon() {
       <path d="M6.200 10.300l2.600 2.600 5-5.600"></path>
     </svg>
   );
+}
+
+/** Ikonica po nazivu iz panela (lib/sections.ts, ICONS). */
+export function Icon({ name }: { name: string }) {
+  switch (name) {
+    case "leaf":
+      return <LeafIcon />;
+    case "truck":
+      return <TruckIcon />;
+    case "shield":
+      return <ShieldIcon />;
+    case "pen":
+      return <PenIcon />;
+    default:
+      return <CheckIcon />;
+  }
 }

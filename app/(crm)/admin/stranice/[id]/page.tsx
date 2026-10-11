@@ -1,38 +1,30 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
-import { getPages } from "@/lib/content";
-import { deletePageAction, deletePageImageAction, savePageImageAction } from "../../actions";
+import { ADMIN_PATH, previewToken, requireAdmin } from "@/lib/admin-auth";
+import { HOME_SLUG, pagePath } from "@/lib/catalog";
+import { getCollections, getPages, getProducts, listUploads } from "@/lib/content";
+import { PREVIEW_PARAM } from "@/lib/storefront/preview-names";
+import { deletePageAction } from "../../actions";
 import { ConfirmButton } from "../../confirm-button";
-import {
-  buttonClass,
-  cardClass,
-  fileClass,
-  formGridClass,
-  IMAGE_ACCEPT,
-  IMAGE_HINT,
-  inputClass,
-  labelClass,
-  PageHeader,
-  panelTitleClass,
-  quietButtonClass,
-  rowClass,
-  textLinkClass,
-  Thumb,
-} from "../../ui";
-import { PageForm } from "../page-form";
+import { PageHeader, quietButtonClass, textLinkClass } from "../../ui";
+import { PageEditor } from "./editor";
 
-type AdminPagePageProps = {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ greska?: string }>;
-};
+type AdminPagePageProps = { params: Promise<{ id: string }> };
 
-export default async function AdminPagePage({ params, searchParams }: AdminPagePageProps) {
+export default async function AdminPagePage({ params }: AdminPagePageProps) {
   await requireAdmin();
-  const [{ id }, { greska }] = await Promise.all([params, searchParams]);
+  const { id } = await params;
 
-  const page = (await getPages()).find((candidate) => candidate.slug === id);
+  const [pages, collections, products, media] = await Promise.all([
+    getPages(),
+    getCollections(),
+    getProducts(),
+    listUploads(),
+  ]);
+  const page = pages.find((candidate) => candidate.slug === id);
   if (!page) notFound();
+  const path = pagePath(page.slug);
+  const isHome = page.slug === HOME_SLUG;
 
   return (
     <>
@@ -40,87 +32,51 @@ export default async function AdminPagePage({ params, searchParams }: AdminPageP
         ← Stranice
       </Link>
       <div className="mt-[12px]">
-        <PageHeader title={page.title} hint={`Oznaka za API: ${page.slug}`} error={greska} />
+        <PageHeader
+          title={page.title}
+          hint={
+            <>
+              Adresa na sajtu: {path}
+              {!page.published && " · nacrt, još se ne vidi na sajtu"}
+            </>
+          }
+          action={
+            page.published && (
+              <a href={path} target="_blank" rel="noreferrer" className={quietButtonClass}>
+                Otvori na sajtu
+              </a>
+            )
+          }
+        />
       </div>
 
-      <div className={formGridClass}>
-        <PageForm page={page} />
-        <div className={`${cardClass} min-w-0`}>
-          <h2 className={`${panelTitleClass} mb-[4px]`}>Fotografije</h2>
-          <p className="mb-[8px] text-[14px] text-muted">
-            API ih vraća redom kojim su dodate. {IMAGE_HINT}.
-          </p>
-          {page.images.map((image) => (
-            <div key={image.id} className={rowClass}>
-              <Thumb src={image.src} alt={image.alt} />
-              <form
-                action={savePageImageAction}
-                className="flex grow flex-wrap items-center gap-[12px]"
-              >
-                <input type="hidden" name="slug" value={page.slug} />
-                <input type="hidden" name="imageId" value={image.id} />
-                <div className="min-w-[120px] grow text-[15px]">{image.alt || "bez opisa"}</div>
-                <input
-                  type="file"
-                  name="image"
-                  accept={IMAGE_ACCEPT}
-                  required
-                  aria-label={`Nova slika: ${image.alt || page.title}`}
-                  className={fileClass}
-                />
-                <button type="submit" className={quietButtonClass}>
-                  Zameni
-                </button>
-              </form>
-              <form action={deletePageImageAction}>
-                <input type="hidden" name="slug" value={page.slug} />
-                <input type="hidden" name="imageId" value={image.id} />
-                <ConfirmButton
-                  question="Ukloniti ovu fotografiju sa stranice?"
-                  className={quietButtonClass}
-                >
-                  Ukloni
-                </ConfirmButton>
-              </form>
-            </div>
-          ))}
-          {page.images.length === 0 && (
-            <p className="py-[8px] text-[15px] text-muted">Stranica još nema fotografija.</p>
-          )}
+      <PageEditor
+        // Posle čuvanja stranica stiže ponovo sa servera; uređivač zadržava svoje stanje.
+        key={page.slug}
+        page={page}
+        isHome={isHome}
+        // U pregledu je uvek sama stranica (i početna pod svojom oznakom), sa žetonom za nesačuvane izmene.
+        previewUrl={`/${page.slug}?${PREVIEW_PARAM}=${previewToken()}`}
+        options={{
+          collections: collections.map((item) => ({ value: item.id, label: item.name })),
+          products: products.map((item) => ({ value: item.slug, label: item.name })),
+          links: [
+            ...pages.map((item) => ({ value: pagePath(item.slug), label: item.title })),
+            { value: "/kolekcija", label: "Kolekcija (svi proizvodi)" },
+            { value: "/nalog", label: "Nalog kupca" },
+          ],
+          media: media.map((file) => file.src),
+        }}
+      />
 
-          <form
-            action={savePageImageAction}
-            className="mt-[8px] flex flex-wrap items-end gap-[12px] border-t border-line pt-[16px]"
-          >
-            <input type="hidden" name="slug" value={page.slug} />
-            <label className={`${labelClass} min-w-[200px] grow`}>
-              Opis nove fotografije (šta je na njoj)
-              <input name="alt" className={inputClass} />
-            </label>
-            <input
-              type="file"
-              name="image"
-              accept={IMAGE_ACCEPT}
-              required
-              aria-label="Nova fotografija"
-              className={`${fileClass} min-h-[44px]`}
-            />
-            <button type="submit" className={buttonClass}>
-              Dodaj fotografiju
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <form action={deletePageAction} className="mt-[24px]">
-        <input type="hidden" name="slug" value={page.slug} />
-        <ConfirmButton
-          question={`Obrisati stranicu „${page.title}" i njene fotografije?`}
-          className={quietButtonClass}
-        >
-          Obriši stranicu
-        </ConfirmButton>
-      </form>
+      {!isHome && (
+        <form action={deletePageAction} className="mt-[24px]">
+          <input type="hidden" name="slug" value={page.slug} />
+          <ConfirmButton question={`Obrisati stranicu „${page.title}”?`} className={quietButtonClass}>
+            Obriši stranicu
+          </ConfirmButton>
+        </form>
+      )}
     </>
   );
 }

@@ -6,6 +6,7 @@ const contentTypes: Record<string, string> = {
   jpg: "image/jpeg",
   png: "image/png",
   webp: "image/webp",
+  svg: "image/svg+xml",
 };
 
 /** Služi slike ubačene iz admin panela (storage/uploads). */
@@ -18,9 +19,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fil
 
   try {
     const bytes = await readFile(path.join(UPLOADS_DIR, file));
+    const extension = file.split(".").pop()!;
     return new Response(new Uint8Array(bytes), {
       headers: {
-        "Content-Type": contentTypes[file.split(".").pop()!],
+        "Content-Type": contentTypes[extension],
+        // SVG može da sadrži skriptu; otvoren direktno, ne sme ništa da izvrši ni da učita.
+        ...(extension === "svg"
+          ? { "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox" }
+          : {}),
         // Svaka ubačena slika ima svoje ime, pa sadržaj pod jednim imenom nikad ne menja.
         "Cache-Control": "public, max-age=31536000, immutable",
         "X-Content-Type-Options": "nosniff",

@@ -37,8 +37,8 @@ export function ContactForm({ initialTopic }: { initialTopic: ContactTopic }) {
         display: "flex",
         flexDirection: "column",
         gap: "22px",
-        background: "#FFFFFF",
-        boxShadow: "inset 0 0 0 1.5px rgba(14, 39, 48, .1)",
+        background: "var(--paper)",
+        boxShadow: "inset 0 0 0 1.5px var(--line)",
       }}
     >
       <h2 className="display h-m">Pošaljite poruku</h2>

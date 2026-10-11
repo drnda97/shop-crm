@@ -27,10 +27,12 @@ Prvo otvorite **Podešavanja**: naziv prodavnice, valuta i zapis iznosa (celi iz
 | Porudžbine | pretraga, statusi (nova → potvrđena → poslata → isporučena, otkazana), beleška uz porudžbinu, izvoz u CSV |
 | Kupci | svi kupci sa brojem porudžbina i potrošnjom, istorija porudžbina kupca, beleška o kupcu, izvoz u CSV |
 | Poruke | poruke iz kontakt forme prodavnice i adrese prijavljene na novosti |
-| Proizvodi | cena i akcija, šifra, stanje (ručno ili po broju komada), oznaka „pri kraju", slike, nacrt/objavljen, redosled |
+| Proizvodi | cena i akcija, šifra, stanje (ručno ili po broju komada), oznaka „pri kraju", slike, opcije koje kupac bira, istaknuti deo stranice, nacrt/objavljen, redosled |
 | Kategorije, Kolekcije | kategorija je jedna po proizvodu; kolekcija je ručno složena grupa |
 | Popusti | promo kodovi (sa brojem korišćenja i rokom) i nagrade: kod koji kupac dobija emailom posle porudžbine |
-| Stranice | tekstovi i fotografije koje sajt čita po oznaci |
+| Stranice | stranice sajta složene od sekcija, sa pregledom pre čuvanja; naslov i opis za pretraživače |
+| Izgled sajta | boje i fontovi; glavni meni, podnožje, traka sa obaveštenjem; tekstovi i fotografije na stranicama kolekcije, proizvoda, naloga, plaćanja i korpe — sve sa pregledom pre čuvanja |
+| Slike | biblioteka ubačenih slika; fotografije se čuvaju kao WebP u više širina |
 | Podešavanja | prodavnica, izgled emaila, dostava, plaćanje (pouzeće, uplata na račun), SMTP, šablon emaila |
 
 ## Povezivanje sajta
@@ -65,7 +67,7 @@ Sajt koji ne koristi `sdk.js` (npr. server u PHP-u ili Next.js-u) zove API direk
 | `GET /api/v1/products` · `?category=` `?collection=` `?q=` | objavljeni proizvodi |
 | `GET /api/v1/products/{slug}` | jedan proizvod |
 | `GET /api/v1/categories` · `/collections` · `/collections/{id}` | kategorije i kolekcije |
-| `GET /api/v1/pages` · `/pages/{slug}` | stranice |
+| `GET /api/v1/pages` · `/pages/{slug}` | objavljene stranice; stranica ima `sections` (vrsta i sadržaj svake sekcije), i `body` i `images` izvedene iz njih |
 | `POST /api/v1/cart` `{ items, discountCode? }` | stavke i obračun: međuzbir, popust, dostava, ukupno |
 | `POST /api/v1/discounts/check` `{ code }` | da li kod važi |
 | `POST /api/v1/orders` `{ customer, items, discountCode?, paymentMethod? }` | upis porudžbine (201) ili greške (422) |
@@ -86,6 +88,12 @@ Skripta dodaje samo ono čega nema, pa postojeći sadržaj ne dira.
 
 | U prodavnici | Odakle dolazi u panelu |
 |---|---|
+| Početna, O nama, Pitanja, Kontakt i ostale stranice | Stranice (sekcije); pri prvom pokretanju dobijaju sadržaj iz dizajna |
+| Boje i fontovi | Izgled sajta → Tema |
+| Meni, podnožje, traka sa obaveštenjem | Izgled sajta → Meni i podnožje |
+| Tekstovi i fotografije kolekcije, proizvoda, naloga, plaćanja i korpe | Izgled sajta |
+| Opcije na stranici proizvoda (tkanina, veličina) i tamna traka sa merama | Proizvodi → Opcije, Istaknuti deo stranice |
+| Naziv prodavnice, email, telefon i adresa na stranici Kontakt | Podešavanja → Prodavnica |
 | Proizvodi, cene, akcija, slike | Proizvodi (kratak opis je podrazumevana varijanta u korpi) |
 | Oznake „Novo" i „Bestseler" na karticama | Kolekcije sa tim oznakama (`novo`, `bestseler`) |
 | Dostava, prag besplatne dostave, preuzimanje u salonu | Podešavanja → Dostava |
@@ -94,13 +102,20 @@ Skripta dodaje samo ono čega nema, pa postojeći sadržaj ne dira.
 | Kontakt forma i prijava na novosti | Poruke |
 | Nalozi kupaca | tabele `shop_users` i `shop_sessions`; kupac u nalogu vidi porudžbine napravljene dok je bio prijavljen |
 
-Izabrana tkanina i postolje idu u napomenu porudžbine, jer proizvod u CRM-u nema varijante.
+Opcije koje kupac izabere (npr. tkanina i postolje) idu u napomenu porudžbine. Cena i stanje su isti za sve opcije jednog proizvoda.
 
 ## Hosting i rezervna kopija
 
 Hosting mora da podržava Node.js aplikacije. Na njemu se prave prazna baza i promenljive iz `.env.example`; `PUBLIC_URL` je javna adresa CRM-a i ulazi u adrese slika.
 
 Ubačene slike su fajlovi u `storage/uploads/` (folder se premešta promenljivom `UPLOADS_DIR`). Taj folder mora da preživi deploy — na hostingu bez trajnog diska slike bi nestale.
+
+Fotografija se pri ubacivanju pretvara u WebP u pet širina (320, 640, 1024, 1600 i do 2400 px); u sadržaju se čuva putanja najveće (`…-full.webp`), a sajt i API nude i manje. Za to je potreban paket `sharp`, koji se instalira uz ostale. SVG, logo i favicon se čuvaju kakvi jesu. Slike ubačene pre ove obrade prevodi skripta:
+
+```bash
+npm run images:optimize                    # stari fajlovi ostaju na disku
+npm run images:optimize -- --delete-old    # stari fajlovi se brišu
+```
 
 ```bash
 npm run backup   # backups/shopcrm-<datum>.sql i -slike.tar.gz
@@ -112,7 +127,7 @@ U bazi su lični podaci kupaca i lozinka email naloga, pa kopije ne treba držat
 
 | Šta | Gde |
 |---|---|
-| Tabele baze | `lib/db.ts` |
+| Tabele baze | `lib/db.ts` (polazna šema), `lib/migrations.ts` (kasnije izmene) |
 | Čitanje i izmena sadržaja, slike | `lib/content.ts` |
 | Upis porudžbine, kodovi, statistika | `lib/order-store.ts` |
 | Obračun korpe | `lib/cart.ts` |
@@ -120,13 +135,24 @@ U bazi su lični podaci kupaca i lozinka email naloga, pa kopije ne treba držat
 | Email | `lib/order-email.ts`, `lib/email-template.ts` |
 | Javni API | `app/api/v1/[...path]/route.ts`, `lib/api.ts` |
 | Panel | `app/(crm)/admin/` (sve izmene idu kroz `app/(crm)/admin/actions.ts`) |
+| Vrste sekcija i opis njihovih polja | `lib/sections.ts`; izgled u temi: `app/(shop)/_sections/` |
+| Meni i podnožje, polja teme | `lib/site.ts` |
+| Boje i fontovi teme | `lib/theme.ts`, `app/(shop)/shop.css`, `app/(shop)/fonts.ts` |
+| Tekstovi stranica sa stalnim rasporedom | `lib/templates.ts` |
+| Obrada slika i njihove veličine | `lib/images.ts`, `lib/media.ts` |
+| Pregled nesačuvanih izmena na sajtu | `lib/storefront/pages.ts`, `proxy.ts` |
+| Početni sadržaj stranica | `lib/default-pages.ts` |
 | Demo prodavnica | `app/(shop)/`, `lib/storefront/`, `scripts/seed-demo.mjs` |
 | Veza za sajt | `public/sdk.js`, primer `public/demo.html` |
+| Testovi | `tests/` (`npm test`) |
+
+Plan razvoja je u `PLAN.md`.
 
 ## Ograničenja
 
+- Natpisi na dugmadima i poljima formi prodavnice su u temi, na srpskom.
 - Jedan nalog za panel; nema uloga ni više korisnika.
-- Proizvod nema varijante (veličina, boja): svaka varijanta se vodi kao zaseban proizvod.
+- Opcije proizvoda (veličina, boja) nemaju svoju cenu ni stanje: varijanta sa drugom cenom se vodi kao zaseban proizvod.
 - Nema plaćanja karticom. Za to je potreban ugovor sa bankom ili procesorom; pouzeće i uplata na račun rade bez toga.
 - Katalog se pri svakoj izmeni upisuje ceo (`updateContent`), što je dovoljno brzo do nekoliko stotina proizvoda.
 - Jedan CRM vodi jednu prodavnicu; za drugu se pokreće još jedan, sa svojom bazom.

@@ -1,7 +1,7 @@
 import type { CSSProperties, InputHTMLAttributes } from "react";
 
 /** Poruka o grešci ispod polja. */
-export const ERROR_STYLE: CSSProperties = { fontSize: "14px", fontWeight: 600, color: "#8F6200" };
+export const ERROR_STYLE: CSSProperties = { fontSize: "14px", fontWeight: 600, color: "var(--gold-d)" };
 
 /** Polje forme (.f) sa oznakom i porukom o grešci. */
 export function Field({
