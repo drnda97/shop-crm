@@ -55,7 +55,8 @@ export type Order = {
   /** Po ovome se porudžbine istog kupca spajaju u delu Kupci. */
   customerKey: string;
   customer: OrderCustomer;
-  items: { slug: string; name: string; sku: string; qty: number; price: number }[];
+  /** `variant` je naziv izabrane varijante („Grafit, Orah"), ili prazno. */
+  items: { slug: string; name: string; variant: string; sku: string; qty: number; price: number }[];
   paymentMethod: PaymentMethod;
   subtotal: number;
   delivery: number;
@@ -69,6 +70,11 @@ export type Order = {
   /** Beleška prodavca; kupac je ne vidi. */
   adminNote?: string;
 };
+
+/** Naziv stavke sa izabranom varijantom: „Fotelja Mio — Grafit, Orah". */
+export function itemName(item: { name: string; variant: string }): string {
+  return item.variant ? `${item.name} — ${item.variant}` : item.name;
+}
 
 /** Broj telefona sveden na cifre, bez pozivnog i početne nule, da se isti broj prepozna u svakom zapisu. */
 export function phoneDigits(phone: string, prefix: string): string {
@@ -162,15 +168,19 @@ export function parseOrder(input: unknown): OrderInput {
   };
 }
 
-/** Stavke korpe iz zahteva; neispravne se preskaču, a isti proizvod se sabira. */
+/** Stavke korpe iz zahteva; neispravne se preskaču, a ista stavka (proizvod i varijanta) se sabira. */
 export function parseItems(input: unknown): CartItem[] {
-  const items = new Map<string, number>();
+  const items = new Map<string, CartItem>();
   for (const entry of Array.isArray(input) ? input.slice(0, 200) : []) {
     if (typeof entry !== "object" || entry === null) continue;
-    const { slug, qty } = entry as Record<string, unknown>;
+    const { slug, qty, variant } = entry as Record<string, unknown>;
     if (typeof slug !== "string" || typeof qty !== "number") continue;
     if (!Number.isInteger(qty) || qty < 1) continue;
-    items.set(slug, Math.min((items.get(slug) ?? 0) + qty, MAX_QTY));
+    const id = typeof variant === "string" && /^[a-z0-9-]{1,120}$/.test(variant) ? variant : undefined;
+    // Razmak ne može biti deo oznake, pa ključ ne može da se poklopi sa drugom stavkom.
+    const key = `${slug} ${id ?? ""}`;
+    const total = Math.min((items.get(key)?.qty ?? 0) + qty, MAX_QTY);
+    items.set(key, { slug, qty: total, ...(id ? { variant: id } : {}) });
   }
-  return [...items].map(([slug, qty]) => ({ slug, qty }));
+  return [...items.values()];
 }

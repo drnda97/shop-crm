@@ -1,6 +1,16 @@
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
-import { currentPrice, hasStock, isOnSale, lowStockLabel } from "@/lib/catalog";
+import {
+  currentPrice,
+  hasPrice,
+  hasStock,
+  isOnSale,
+  isSoldOut,
+  lowStockLabel,
+  priceRange,
+  soldOutVariants,
+  variantLabel,
+} from "@/lib/catalog";
 import { getCategories, getProducts, getSettings } from "@/lib/content";
 import { formatMoney } from "@/lib/format";
 import { currencyOf } from "@/lib/settings";
@@ -107,8 +117,17 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                   {categories.find((category) => category.id === product.category)?.label ??
                     "bez kategorije"}
                   {product.sku && ` · ${product.sku}`} ·{" "}
-                  {product.price === null ? "bez cene" : formatMoney(product.price, currency)}
-                  {isOnSale(product) && ` → na akciji ${formatMoney(currentPrice(product), currency)}`}
+                  {!hasPrice(product)
+                    ? "bez cene"
+                    : priceRange(product).varies
+                      ? `od ${formatMoney(priceRange(product).from, currency)}`
+                      : product.price === null
+                        ? formatMoney(priceRange(product).from, currency)
+                        : formatMoney(product.price, currency)}
+                  {!priceRange(product).varies &&
+                    isOnSale(product) &&
+                    ` → na akciji ${formatMoney(currentPrice(product), currency)}`}
+                  {product.variants.length > 0 && ` · varijanti: ${product.variants.filter((variant) => variant.enabled).length}`}
                 </div>
                 <div className="mt-[6px] flex flex-wrap items-center gap-[8px] text-[13px]">
                   {!product.active && (
@@ -116,20 +135,42 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                   )}
                   <span
                     className={`${badge} ${
-                      hasStock(product) ? "bg-band text-ink" : "bg-ink text-paper"
+                      isSoldOut(product) ? "bg-ink text-paper" : "bg-band text-ink"
                     }`}
                   >
-                    {hasStock(product) ? "Na stanju" : "Nema na stanju"}
+                    {isSoldOut(product) ? "Nema na stanju" : "Na stanju"}
                   </span>
                   {lowStockLabel(product) && (
                     <span className={`${badge} bg-gold text-ink`}>
                       Kupac vidi: {lowStockLabel(product)}
                     </span>
                   )}
+                  {/* Kod varijanti: koje su rasprodate i na kojima kupac vidi oznaku „pri kraju". */}
+                  {soldOutVariants(product).map((unit) => (
+                    <span key={unit.variant?.id} className={`${badge} bg-ink text-paper`}>
+                      {unit.variant && variantLabel(unit.variant)}: nema
+                    </span>
+                  ))}
+                  {product.variants
+                    .filter((variant) => variant.enabled && lowStockLabel(product, variant))
+                    .map((variant) => (
+                      <span key={variant.id} className={`${badge} bg-gold text-ink`}>
+                        {variantLabel(variant)}: {lowStockLabel(product, variant)}
+                      </span>
+                    ))}
                 </div>
               </div>
               {/* Stanje bez otvaranja forme: broj komada ako se vodi, inače prekidač na klik. */}
-              {product.stockQty !== null ? (
+              {product.variants.length > 0 ? (
+                // Stanje varijanti se menja u formi proizvoda; ovde je zbir onih kojima se vodi broj.
+                <span className="text-[14px] text-muted">
+                  {product.variants.some((variant) => variant.enabled && variant.stockQty !== null)
+                    ? `ukupno ${product.variants
+                        .filter((variant) => variant.enabled)
+                        .reduce((sum, variant) => sum + (variant.stockQty ?? 0), 0)} kom. po varijantama`
+                    : "stanje po varijantama se ne vodi"}
+                </span>
+              ) : product.stockQty !== null ? (
                 <form action={setStockAction} className="flex items-center gap-[6px]">
                   <input type="hidden" name="slug" value={product.slug} />
                   <div className="w-[84px] shrink-0">

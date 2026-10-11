@@ -10,8 +10,10 @@ export function CartDrawer() {
   const { isFree, price: shipping, remaining, pct } = shippingFor(config, subtotal);
   const texts = config.texts.cart;
   // Predlog do besplatne dostave: proizvod izabran u panelu, inače najjeftiniji iz kataloga.
+  // Nudi se samo proizvod bez varijanti, jer se dodaje jednim klikom.
+  const simple = products.filter((p) => p.variants.length === 0);
   const upsell =
-    products.find((p) => p.slug === texts.upsell) ?? [...products].sort((a, b) => a.price - b.price)[0];
+    simple.find((p) => p.slug === texts.upsell) ?? [...simple].sort((a, b) => a.price - b.price)[0];
 
   return (
     <div className="ds cart" style={{ fontFamily: "var(--sans)", color: "var(--ink)", background: "var(--paper)" }}>

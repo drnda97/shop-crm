@@ -3,6 +3,7 @@ import { ADMIN_PATH } from "@/lib/admin-auth";
 import { formatOptions, type Category, type Product } from "@/lib/catalog";
 import { fromMinor, type Currency } from "@/lib/format";
 import { saveProductAction } from "./actions";
+import { VariantsEditor } from "./variants-editor";
 import {
   buttonClass,
   Checkbox,
@@ -131,22 +132,6 @@ export function ProductForm({ product, categories, currency, error }: ProductFor
                   className={textareaClass}
                 />
               </label>
-            </section>
-            <section className={panelClass}>
-              <h2 className={panelTitleClass}>Opcije</h2>
-              <label className={labelClass}>
-                Šta kupac bira — jedan red po opciji, vrednosti razdvojene zarezom
-                <textarea
-                  name="options"
-                  defaultValue={formatOptions(product?.options ?? [])}
-                  placeholder={"Veličina: S, M, L\nBoja: Pesak #B9AB98, Grafit #3C4346"}
-                  className={textareaClass}
-                />
-              </label>
-              <p className="mt-[-8px] text-[14px] text-muted">
-                Izbor kupca stiže uz porudžbinu. Šifra boje (#rrggbb) iza vrednosti prikazuje je
-                kao kružić u toj boji. Cena i stanje su isti za sve opcije.
-              </p>
             </section>
             <section className={panelClass}>
               <h2 className={panelTitleClass}>Istaknuti deo stranice</h2>
@@ -359,6 +344,16 @@ export function ProductForm({ product, categories, currency, error }: ProductFor
             </section>
           </div>
         </div>
+
+        <section className={panelClass}>
+          <h2 className={panelTitleClass}>Opcije i varijante</h2>
+          <VariantsEditor
+            options={formatOptions(product?.options ?? [])}
+            variants={product?.variants ?? []}
+            images={[product?.image, ...(product?.gallery ?? [])].flatMap((src) => (src ? [src] : []))}
+            currency={currency}
+          />
+        </section>
 
         <div className="flex flex-wrap gap-[12px]">
           <button type="submit" className={buttonClass}>

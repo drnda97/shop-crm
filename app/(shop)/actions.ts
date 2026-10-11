@@ -154,25 +154,14 @@ export type PlacedOrder = {
 
 export type PlaceOrderInput = {
   customer: Record<CheckoutField, string>;
-  items: { slug: string; variant: string; qty: number }[];
+  /** `variantId` je id varijante, kod proizvoda koji ih imaju. */
+  items: { slug: string; variantId?: string; qty: number }[];
   promoCode: string;
   payment: string;
   pickup: boolean;
 };
 
-const NOTE_MAX = 500;
 const CUSTOMER_NOTE_MAX = 250;
-
-/**
- * CRM vodi proizvod bez varijanti, pa izabrana tkanina i postolje idu u napomenu
- * porudžbine, uz ono što je kupac sam napisao.
- */
-function orderNote(customerNote: string, lines: string[]): string {
-  const variants = lines.length > 0 ? `Varijante: ${lines.join("; ")}.` : "";
-  const note = [customerNote, variants].filter(Boolean).join(" — ");
-  // Mesta ostaje i za oznaku preuzimanja u salonu, koju dodaje CRM.
-  return note.length > NOTE_MAX - 30 ? `${note.slice(0, NOTE_MAX - 31)}…` : note;
-}
 
 /** Polja u CRM-u se zovu drugačije nego u formi prodavnice. */
 function fromCrm(errors: OrderErrors): CheckoutErrors {
@@ -208,7 +197,7 @@ export async function placeOrderAction(
     const product = products.find((candidate) => candidate.slug === item?.slug);
     const qty = Number(item?.qty);
     if (!product || !Number.isInteger(qty) || qty < 1) return [];
-    return [{ product, qty, variant: asText(item.variant, 80) }];
+    return [{ slug: product.slug, qty, variant: asText(item.variantId, 120) || undefined }];
   });
 
   const crmCustomer = {
@@ -218,10 +207,7 @@ export async function placeOrderAction(
     street: asText(customer.address),
     city: asText(customer.city),
     postalCode: asText(customer.zip, 16),
-    note: orderNote(
-      note.slice(0, CUSTOMER_NOTE_MAX),
-      items.filter((item) => item.variant).map((item) => `${item.product.name} (${item.variant}) ×${item.qty}`),
-    ),
+    note: note.slice(0, CUSTOMER_NOTE_MAX),
   };
   // Ista pravila kao u CRM-u, pre upisa, da kupac sve greške vidi odjednom.
   const allErrors = { ...fromCrm(validateCustomer(crmCustomer)), ...errors };
@@ -229,7 +215,7 @@ export async function placeOrderAction(
 
   const result = await submitOrder({
     customer: crmCustomer,
-    items: items.map((item) => ({ slug: item.product.slug, qty: item.qty })),
+    items,
     discountCode: asText(raw.promoCode, 64),
     paymentMethod: asText(raw.payment, 20),
     deliveryMethod: raw.pickup === true ? "pickup" : "",

@@ -27,7 +27,7 @@ Prvo otvorite **Podešavanja**: naziv prodavnice, valuta i zapis iznosa (celi iz
 | Porudžbine | pretraga, statusi (nova → potvrđena → poslata → isporučena, otkazana), beleška uz porudžbinu, izvoz u CSV |
 | Kupci | svi kupci sa brojem porudžbina i potrošnjom, istorija porudžbina kupca, beleška o kupcu, izvoz u CSV |
 | Poruke | poruke iz kontakt forme prodavnice i adrese prijavljene na novosti |
-| Proizvodi | cena i akcija, šifra, stanje (ručno ili po broju komada), oznaka „pri kraju", slike, opcije koje kupac bira, istaknuti deo stranice, nacrt/objavljen, redosled |
+| Proizvodi | cena i akcija, šifra, stanje (ručno ili po broju komada), oznaka „pri kraju", slike, opcije i varijante (cena, šifra, stanje i slika po varijanti), istaknuti deo stranice, nacrt/objavljen, redosled |
 | Kategorije, Kolekcije | kategorija je jedna po proizvodu; kolekcija je ručno složena grupa |
 | Popusti | promo kodovi (sa brojem korišćenja i rokom) i nagrade: kod koji kupac dobija emailom posle porudžbine |
 | Stranice | stranice sajta složene od sekcija, sa pregledom pre čuvanja; naslov i opis za pretraživače |
@@ -47,6 +47,7 @@ Na sajt se dodaje jedan red, sa adresom na kojoj radi CRM:
   const store = await shop.getStore();                 // naziv, valuta, dostava, plaćanja, boje
   const { products } = await shop.getProducts();       // i: { category, collection, q }
   shop.cart.add(products[0].slug, 1);                  // korpa je u pregledaču kupca
+  // proizvod sa varijantama: shop.cart.add(slug, 1, product.variants[0].id)
   const { lines, pricing } = await shop.cart.price();  // obračun sa servera
 
   const result = await shop.placeOrder({
@@ -68,11 +69,13 @@ Sajt koji ne koristi `sdk.js` (npr. server u PHP-u ili Next.js-u) zove API direk
 | `GET /api/v1/products/{slug}` | jedan proizvod |
 | `GET /api/v1/categories` · `/collections` · `/collections/{id}` | kategorije i kolekcije |
 | `GET /api/v1/pages` · `/pages/{slug}` | objavljene stranice; stranica ima `sections` (vrsta i sadržaj svake sekcije), i `body` i `images` izvedene iz njih |
-| `POST /api/v1/cart` `{ items, discountCode? }` | stavke i obračun: međuzbir, popust, dostava, ukupno |
+| `POST /api/v1/cart` `{ items, discountCode? }` | stavke i obračun: međuzbir, popust, dostava, ukupno; stavka je `{ slug, qty, variant? }` |
 | `POST /api/v1/discounts/check` `{ code }` | da li kod važi |
 | `POST /api/v1/orders` `{ customer, items, discountCode?, paymentMethod? }` | upis porudžbine (201) ili greške (422) |
 
 Iznosi u API-ju su celi brojevi u najmanjim jedinicama valute (uz `currency.decimals` iz `/store`): 1250 je 1.250 RSD, odnosno 12,50 € kada valuta ima dve decimale. `shop.formatPrice(iznos, store.currency)` ih ispisuje.
+
+Proizvod sa opcijama (`options`) ima `variants`: po jednu za svaku kombinaciju, sa svojim `id`, cenom (`currentPrice`), dostupnošću (`available`, `maxQty`) i slikom. Takav proizvod ulazi u korpu samo uz `variant` (id varijante); njegov `currentPrice` je najniža cena među varijantama, a `priceVaries` kaže da je treba ispisati kao „od".
 
 Cene, stanje, popust i dostava se uvek računaju u CRM-u; sajt šalje samo šta je u korpi. Kada sajt bude objavljen, upišite njegovu adresu u Podešavanja → Prodavnica → „Sajtovi koji smeju da zovu API".
 
@@ -92,7 +95,8 @@ Skripta dodaje samo ono čega nema, pa postojeći sadržaj ne dira.
 | Boje i fontovi | Izgled sajta → Tema |
 | Meni, podnožje, traka sa obaveštenjem | Izgled sajta → Meni i podnožje |
 | Tekstovi i fotografije kolekcije, proizvoda, naloga, plaćanja i korpe | Izgled sajta |
-| Opcije na stranici proizvoda (tkanina, veličina) i tamna traka sa merama | Proizvodi → Opcije, Istaknuti deo stranice |
+| Opcije na stranici proizvoda (tkanina, veličina), cena i stanje po varijanti | Proizvodi → Opcije i varijante |
+| Tamna traka sa merama na stranici proizvoda | Proizvodi → Istaknuti deo stranice |
 | Naziv prodavnice, email, telefon i adresa na stranici Kontakt | Podešavanja → Prodavnica |
 | Proizvodi, cene, akcija, slike | Proizvodi (kratak opis je podrazumevana varijanta u korpi) |
 | Oznake „Novo" i „Bestseler" na karticama | Kolekcije sa tim oznakama (`novo`, `bestseler`) |
@@ -102,7 +106,7 @@ Skripta dodaje samo ono čega nema, pa postojeći sadržaj ne dira.
 | Kontakt forma i prijava na novosti | Poruke |
 | Nalozi kupaca | tabele `shop_users` i `shop_sessions`; kupac u nalogu vidi porudžbine napravljene dok je bio prijavljen |
 
-Opcije koje kupac izabere (npr. tkanina i postolje) idu u napomenu porudžbine. Cena i stanje su isti za sve opcije jednog proizvoda.
+Izabrana varijanta (npr. „Grafit, Orah") stoji uz stavku porudžbine u panelu i u emailu, a stanje se skida sa te varijante.
 
 ## Hosting i rezervna kopija
 
@@ -152,7 +156,7 @@ Plan razvoja je u `PLAN.md`.
 
 - Natpisi na dugmadima i poljima formi prodavnice su u temi, na srpskom.
 - Jedan nalog za panel; nema uloga ni više korisnika.
-- Opcije proizvoda (veličina, boja) nemaju svoju cenu ni stanje: varijanta sa drugom cenom se vodi kao zaseban proizvod.
+- Proizvod može imati najviše 100 varijanti.
 - Nema plaćanja karticom. Za to je potreban ugovor sa bankom ili procesorom; pouzeće i uplata na račun rade bez toga.
 - Katalog se pri svakoj izmeni upisuje ceo (`updateContent`), što je dovoljno brzo do nekoliko stotina proizvoda.
 - Jedan CRM vodi jednu prodavnicu; za drugu se pokreće još jedan, sa svojom bazom.

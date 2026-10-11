@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ADMIN_PATH } from "@/lib/admin-auth";
 import { formatMoney, type Currency } from "@/lib/format";
-import type { Order, OrderStatus } from "@/lib/orders";
+import { itemName, type Order, type OrderStatus } from "@/lib/orders";
 import { paymentLabels } from "@/lib/settings";
 import { saveOrderNoteAction, setOrderStatusAction } from "./actions";
 import { StatusBadge } from "./order-ui";
@@ -93,7 +93,7 @@ export function OrderCard({ order, currency, date, back, hideCustomer = false }:
           {order.items.map((item, index) => (
             <div key={index} className="flex justify-between gap-[12px]">
               <span>
-                {item.qty} × {item.name}
+                {item.qty} × {itemName(item)}
                 {item.sku && <span className="text-muted"> ({item.sku})</span>}
               </span>
               <span className="shrink-0 text-muted">{money(item.price * item.qty)}</span>

@@ -23,17 +23,27 @@ export function ProductCard({ product: p }: { product: ShopProduct }) {
         <div className="card-row">
           <span className="card-price">
             {p.oldPrice && <s>{formatPrice(p.oldPrice)}</s>}
+            {p.priceFrom && "od "}
             {formatPrice(p.price)}
           </span>
-          <button
-            className="add"
-            aria-label="Dodaj u korpu"
-            onClick={() => add({ slug: p.slug, variant: p.variant, qty: 1 })}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M8 2v12M2 8h12"></path>
-            </svg>
-          </button>
+          {p.variants.length > 0 ? (
+            // Proizvod sa varijantama se bira na svojoj stranici.
+            <Link className="add" href={href} aria-label={`Izaberite opcije: ${p.name}`}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M8 2v12M2 8h12"></path>
+              </svg>
+            </Link>
+          ) : (
+            <button
+              className="add"
+              aria-label="Dodaj u korpu"
+              onClick={() => add({ slug: p.slug, variant: p.variant, qty: 1 })}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M8 2v12M2 8h12"></path>
+              </svg>
+            </button>
+          )}
         </div>
       </div>
     </article>

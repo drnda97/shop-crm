@@ -96,8 +96,16 @@
               <span class="muted">${escape(product.summary)}</span>
               <span>
                 ${product.onSale ? `<span class="old">${price(product.price)}</span>` : ""}
-                ${product.currentPrice === null ? "" : price(product.currentPrice)}
+                ${product.currentPrice === null ? "" : (product.priceVaries ? "od " : "") + price(product.currentPrice)}
               </span>
+              ${
+                product.variants.length > 0
+                  ? `<select data-variant-for="${escape(product.slug)}" aria-label="Varijanta">${product.variants
+                      .filter((variant) => variant.available)
+                      .map((variant) => `<option value="${escape(variant.id)}">${escape(variant.label)} — ${price(variant.currentPrice)}</option>`)
+                      .join("")}</select>`
+                  : ""
+              }
               ${product.lowStockLabel ? `<span class="muted">${escape(product.lowStockLabel)}</span>` : ""}
               <button data-add="${escape(product.slug)}" ${product.available ? "" : "disabled"}>
                 ${product.available ? "Dodaj u korpu" : "Nema na stanju"}
@@ -121,11 +129,11 @@
             .map(
               (line) => `
             <div class="line">
-              <span>${escape(line.product.name)}
+              <span>${escape(line.product.name)}${line.variant ? ` <span class="muted">${escape(line.variant.label)}</span>` : ""}
                 <span class="qty">
-                  <button class="quiet" data-qty="${escape(line.product.slug)}" data-value="${line.qty - 1}">−</button>
+                  <button class="quiet" data-qty="${escape(line.product.slug)}" data-variant="${escape(line.variant ? line.variant.id : "")}" data-value="${line.qty - 1}">−</button>
                   ${line.qty}
-                  <button class="quiet" data-qty="${escape(line.product.slug)}" data-value="${line.qty + 1}" ${line.qty >= line.product.maxQty ? "disabled" : ""}>+</button>
+                  <button class="quiet" data-qty="${escape(line.product.slug)}" data-variant="${escape(line.variant ? line.variant.id : "")}" data-value="${line.qty + 1}" ${line.qty >= (line.variant || line.product).maxQty ? "disabled" : ""}>+</button>
                 </span>
               </span>
               <span>${price(line.lineTotal)}</span>
@@ -141,9 +149,13 @@
       }
 
       document.addEventListener("click", (event) => {
-        const { add, qty, value, category: chosen } = event.target.dataset || {};
-        if (add) shop.cart.add(add, 1);
-        if (qty) shop.cart.setQty(qty, Number(value));
+        const { add, qty, value, variant, category: chosen } = event.target.dataset || {};
+        if (add) {
+          // Proizvod sa varijantama ulazi u korpu uz izabranu varijantu.
+          const picked = document.querySelector(`[data-variant-for="${add}"]`);
+          shop.cart.add(add, 1, picked ? picked.value : undefined);
+        }
+        if (qty) shop.cart.setQty(qty, Number(value), variant || undefined);
         if (chosen !== undefined) {
           category = chosen;
           document.querySelectorAll("[data-category]").forEach((button) => {

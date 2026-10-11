@@ -27,11 +27,33 @@ export type ShopProduct = {
   description: string;
   attributes: { title: string; text: string }[];
   gallery: string[];
-  /** Opcije koje kupac bira; izbor ulazi u korpu kao varijanta. */
+  /** Opcije koje kupac bira; svaka kombinacija vrednosti je jedna varijanta. */
   options: ProductOption[];
+  /** Uključene varijante; prazno kod proizvoda bez opcija. Kod proizvoda sa varijantama `price` je najniža cena. */
+  variants: ShopVariant[];
+  /** Varijante imaju različite cene, pa se cena na kartici ispisuje kao „od". */
+  priceFrom: boolean;
+  /** Oznaka „pri kraju" proizvoda bez varijanti, ili null; kod varijanti je uz svaku varijantu. */
+  lowStock: string | null;
   highlight: ProductHighlight;
   /** Kolekcije u kojima je proizvod (id), za sekciju „Proizvodi". */
   collections: string[];
+};
+
+export type ShopVariant = {
+  id: string;
+  values: string[];
+  /** „Grafit, Orah" — tako se varijanta ispisuje u korpi i porudžbini. */
+  label: string;
+  price: number;
+  oldPrice?: number;
+  image: string | null;
+  /** Može da se poruči: ima cenu i na stanju je. */
+  available: boolean;
+  /** Najviše komada u jednoj porudžbini. */
+  maxQty: number;
+  /** Oznaka „pri kraju" („Još samo 2 kom."), ili null. */
+  lowStock: string | null;
 };
 
 /** Podešavanja iz CRM-a koja prodavnici trebaju u pregledaču. */

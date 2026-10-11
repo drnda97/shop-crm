@@ -44,6 +44,7 @@ type Content = {
 const CONTENT_TABLES = [
   "products",
   "product_images",
+  "product_variants",
   "categories",
   "collections",
   "collection_products",
@@ -56,6 +57,7 @@ async function loadContent(db: Pool | PoolConnection): Promise<Content> {
   // Jedan po jedan upit: ista veza (u transakciji) ne može da vodi više upita odjednom.
   const products = await select("SELECT * FROM products ORDER BY position");
   const productImages = await select("SELECT * FROM product_images ORDER BY position");
+  const productVariants = await select("SELECT * FROM product_variants ORDER BY position");
   const categories = await select("SELECT * FROM categories ORDER BY position");
   const collections = await select("SELECT * FROM collections ORDER BY position");
   const collectionProducts = await select("SELECT * FROM collection_products ORDER BY position");
@@ -87,6 +89,18 @@ async function loadContent(db: Pool | PoolConnection): Promise<Content> {
         .map((image) => image.src),
       options: JSON.parse(row.options ?? "[]"),
       highlight: { ...emptyHighlight, ...JSON.parse(row.highlight ?? "{}") },
+      variants: productVariants
+        .filter((variant) => variant.product_slug === row.slug)
+        .map((variant) => ({
+          id: variant.id,
+          values: JSON.parse(variant.option_values),
+          price: variant.price,
+          salePrice: variant.sale_price,
+          sku: variant.sku,
+          stockQty: variant.stock_qty,
+          ...(variant.image === null ? {} : { image: variant.image }),
+          enabled: variant.enabled === 1,
+        })),
     })),
     categories: categories.map((row) => ({ id: row.id, label: row.label })),
     collections: collections.map((row) => ({
@@ -160,6 +174,25 @@ async function storeContent(connection: PoolConnection, content: Content) {
     "INSERT INTO product_images (product_slug, position, src) VALUES ?",
     content.products.flatMap((product) =>
       product.gallery.map((src, index) => [product.slug, index, src]),
+    ),
+  );
+  await insertRows(
+    connection,
+    `INSERT INTO product_variants (product_slug, id, position, option_values, price, sale_price,
+      sku, stock_qty, image, enabled) VALUES ?`,
+    content.products.flatMap((product) =>
+      product.variants.map((variant, index) => [
+        product.slug,
+        variant.id,
+        index,
+        JSON.stringify(variant.values),
+        variant.price,
+        variant.salePrice,
+        variant.sku,
+        variant.stockQty,
+        variant.image ?? null,
+        variant.enabled,
+      ]),
     ),
   );
   await insertRows(

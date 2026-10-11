@@ -9,6 +9,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import mysql from "mysql2/promise";
+import { syncVariants } from "../lib/catalog.ts";
 import { makeSizes } from "../lib/images.ts";
 
 const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, UPLOADS_DIR } = process.env;
@@ -169,6 +170,13 @@ try {
         ),
       ],
     );
+    // Svaka kombinacija opcija je varijanta, bez sopstvene cene i stanja.
+    for (const [index, variant] of syncVariants(product.options ?? [], []).entries()) {
+      await db.query(
+        "INSERT INTO product_variants (product_slug, id, position, option_values) VALUES (?, ?, ?, ?)",
+        [product.slug, variant.id, index, JSON.stringify(variant.values)],
+      );
+    }
     for (const [index, file] of (product.gallery ?? []).entries()) {
       await db.query("INSERT INTO product_images (product_slug, position, src) VALUES (?, ?, ?)", [
         product.slug,

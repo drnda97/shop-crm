@@ -1,4 +1,15 @@
-import { currentPrice, isAvailable, isOnSale, salePercent } from "@/lib/catalog";
+import { maxQty } from "@/lib/cart";
+import {
+  currentPrice,
+  isAvailable,
+  isOnSale,
+  isVariantAvailable,
+  lowStockLabel,
+  priceRange,
+  regularPrice,
+  salePercent,
+  variantLabel,
+} from "@/lib/catalog";
 import { getCategories, getCollections, getDiscounts, getProducts, getSettings } from "@/lib/content";
 import { getShopSettings } from "@/lib/storefront/pages";
 import { isExpired } from "@/lib/discounts";
@@ -29,20 +40,40 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
       (collection) => collection?.productSlugs.includes(product.slug),
     );
     const onSale = isOnSale(product);
+    const range = priceRange(product);
     return {
       id: product.slug,
       slug: product.slug,
       name: product.name,
       category: categories.find((category) => category.id === product.category)?.label ?? "",
       variant: product.summary,
-      price: currentPrice(product) as number,
-      ...(onSale ? { oldPrice: product.price as number } : {}),
+      price: range.from as number,
+      // Precrtana cena na kartici ima smisla samo kada sve varijante dele cenu proizvoda.
+      ...(onSale && !range.varies ? { oldPrice: product.price as number } : {}),
+      priceFrom: range.varies,
+      lowStock: lowStockLabel(product),
       image: product.image ?? null,
       tag: onSale ? `−${salePercent(product)}%` : (tagCollection?.name ?? ""),
       description: product.description,
       attributes: product.attributes,
       gallery: product.gallery,
       options: product.options,
+      variants: product.variants
+        .filter((variant) => variant.enabled)
+        .map((variant) => {
+          const available = isVariantAvailable(product, variant);
+          return {
+            id: variant.id,
+            values: variant.values,
+            label: variantLabel(variant),
+            price: currentPrice(product, variant) ?? 0,
+            ...(isOnSale(product, variant) ? { oldPrice: regularPrice(product, variant) as number } : {}),
+            image: variant.image ?? null,
+            available,
+            maxQty: available ? maxQty(product, variant) : 0,
+            lowStock: lowStockLabel(product, variant),
+          };
+        }),
       highlight: product.highlight,
       collections: collections
         .filter((collection) => collection.productSlugs.includes(product.slug))

@@ -13,7 +13,7 @@ import { Icon, Photo } from "./ui";
 export function ProductView({ product }: { product: ShopProduct }) {
   const { add, config } = useCart();
   const texts = config.texts.product;
-  const [shot, setShot] = useState(0);
+  const [shot, setShot] = useState(-1);
   // Izabrana vrednost svake opcije; na početku prva.
   const [picked, setPicked] = useState<number[]>(product.options.map(() => 0));
   const [qty, setQty] = useState(1);
@@ -21,11 +21,27 @@ export function ProductView({ product }: { product: ShopProduct }) {
 
   const shots = [product.image, ...product.gallery].flatMap((image) => (image ? [image] : []));
   const accs = [...product.attributes, ...texts.info].filter((item) => item.title);
-  // Izbor ulazi u korpu i porudžbinu kao varijanta; proizvod bez opcija nosi svoj kratak opis.
-  const variant =
-    product.options.length > 0
-      ? product.options.map((option, index) => option.values[picked[index]]?.label ?? "").join(", ")
-      : product.variant;
+
+  // Izabrane vrednosti opcija određuju varijantu: njena cena, stanje i slika važe za dodavanje u korpu.
+  const hasVariants = product.variants.length > 0;
+  const variant = product.variants.find((candidate) =>
+    candidate.values.every((value, index) => product.options[index]?.values[picked[index]]?.label === value),
+  );
+  const price = hasVariants ? (variant?.price ?? product.price) : product.price;
+  const oldPrice = hasVariants ? variant?.oldPrice : product.oldPrice;
+  // Kombinacija koja se ne pravi ili je rasprodata ne može u korpu.
+  const canAdd = !hasVariants || variant?.available === true;
+  // „Još samo 2 kom.": za izabranu varijantu, ili za proizvod bez varijanti.
+  const lowStock = hasVariants ? (variant?.available ? variant.lowStock : null) : product.lowStock;
+  const limit = hasVariants ? (variant?.maxQty ?? 1) : Infinity;
+  const amount = Math.max(1, Math.min(qty, limit));
+  // Dok kupac ne klikne na sličicu (shot je -1), prikazuje se slika izabrane varijante.
+  const image = shots[shot] ?? (variant?.image && shots.includes(variant.image) ? variant.image : shots[0]);
+
+  function pick(index: number, value: number) {
+    setPicked((items) => items.map((item, position) => (position === index ? value : item)));
+    setShot(-1);
+  }
 
   return (
     <div
@@ -39,7 +55,7 @@ export function ProductView({ product }: { product: ShopProduct }) {
       {/* GALERIJA */}
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         <div className="ph zoom" style={{ aspectRatio: "1", borderRadius: "32px" }}>
-          {shots[shot] && <Photo src={shots[shot]} alt={product.name} sizes="(max-width: 900px) 100vw, 620px" preload />}
+          {image && <Photo src={image} alt={product.name} sizes="(max-width: 900px) 100vw, 620px" preload />}
           {product.tag && (
             <span className={product.oldPrice ? "tag sale" : "tag"} style={{ top: "18px", left: "18px" }}>
               {product.tag}
@@ -48,9 +64,9 @@ export function ProductView({ product }: { product: ShopProduct }) {
         </div>
         {shots.length > 1 && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px" }}>
-            {shots.map((image, i) => (
-              <button className={i === shot ? "thumb on" : "thumb"} aria-label={`Slika ${i + 1}`} onClick={() => setShot(i)} key={image}>
-                <Photo src={image} alt="" sizes="150px" />
+            {shots.map((src, i) => (
+              <button className={src === image ? "thumb on" : "thumb"} aria-label={`Slika ${i + 1}`} onClick={() => setShot(i)} key={src}>
+                <Photo src={src} alt="" sizes="150px" />
               </button>
             ))}
           </div>
@@ -65,19 +81,20 @@ export function ProductView({ product }: { product: ShopProduct }) {
             <span className="ln"><span>{product.name}</span></span>
           </h1>
           <div className="a2" style={{ display: "flex", alignItems: "baseline", gap: "14px", flexWrap: "wrap" }}>
-            <span className="display" style={{ fontSize: "28px" }}>{formatPrice(product.price)}</span>
-            {product.oldPrice && <s className="muted">{formatPrice(product.oldPrice)}</s>}
+            <span className="display" style={{ fontSize: "28px" }}>{formatPrice(price)}</span>
+            {oldPrice && <s className="muted">{formatPrice(oldPrice)}</s>}
             {texts.priceNote && <span className="muted" style={{ fontSize: "14.5px" }}>{texts.priceNote}</span>}
           </div>
         </div>
+        {lowStock && (
+          <div className="lab a2" role="status" style={{ color: "var(--gold-d)" }}>{lowStock}</div>
+        )}
         {product.description && (
           <p className="lead a2" style={{ whiteSpace: "pre-line" }}>{product.description}</p>
         )}
 
         {product.options.map((option, index) => {
           const current = option.values[picked[index]];
-          const pick = (value: number) =>
-            setPicked((items) => items.map((item, position) => (position === index ? value : item)));
           // Opcija čije sve vrednosti imaju boju prikazuje se kao kružići, inače kao dugmad.
           const swatches = option.values.every((value) => value.color);
           return (
@@ -89,7 +106,7 @@ export function ProductView({ product }: { product: ShopProduct }) {
               {swatches ? (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginLeft: "-4px" }}>
                   {option.values.map((value, i) => (
-                    <button className={i === picked[index] ? "sw on" : "sw"} aria-label={value.label} aria-pressed={i === picked[index]} onClick={() => pick(i)} key={value.label}>
+                    <button className={i === picked[index] ? "sw on" : "sw"} aria-label={value.label} aria-pressed={i === picked[index]} onClick={() => pick(index, i)} key={value.label}>
                       <i style={{ background: value.color }}></i>
                     </button>
                   ))}
@@ -97,7 +114,7 @@ export function ProductView({ product }: { product: ShopProduct }) {
               ) : (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                   {option.values.map((value, i) => (
-                    <button className={i === picked[index] ? "chip on" : "chip"} aria-pressed={i === picked[index]} onClick={() => pick(i)} key={value.label}>
+                    <button className={i === picked[index] ? "chip on" : "chip"} aria-pressed={i === picked[index]} onClick={() => pick(index, i)} key={value.label}>
                       {value.label}
                     </button>
                   ))}
@@ -109,12 +126,19 @@ export function ProductView({ product }: { product: ShopProduct }) {
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
           <div className="qty" style={{ height: "58px", padding: "0 6px" }}>
-            <button aria-label="Smanji količinu" onClick={() => setQty(Math.max(1, qty - 1))}>−</button>
-            <span>{qty}</span>
-            <button aria-label="Povećaj količinu" onClick={() => setQty(qty + 1)}>+</button>
+            <button aria-label="Smanji količinu" onClick={() => setQty(Math.max(1, amount - 1))}>−</button>
+            <span>{amount}</span>
+            <button aria-label="Povećaj količinu" disabled={amount >= limit} onClick={() => setQty(amount + 1)}>+</button>
           </div>
-          <button className="btn gold" style={{ flex: "1 1 240px" }} onClick={() => add({ slug: product.slug, variant, qty })}>
-            Dodaj u korpu, {formatPrice(product.price * qty)}
+          <button
+            className="btn gold"
+            style={{ flex: "1 1 240px" }}
+            disabled={!canAdd}
+            onClick={() =>
+              add({ slug: product.slug, variant: variant?.label ?? product.variant, variantId: variant?.id, qty: amount })
+            }
+          >
+            {canAdd ? `Dodaj u korpu, ${formatPrice(price * amount)}` : "Nema na stanju"}
           </button>
         </div>
 

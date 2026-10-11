@@ -3,7 +3,7 @@ import { getSettings } from "@/lib/content";
 import { csvResponse } from "@/lib/csv";
 import { fromMinor } from "@/lib/format";
 import { getOrders } from "@/lib/order-store";
-import { orderStatusLabels } from "@/lib/orders";
+import { itemName, orderStatusLabels } from "@/lib/orders";
 import { paymentLabels } from "@/lib/settings";
 
 /** Sve porudžbine kao CSV, jedna po redu, najnovija prva. */
@@ -46,7 +46,7 @@ export async function GET() {
       order.customer.postalCode,
       order.customer.city,
       order.customer.note,
-      order.items.map((item) => `${item.qty} × ${item.name}`).join(", "),
+      order.items.map((item) => `${item.qty} × ${itemName(item)}`).join(", "),
       amount(order.subtotal),
       amount(order.discount?.amount ?? 0),
       order.discount?.code ?? "",

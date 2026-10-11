@@ -1,4 +1,5 @@
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
+import { syncVariants } from "@/lib/catalog";
 import { DEFAULT_PAGES } from "@/lib/default-pages";
 import { normalizeSections } from "@/lib/sections";
 
@@ -121,6 +122,57 @@ export const MIGRATIONS: Migration[] = [
       await connection.query("UPDATE settings SET value = ? WHERE name = 'settings'", [
         JSON.stringify(settings),
       ]);
+    },
+  },
+  {
+    id: 6,
+    name: "proizvodi: varijante",
+    up: async (connection) => {
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS product_variants (
+          product_slug VARCHAR(191) NOT NULL,
+          id VARCHAR(120) NOT NULL,
+          position INT NOT NULL,
+          option_values TEXT NOT NULL,
+          price INT NULL,
+          sale_price INT NULL,
+          sku VARCHAR(64) NOT NULL DEFAULT '',
+          stock_qty INT NULL,
+          image VARCHAR(255) NULL,
+          enabled TINYINT(1) NOT NULL DEFAULT 1,
+          PRIMARY KEY (product_slug, id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+      );
+    },
+  },
+  {
+    id: 7,
+    name: "proizvodi: postojeće opcije dobijaju varijante",
+    up: async (connection) => {
+      // Opcije su do sada bile samo izbor koji ide u napomenu; svaka kombinacija postaje
+      // varijanta bez sopstvene cene i stanja, pa se za kupca ništa ne menja.
+      const [rows] = await connection.query<RowDataPacket[]>(
+        "SELECT slug, options FROM products WHERE options IS NOT NULL AND options <> '[]'",
+      );
+      for (const row of rows) {
+        const variants = syncVariants(JSON.parse(row.options), []);
+        for (const [index, variant] of variants.entries()) {
+          await connection.query(
+            `INSERT IGNORE INTO product_variants (product_slug, id, position, option_values)
+             VALUES (?, ?, ?, ?)`,
+            [row.slug, variant.id, index, JSON.stringify(variant.values)],
+          );
+        }
+      }
+    },
+  },
+  {
+    id: 8,
+    name: "porudžbine: naziv varijante uz stavku",
+    up: async (connection) => {
+      await connection.query(
+        "ALTER TABLE order_items ADD COLUMN variant VARCHAR(255) NOT NULL DEFAULT ''",
+      );
     },
   },
 ];

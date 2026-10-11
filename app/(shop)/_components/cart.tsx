@@ -5,20 +5,24 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import type { ShopConfig, ShopProduct } from "@/lib/storefront/products";
 import { createStore } from "./store";
 
-/** Šta se čuva u pregledaču: samo koji proizvod, koja varijanta i koliko komada. */
-type StoredItem = { slug: string; variant: string; qty: number };
+/**
+ * Šta se čuva u pregledaču: samo koji proizvod, koja varijanta i koliko komada.
+ * `variantId` je id varijante kod proizvoda koji ih imaju; `variant` je tekst ispod naziva
+ * (naziv varijante, ili kratak opis proizvoda bez varijanti).
+ */
+type StoredItem = { slug: string; variant: string; variantId?: string; qty: number };
 
 /** Stavka za prikaz: naziv, cena i slika su uvek iz kataloga CRM-a, ne iz pregledača. */
 export type CartItem = StoredItem & { name: string; price: number; image: string | null };
 
 /** Stavka se prepoznaje po proizvodu i varijanti: ista fotelja u drugoj tkanini je druga stavka. */
-export function cartKey(item: { slug: string; variant: string }): string {
-  return item.slug + item.variant;
+export function cartKey(item: { slug: string; variant: string; variantId?: string }): string {
+  return item.slug + (item.variantId ?? item.variant);
 }
 
 // Korpa pri prvoj poseti, kao u dizajnu.
 const SEED: StoredItem[] = [
-  { slug: "okretna-fotelja-mio", variant: "Pesak, hrast", qty: 1 },
+  { slug: "okretna-fotelja-mio", variant: "Pesak, Hrast", variantId: "pesak-hrast", qty: 1 },
   { slug: "hoklica-hrast", variant: "Masivni hrast, 65 cm", qty: 1 },
 ];
 
@@ -39,7 +43,7 @@ type Cart = {
   openCart: () => void;
   closeCart: () => void;
   /** Dodaje stavku (ili povećava količinu postojeće) i otvara korpu. */
-  add: (item: { slug: string; variant: string; qty?: number }) => void;
+  add: (item: { slug: string; variant: string; variantId?: string; qty?: number }) => void;
   setQty: (key: string, delta: number) => void;
   clear: () => void;
 };
@@ -67,7 +71,7 @@ export function CartProvider({ products, config, children }: CartProviderProps) 
       store.write(
         has
           ? current.map((i) => (cartKey(i) === key ? { ...i, qty: i.qty + qty } : i))
-          : [...current, { slug: item.slug, variant: item.variant, qty }],
+          : [...current, { slug: item.slug, variant: item.variant, variantId: item.variantId, qty }],
       );
       setOpenOn(pathname);
     },
@@ -86,10 +90,17 @@ export function CartProvider({ products, config, children }: CartProviderProps) 
   const clear = useCallback(() => store.write([]), []);
 
   const value = useMemo<Cart>(() => {
-    // Proizvod koji je u međuvremenu povučen ili rasprodat ispada iz korpe.
+    // Proizvod ili varijanta koja je u međuvremenu povučena ili rasprodata ispada iz korpe.
     const items = stored.flatMap((item) => {
       const product = products.find((candidate) => candidate.slug === item.slug);
-      return product ? [{ ...item, name: product.name, price: product.price, image: product.image }] : [];
+      if (!product) return [];
+      if (product.variants.length === 0) {
+        return [{ ...item, variantId: undefined, name: product.name, price: product.price, image: product.image }];
+      }
+      const variant = product.variants.find((candidate) => candidate.id === item.variantId);
+      if (!variant?.available) return [];
+      // Naziv i cena varijante su iz kataloga, ne iz onoga što je upisano u pregledaču.
+      return [{ ...item, variant: variant.label, name: product.name, price: variant.price, image: variant.image ?? product.image }];
     });
     return {
       products,

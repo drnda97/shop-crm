@@ -81,10 +81,17 @@ Ostalo:
 
 ### Faza 2 — Katalog
 
-- Varijante: opcije proizvoda postoje od Faze 1 (izbor ide u porudžbinu), ali bez sopstvene cene, šifre, stanja i slike po varijanti — to je posao ove faze.
+Varijante završene 12. 10. 2026.
+
+- **Varijante** (`lib/catalog.ts`, tabela `product_variants`): svaka kombinacija opcija je varijanta sa svojom cenom i akcijom, šifrom, brojem komada i slikom; kombinacija koja se ne pravi se isključuje. Bez sopstvene cene važi cena proizvoda. Najviše 100 varijanti po proizvodu.
+- Varijanta prolazi kroz ceo tok: stranica proizvoda (cena, slika i dostupnost prate izbor), korpa, obračun, skidanje sa stanja, porudžbina u panelu, email, izvoz, API i `sdk.js`. Oznaka „pri kraju" i pregled stanja u panelu (Pregled, Proizvodi) gledaju stanje po varijanti.
+
+Ostalo:
+
 - Podkategorije, proizvod u više kategorija, filteri po osobinama i ceni, sortiranje.
 - Uvoz i izvoz proizvoda u CSV-u, uključujući uvoz Shopify i WooCommerce izvoza: to je put kojim postojeće prodavnice prelaze.
-- Izmena više proizvoda odjednom, povezani proizvodi, istorija promena stanja.
+- Izmena više proizvoda odjednom, ručno izabrani povezani proizvodi, istorija promena stanja.
+- SEO polja za proizvod i kategoriju (preneto iz Faze 1).
 
 ### Faza 3 — Porudžbine, plaćanje, dostava
 

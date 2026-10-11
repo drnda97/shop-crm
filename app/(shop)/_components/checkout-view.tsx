@@ -92,7 +92,7 @@ export function CheckoutView({ user }: { user: User | null }) {
     startTransition(async () => {
       const result = await placeOrderAction({
         customer: fields,
-        items: items.map(({ slug, variant, qty }) => ({ slug, variant, qty })),
+        items: items.map(({ slug, variantId, qty }) => ({ slug, variantId, qty })),
         promoCode: promo?.code ?? "",
         payment,
         pickup,

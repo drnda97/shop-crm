@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ADMIN_PATH, isAdmin } from "@/lib/admin-auth";
-import { hasStock } from "@/lib/catalog";
+import { hasPrice, isSoldOut, lowStockUnits, soldOutVariants } from "@/lib/catalog";
 import { getProducts, getSettings } from "@/lib/content";
 import { formatMoney, formatOrderCount, formatPieces } from "@/lib/format";
 import { isMailConfigured } from "@/lib/order-email";
@@ -68,17 +68,13 @@ export default async function DashboardPage() {
   const topProducts = stats.topProducts.slice(0, 8);
   const maxProductQty = Math.max(1, ...topProducts.map((product) => product.qty));
   const listed = products.filter((product) => product.active);
-  const withoutPrice = listed.filter((product) => product.price === null);
+  const withoutPrice = listed.filter((product) => !hasPrice(product));
   const withoutImage = listed.filter((product) => !product.image);
-  const soldOut = listed.filter((product) => !hasStock(product));
-  // Pri kraju: proizvodi kojima se vodi broj i koji su pali na svoj prag.
-  const runningLow = listed.filter(
-    (product) =>
-      hasStock(product) &&
-      product.stockQty !== null &&
-      product.lowStockThreshold !== null &&
-      product.stockQty <= product.lowStockThreshold,
-  );
+  // Stanje se gleda tamo gde se vodi: uz proizvod, ili uz svaku njegovu varijantu.
+  const soldOut = listed.filter(isSoldOut);
+  const soldOutParts = listed.flatMap(soldOutVariants);
+  // Pri kraju: vodi se broj komada i pao je na prag proizvoda.
+  const runningLow = listed.flatMap(lowStockUnits);
   const recent = orders.slice(-5).reverse();
   const names = (items: { name: string }[]) =>
     items
@@ -111,11 +107,15 @@ export default async function DashboardPage() {
       text: `Nema na stanju: ${names(soldOut)}`,
       href: `${ADMIN_PATH}/proizvodi`,
     },
+    soldOutParts.length > 0 && {
+      text: `Rasprodate varijante: ${names(soldOutParts)}`,
+      href: `${ADMIN_PATH}/proizvodi`,
+    },
     runningLow.length > 0 && {
       text: `Pri kraju: ${runningLow
         .slice(0, 6)
-        .map((product) => `${product.name} (${product.stockQty} kom.)`)
-        .join(", ")}`,
+        .map((unit) => `${unit.name} (${unit.qty} kom.)`)
+        .join(", ")}${runningLow.length > 6 ? "…" : ""}`,
       href: `${ADMIN_PATH}/proizvodi`,
     },
     withoutImage.length > 0 && {

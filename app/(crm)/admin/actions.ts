@@ -11,10 +11,14 @@ import {
   requireAdmin,
 } from "@/lib/admin-auth";
 import {
+  countCombinations,
   HOME_SLUG,
+  MAX_VARIANTS,
   parseOptions,
   parsePairs,
   RESERVED_SLUGS,
+  slugify,
+  syncVariants,
   type LowStockMode,
   type Product,
 } from "@/lib/catalog";
@@ -53,6 +57,7 @@ import { clientIp, TOO_MANY, tooMany } from "@/lib/rate-limit";
 import { newSection, normalizeData, normalizeSections } from "@/lib/sections";
 import { defaultSettings, mergeSettings } from "@/lib/settings";
 import { mergeSite } from "@/lib/site";
+import type { VariantRow } from "./variants-editor";
 import { deleteMessage } from "@/lib/storefront/inbox";
 import { PREVIEW_KEY, type PreviewDraft, type SettingsDraft } from "@/lib/storefront/pages";
 import { template, type Templates } from "@/lib/templates";
@@ -81,17 +86,6 @@ function optionalCount(formData: FormData, name: string): number | null | false 
 function image(formData: FormData, name: string): File | null {
   const value = formData.get(name);
   return value instanceof File && value.size > 0 ? value : null;
-}
-
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/đ/g, "dj")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 120);
 }
 
 /** Slug iz naziva koji nije zauzet; po potrebi dobija nastavak -2, -3… */
@@ -230,6 +224,49 @@ export async function saveProductAction(formData: FormData) {
     highlightImage = undefined;
   }
 
+  // Varijante: jedna za svaku kombinaciju opcija; cena, šifra i stanje stižu iz tabele u formi.
+  const options = parseOptions(text(formData, "options"));
+  if (countCombinations(options) > MAX_VARIANTS) {
+    backWithError(formPath, `Opcije daju više od ${MAX_VARIANTS} kombinacija. Smanjite broj vrednosti.`);
+  }
+  let rows: Record<string, Partial<VariantRow>> = {};
+  try {
+    rows = JSON.parse(text(formData, "variants") || "{}");
+  } catch {
+    rows = {};
+  }
+  const images = [imageSrc, ...gallery];
+  const variants = syncVariants(options, existing?.variants ?? []).map((variant) => {
+    const row = rows[variant.id];
+    // Varijanta koje nema u formi (forma poslata bez tabele) ostaje kakva jeste.
+    if (typeof row !== "object" || row === null) return variant;
+    const label = variant.values.join(", ");
+    const own = toMinor(String(row.price ?? ""), decimals);
+    const sale = toMinor(String(row.salePrice ?? ""), decimals);
+    if (Number.isNaN(own) || Number.isNaN(sale)) {
+      backWithError(formPath, `Varijanta „${label}": cena je broj, npr. 1250 ili 12,50.`);
+    }
+    if (sale !== null && (own === null || sale >= own)) {
+      backWithError(formPath, `Varijanta „${label}": cena na akciji traži upisanu cenu varijante i mora biti niža od nje.`);
+    }
+    const stock = String(row.stockQty ?? "").trim();
+    const qty = stock === "" ? null : Number(stock);
+    if (qty !== null && (!Number.isInteger(qty) || qty < 0)) {
+      backWithError(formPath, `Varijanta „${label}": broj komada je ceo broj, nula ili više.`);
+    }
+    const picked = typeof row.image === "string" && images.includes(row.image) ? row.image : undefined;
+    return {
+      id: variant.id,
+      values: variant.values,
+      price: own,
+      salePrice: sale,
+      sku: String(row.sku ?? "").trim().slice(0, 64),
+      stockQty: qty,
+      ...(picked ? { image: picked } : {}),
+      enabled: row.enabled !== false,
+    };
+  });
+
   const product: Product = {
     slug,
     name,
@@ -248,7 +285,8 @@ export async function saveProductAction(formData: FormData) {
     lowStockThreshold,
     image: imageSrc,
     gallery,
-    options: parseOptions(text(formData, "options")),
+    options,
+    variants,
     highlight: {
       heading: text(formData, "highlightHeading").slice(0, 200),
       text: text(formData, "highlightText").slice(0, 2000),

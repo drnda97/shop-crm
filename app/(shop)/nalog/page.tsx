@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { orderStatusLabels } from "@/lib/orders";
+import { itemName, orderStatusLabels } from "@/lib/orders";
 import { paymentLabels } from "@/lib/settings";
 import { getCurrentUser, getUserOrders } from "@/lib/storefront/auth";
 import { getWelcomeCode } from "@/lib/storefront/catalog";
@@ -37,7 +37,7 @@ async function loadAccount(): Promise<Account | null> {
       payment: paymentLabels[order.paymentMethod],
       total: order.total,
       count: order.items.reduce((sum, item) => sum + item.qty, 0),
-      names: order.items.map((item) => item.name).join(", "),
+      names: order.items.map(itemName).join(", "),
     })),
   };
 }

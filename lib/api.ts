@@ -3,11 +3,16 @@ import {
   currentPrice,
   isAvailable,
   isOnSale,
+  isVariantAvailable,
   lowStockLabel,
+  priceRange,
+  regularPrice,
   salePercent,
+  variantLabel,
   type Collection,
   type Page,
   type Product,
+  type Variant,
 } from "@/lib/catalog";
 import { imageSizes } from "@/lib/media";
 import { collectImages, sectionType } from "@/lib/sections";
@@ -61,7 +66,27 @@ function sizes(src: string | undefined, base: string) {
   return all && Object.fromEntries(Object.entries(all).map(([name, path]) => [name, `${base}${path}`]));
 }
 
+export function publicVariant(product: Product, variant: Variant, base: string) {
+  const available = isVariantAvailable(product, variant);
+  return {
+    /** Šalje se uz stavku korpe: { slug, qty, variant: id }. */
+    id: variant.id,
+    /** Vrednost svake opcije, redom kojim su opcije u `options`. */
+    values: variant.values,
+    label: variantLabel(variant),
+    sku: variant.sku || product.sku,
+    price: regularPrice(product, variant),
+    currentPrice: currentPrice(product, variant),
+    onSale: isOnSale(product, variant),
+    available,
+    maxQty: available ? maxQty(product, variant) : 0,
+    lowStockLabel: lowStockLabel(product, variant),
+    image: mediaUrl(variant.image, base),
+  };
+}
+
 export function publicProduct(product: Product, base: string) {
+  const range = priceRange(product);
   return {
     slug: product.slug,
     name: product.name,
@@ -72,13 +97,17 @@ export function publicProduct(product: Product, base: string) {
     attributes: product.attributes,
     /** Redovna cena i cena koju kupac plaća, u najmanjim jedinicama valute. */
     price: product.price,
-    currentPrice: currentPrice(product),
+    /** Kod proizvoda sa varijantama: najniža cena među varijantama koje mogu da se poruče. */
+    currentPrice: range.from,
+    /** Varijante imaju različite cene, pa se `currentPrice` prikazuje kao „od". */
+    priceVaries: range.varies,
     onSale: isOnSale(product),
     salePercent: salePercent(product),
     weight: product.weight,
     available: isAvailable(product),
-    /** Najviše komada u jednoj porudžbini. */
+    /** Najviše komada u jednoj porudžbini; kod proizvoda sa varijantama važi `maxQty` varijante. */
     maxQty: isAvailable(product) ? maxQty(product) : 0,
+    /** Kod proizvoda sa varijantama oznaka je uz varijantu (`variants[n].lowStockLabel`). */
     lowStockLabel: lowStockLabel(product),
     image: mediaUrl(product.image, base),
     /** Ista slika u manjim širinama (thumb, small, medium, large, full); null za staru sliku. */
@@ -86,6 +115,10 @@ export function publicProduct(product: Product, base: string) {
     gallery: product.gallery.map((src) => `${base}${src}`),
     gallerySizes: product.gallery.map((src) => sizes(src, base)),
     options: product.options,
+    /** Kombinacije opcija koje kupac može da izabere; prazno kod proizvoda bez opcija. */
+    variants: product.variants
+      .filter((variant) => variant.enabled)
+      .map((variant) => publicVariant(product, variant, base)),
     highlight: { ...product.highlight, image: mediaUrl(product.highlight.image, base) },
   };
 }

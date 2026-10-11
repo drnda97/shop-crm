@@ -4,6 +4,7 @@ import {
   publicCollection,
   publicPage,
   publicProduct,
+  publicVariant,
   publicStore,
 } from "@/lib/api";
 import { getPricing, toLines } from "@/lib/cart";
@@ -32,6 +33,7 @@ import type { Settings } from "@/lib/settings";
  *   GET  /api/v1/pages
  *   GET  /api/v1/pages/{slug}
  *   POST /api/v1/cart                  { items, discountCode? } → stavke i obračun
+ *                                      stavka: { slug, qty, variant? } — variant je id varijante
  *   POST /api/v1/discounts/check       { code }
  *   POST /api/v1/orders                { customer, items, discountCode?, paymentMethod? }
  *
@@ -151,19 +153,27 @@ export async function POST(request: Request, { params }: Context) {
     const base = baseUrl(request);
     const items = parseItems(body.items);
     const lines = toLines(items, await getProducts());
+    const removed = items.filter(
+      (item) =>
+        !lines.some(
+          (line) => line.product.slug === item.slug && (line.variant?.id ?? undefined) === item.variant,
+        ),
+    );
     const code = typeof body.discountCode === "string" ? body.discountCode : "";
     const check = code.trim() === "" ? null : await checkCode(code);
     const { shipping } = settings;
     return reply(request, settings, {
       lines: lines.map((line) => ({
         product: publicProduct(line.product, base),
+        /** Izabrana varijanta, ili null kod proizvoda bez varijanti. */
+        variant: line.variant ? publicVariant(line.product, line.variant, base) : null,
         qty: line.qty,
-        lineTotal: (currentPrice(line.product) ?? 0) * line.qty,
+        lineTotal: (currentPrice(line.product, line.variant) ?? 0) * line.qty,
       })),
-      /** Stavke koje su ispale: proizvod je obrisan, povučen ili ga nema na stanju. */
-      removed: items
-        .filter((item) => !lines.some((line) => line.product.slug === item.slug))
-        .map((item) => item.slug),
+      /** Stavke koje su ispale: proizvod ili varijanta je obrisana, povučena ili je nema na stanju. */
+      removedItems: removed.map((item) => ({ slug: item.slug, variant: item.variant ?? null })),
+      /** Isto, samo oznake proizvoda — oblik iz prve verzije API-ja. */
+      removed: [...new Set(removed.map((item) => item.slug))],
       discount: check?.ok ? check.discount : null,
       discountError: check && !check.ok ? check.message : null,
       pricing: getPricing(lines, {

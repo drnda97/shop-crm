@@ -2,7 +2,7 @@ import { randomInt } from "node:crypto";
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { after } from "next/server";
 import { findStockProblem, getPricing, getWeight, toLines } from "@/lib/cart";
-import { currentPrice } from "@/lib/catalog";
+import { currentPrice, variantLabel } from "@/lib/catalog";
 import { getDiscounts, getProducts, getSettings, withContentLock } from "@/lib/content";
 import { getDb } from "@/lib/db";
 import { isExpired, normalizeCode, pickDiscount, type AppliedDiscount } from "@/lib/discounts";
@@ -44,6 +44,7 @@ function toOrder(row: RowDataPacket, items: RowDataPacket[]): Order {
       .map((item) => ({
         slug: item.slug,
         name: item.name,
+        variant: item.variant,
         sku: item.sku,
         qty: item.qty,
         price: item.price,
@@ -252,6 +253,8 @@ class OutOfStock extends Error {}
  */
 async function insertOrder(
   order: Omit<Order, "number" | "issuedCode">,
+  /** Šta se skida sa stanja: proizvod, ili njegova varijanta. */
+  stock: { slug: string; variantId?: string; qty: number }[],
   weight: number,
   usedCode: ResolvedCode | null,
   settings: Settings,
@@ -303,13 +306,14 @@ async function insertOrder(
     );
     const number = result.insertId;
     await connection.query(
-      "INSERT INTO order_items (order_number, position, slug, name, sku, qty, price) VALUES ?",
+      "INSERT INTO order_items (order_number, position, slug, name, variant, sku, qty, price) VALUES ?",
       [
         order.items.map((item, index) => [
           number,
           index,
           item.slug,
           item.name,
+          item.variant,
           item.sku,
           item.qty,
           item.price,
@@ -317,17 +321,21 @@ async function insertOrder(
       ],
     );
 
-    // Skidanje sa stanja, samo kod proizvoda kojima se vodi broj komada. Uslov u upitu čuva
-    // od toga da dve porudžbine u istom trenutku prodaju isti poslednji komad.
-    for (const item of order.items) {
+    // Skidanje sa stanja, samo tamo gde se vodi broj komada: kod varijante sa njenog stanja,
+    // inače sa stanja proizvoda. Uslov u upitu čuva od toga da dve porudžbine u istom trenutku
+    // prodaju isti poslednji komad.
+    for (const { slug, variantId, qty } of stock) {
+      const [table, where, key] = variantId
+        ? ["product_variants", "product_slug = ? AND id = ?", [slug, variantId]]
+        : ["products", "slug = ?", [slug]];
       const [tracked] = await connection.query<RowDataPacket[]>(
-        "SELECT stock_qty FROM products WHERE slug = ?",
-        [item.slug],
+        `SELECT stock_qty FROM ${table} WHERE ${where}`,
+        key,
       );
       if (tracked.length === 0 || tracked[0].stock_qty === null) continue;
       const [taken] = await connection.query<ResultSetHeader>(
-        "UPDATE products SET stock_qty = stock_qty - ? WHERE slug = ? AND stock_qty >= ?",
-        [item.qty, item.slug, item.qty],
+        `UPDATE ${table} SET stock_qty = stock_qty - ? WHERE ${where} AND stock_qty >= ?`,
+        [qty, ...key, qty],
       );
       if (taken.affectedRows === 0) throw new OutOfStock();
     }
@@ -445,10 +453,12 @@ export async function submitOrder(input: unknown): Promise<OrderResult> {
         items: lines.map((line) => ({
           slug: line.product.slug,
           name: line.product.name,
-          sku: line.product.sku,
+          variant: line.variant ? variantLabel(line.variant) : "",
+          // Šifra varijante, ako je upisana; inače šifra proizvoda.
+          sku: line.variant?.sku || line.product.sku,
           qty: line.qty,
           // Cena u trenutku poručivanja: akcijska ako akcija važi.
-          price: currentPrice(line.product) ?? 0,
+          price: currentPrice(line.product, line.variant) ?? 0,
         })),
         paymentMethod: payment ?? payments[0],
         subtotal: pricing.subtotal,
@@ -458,6 +468,7 @@ export async function submitOrder(input: unknown): Promise<OrderResult> {
           ? { discount: { code: useCode.code, percent: useCode.percent, amount: pricing.discount } }
           : {}),
       },
+      lines.map((line) => ({ slug: line.product.slug, variantId: line.variant?.id, qty: line.qty })),
       getWeight(lines),
       useCode,
       settings,

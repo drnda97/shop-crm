@@ -4,7 +4,7 @@ import nodemailer from "nodemailer";
 import { getSettings, getStoredValue, setStoredValue, uploadPath } from "@/lib/content";
 import { defaultEmailTemplate } from "@/lib/email-template";
 import { formatMoney } from "@/lib/format";
-import type { Order } from "@/lib/orders";
+import { itemName, type Order } from "@/lib/orders";
 import { currencyOf, type Settings } from "@/lib/settings";
 
 /**
@@ -110,7 +110,7 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
     stavke: order.items
       .map(
         (item) =>
-          `<tr><td style="padding:6px 0;">${item.qty} × ${escapeHtml(item.name)}</td><td align="right" style="padding:6px 0;white-space:nowrap;">${amount(item.price * item.qty)}</td></tr>`,
+          `<tr><td style="padding:6px 0;">${item.qty} × ${escapeHtml(itemName(item))}</td><td align="right" style="padding:6px 0;white-space:nowrap;">${amount(item.price * item.qty)}</td></tr>`,
       )
       .join("\n"),
     medjuzbir: amount(order.subtotal),
@@ -146,7 +146,7 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
     "",
     `Porudžbina br. ${order.number} · ${date}`,
     "",
-    ...order.items.map((item) => `${item.qty} × ${item.name} — ${amount(item.price * item.qty)}`),
+    ...order.items.map((item) => `${item.qty} × ${itemName(item)} — ${amount(item.price * item.qty)}`),
     `Međuzbir: ${amount(order.subtotal)}`,
     ...(order.discount
       ? [
@@ -203,8 +203,8 @@ export function sampleOrder(settings: Settings): Order {
       note: "Interfon 5, posle 17 h",
     },
     items: [
-      { slug: "prvi-proizvod", name: "Prvi proizvod", sku: "", qty: 2, price: 950 * unit },
-      { slug: "drugi-proizvod", name: "Drugi proizvod", sku: "", qty: 1, price: 1050 * unit },
+      { slug: "prvi-proizvod", name: "Prvi proizvod", variant: "Plava, M", sku: "", qty: 2, price: 950 * unit },
+      { slug: "drugi-proizvod", name: "Drugi proizvod", variant: "", sku: "", qty: 1, price: 1050 * unit },
     ],
     paymentMethod: settings.payment.bank && !settings.payment.cod ? "bank" : "cod",
     subtotal: 2950 * unit,

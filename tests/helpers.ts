@@ -22,6 +22,7 @@ export function product(change: Partial<Product> = {}): Product {
     lowStockThreshold: null,
     gallery: [],
     options: [],
+    variants: [],
     highlight: { heading: "", text: "", specs: [] },
     ...change,
   };

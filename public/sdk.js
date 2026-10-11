@@ -71,18 +71,23 @@
       });
     }
 
-    function find(slug) {
+    /** Stavka se prepoznaje po proizvodu i varijanti: isti proizvod u drugoj varijanti je druga stavka. */
+    function find(slug, variant) {
       for (var index = 0; index < items.length; index++) {
-        if (items[index].slug === slug) return items[index];
+        if (items[index].slug === slug && (items[index].variant || "") === (variant || "")) return items[index];
       }
       return null;
     }
 
+    function entry(slug, qty, variant) {
+      return variant ? { slug: slug, qty: qty, variant: variant } : { slug: slug, qty: qty };
+    }
+
     var cart = {
-      /** Stavke korpe: [{ slug, qty }]. */
+      /** Stavke korpe: [{ slug, qty, variant? }]. */
       items: function () {
         return items.map(function (item) {
-          return { slug: item.slug, qty: item.qty };
+          return entry(item.slug, item.qty, item.variant);
         });
       },
       /** Ukupan broj komada, za oznaku na ikoni korpe. */
@@ -91,25 +96,26 @@
           return sum + item.qty;
         }, 0);
       },
-      add: function (slug, qty) {
+      /** `variant` je id varijante (product.variants[n].id); obavezan kod proizvoda koji imaju varijante. */
+      add: function (slug, qty, variant) {
         var amount = Math.max(1, Math.round(qty || 1));
-        var item = find(slug);
+        var item = find(slug, variant);
         if (item) item.qty += amount;
-        else items.push({ slug: slug, qty: amount });
+        else items.push(entry(slug, amount, variant));
         changed();
       },
       /** Količina 0 uklanja stavku. */
-      setQty: function (slug, qty) {
+      setQty: function (slug, qty, variant) {
         var amount = Math.round(qty);
-        if (amount < 1) return cart.remove(slug);
-        var item = find(slug);
+        if (amount < 1) return cart.remove(slug, variant);
+        var item = find(slug, variant);
         if (item) item.qty = amount;
-        else items.push({ slug: slug, qty: amount });
+        else items.push(entry(slug, amount, variant));
         changed();
       },
-      remove: function (slug) {
+      remove: function (slug, variant) {
         items = items.filter(function (item) {
-          return item.slug !== slug;
+          return !(item.slug === slug && (item.variant || "") === (variant || ""));
         });
         changed();
       },
@@ -140,9 +146,12 @@
        */
       price: function () {
         return request("/cart", { items: items, discountCode: discountCode }).then(function (result) {
-          if (result.removed && result.removed.length > 0) {
+          var removed = result.removedItems || [];
+          if (removed.length > 0) {
             items = items.filter(function (item) {
-              return result.removed.indexOf(item.slug) === -1;
+              return !removed.some(function (gone) {
+                return gone.slug === item.slug && (gone.variant || "") === (item.variant || "");
+              });
             });
             changed();
           }

@@ -52,6 +52,7 @@
 .ds .btn{color:var(--on-ink)}
 .btn:hover{background:var(--ink-2);box-shadow:var(--shadow)}
 .btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.5;cursor:default;box-shadow:none}
 .btn i{width:42px;height:42px;margin-right:-22px;border-radius:50%;background:color-mix(in srgb,var(--on-ink) 14%,transparent);display:flex;align-items:center;justify-content:center;transition:transform .5s var(--ease),background .5s var(--ease)}
 .btn:hover i{transform:translateX(3px) scale(1.05)}
 .btn.gold{background:var(--gold)}
