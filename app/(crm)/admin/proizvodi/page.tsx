@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import {
+  categoryTree,
   currentPrice,
   hasPrice,
   hasStock,
@@ -16,6 +17,7 @@ import { formatMoney } from "@/lib/format";
 import { currencyOf } from "@/lib/settings";
 import { deleteProductAction, moveProductAction, setStockAction } from "../actions";
 import { ConfirmButton } from "../confirm-button";
+import { BulkBar } from "./bulk-bar";
 import {
   buttonClass,
   cardClass,
@@ -55,9 +57,17 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         hint="Stanje se menja ovde na klik, ili upisom broja komada kod proizvoda kojima se broj vodi. Strelice menjaju redosled kojim se proizvodi prikazuju na sajtu."
         error={greska}
         action={
-          <Link href={`${ADMIN_PATH}/proizvodi/novi`} className={buttonClass}>
-            + Novi proizvod
-          </Link>
+          <div className="flex flex-wrap gap-[8px]">
+            <Link href={`${ADMIN_PATH}/proizvodi/uvoz`} className={quietButtonClass}>
+              Uvoz
+            </Link>
+            <a href={`${ADMIN_PATH}/proizvodi/izvoz`} className={quietButtonClass}>
+              Izvoz
+            </a>
+            <Link href={`${ADMIN_PATH}/proizvodi/novi`} className={buttonClass}>
+              + Novi proizvod
+            </Link>
+          </div>
         }
       />
 
@@ -84,6 +94,15 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           const position = all.indexOf(product);
           return (
             <div key={product.slug} className={rowClass}>
+              {/* Polje pripada formi za izmenu više proizvoda (ispod spiska), ne formama u redu. */}
+              <input
+                type="checkbox"
+                form="bulk"
+                name="slugs"
+                value={product.slug}
+                aria-label={`Označi: ${product.name}`}
+                className="size-[20px] shrink-0 cursor-pointer accent-ink"
+              />
               {/* Redosled se menja samo u punom spisku; u pretrazi bi „gore" i „dole" zbunjivalo. */}
               {!search && (
                 <form action={moveProductAction} className="flex flex-col gap-[4px]">
@@ -218,6 +237,14 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           </p>
         )}
       </div>
+      {products.length > 0 && (
+        <BulkBar
+          categories={categoryTree(categories).map(({ category, depth }) => ({
+            id: category.id,
+            label: `${"\u00a0\u00a0".repeat(depth)}${category.label}`,
+          }))}
+        />
+      )}
     </>
   );
 }

@@ -175,6 +175,60 @@ export const MIGRATIONS: Migration[] = [
       );
     },
   },
+  {
+    id: 9,
+    name: "katalog: podkategorije, više kategorija, SEO, slični proizvodi",
+    up: async (connection) => {
+      await connection.query(
+        `ALTER TABLE categories
+          ADD COLUMN parent VARCHAR(191) NOT NULL DEFAULT '',
+          ADD COLUMN description TEXT NULL,
+          ADD COLUMN seo_title VARCHAR(255) NOT NULL DEFAULT '',
+          ADD COLUMN seo_description VARCHAR(500) NOT NULL DEFAULT ''`,
+      );
+      await connection.query(
+        `ALTER TABLE products
+          ADD COLUMN seo_title VARCHAR(255) NOT NULL DEFAULT '',
+          ADD COLUMN seo_description VARCHAR(500) NOT NULL DEFAULT '',
+          ADD COLUMN related TEXT NULL`,
+      );
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS product_categories (
+          product_slug VARCHAR(191) NOT NULL,
+          category_id VARCHAR(191) NOT NULL,
+          position INT NOT NULL,
+          PRIMARY KEY (product_slug, category_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+      );
+      // Dosadašnja jedina kategorija proizvoda postaje njegova glavna (prva) kategorija.
+      await connection.query(
+        `INSERT IGNORE INTO product_categories (product_slug, category_id, position)
+         SELECT slug, category, 0 FROM products WHERE category <> ''`,
+      );
+    },
+  },
+  {
+    id: 10,
+    name: "stanje: varijanta uz stavku porudžbine i istorija promena",
+    up: async (connection) => {
+      // Id varijante uz stavku: otkazivanje porudžbine vraća komade na stanje te varijante.
+      await connection.query(
+        "ALTER TABLE order_items ADD COLUMN variant_id VARCHAR(120) NOT NULL DEFAULT ''",
+      );
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS stock_log (
+          id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          at DATETIME(3) NOT NULL,
+          product_slug VARCHAR(191) NOT NULL,
+          variant_id VARCHAR(120) NOT NULL DEFAULT '',
+          change_qty INT NOT NULL,
+          qty_after INT NULL,
+          reason VARCHAR(255) NOT NULL,
+          KEY stock_log_product (product_slug, id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+      );
+    },
+  },
 ];
 
 // GET_LOCK važi za ceo MySQL server, pa ime sadrži i bazu (najviše 64 znaka).

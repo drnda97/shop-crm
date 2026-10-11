@@ -91,7 +91,13 @@ export function publicProduct(product: Product, base: string) {
     slug: product.slug,
     name: product.name,
     sku: product.sku,
+    /** Glavna kategorija i sve kategorije proizvoda (id). */
     category: product.category || null,
+    categories: product.categories,
+    seoTitle: product.seoTitle,
+    seoDescription: product.seoDescription,
+    /** Ručno izabrani slični proizvodi (slug). */
+    related: product.related,
     summary: product.summary,
     description: product.description,
     attributes: product.attributes,

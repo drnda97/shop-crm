@@ -11,8 +11,16 @@ export type ShopProduct = {
   id: string;
   slug: string;
   name: string;
-  /** Naziv kategorije, ili prazno kada proizvod nije ni u jednoj. */
+  /** Naziv glavne kategorije, ili prazno kada proizvod nije ni u jednoj. */
   category: string;
+  /** Id glavne kategorije: vodi na njenu stranicu (/kolekcija/{id}). */
+  categoryId: string;
+  /** Sve kategorije u kojima se proizvod vidi: njegove i njihove nadkategorije (id). */
+  categoryIds: string[];
+  /** Ručno izabrani slični proizvodi (slug). */
+  related: string[];
+  seoTitle: string;
+  seoDescription: string;
   /** Podrazumevana varijanta (kratak opis iz CRM-a): ulazi u korpu kada se proizvod doda sa kartice. */
   variant: string;
   /** Cena koju kupac plaća, u dinarima. */
@@ -40,6 +48,8 @@ export type ShopProduct = {
   collections: string[];
 };
 
+export type ShopCategory = { id: string; label: string; parent: string };
+
 export type ShopVariant = {
   id: string;
   values: string[];
@@ -64,8 +74,8 @@ export type ShopConfig = {
   menu: { label: string; href: string }[];
   /** Tekstovi i fotografije kolekcije, proizvoda, naloga, plaćanja i korpe (Izgled sajta). */
   texts: Templates;
-  /** Filteri u kolekciji i tabovi na početnoj: „Sve", pa kategorije iz CRM-a. */
-  categories: string[];
+  /** Kategorije iz CRM-a, složene kao stablo (nadkategorija pa njene podkategorije). */
+  categories: ShopCategory[];
   shippingPrice: number;
   /** Vrednost korpe od koje je dostava besplatna; null kada je isključena. */
   freeFrom: number | null;

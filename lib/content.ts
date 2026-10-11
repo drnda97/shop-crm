@@ -9,6 +9,7 @@ import { detectImage, makeSizes, type ImageFile } from "@/lib/images";
 import { IMAGE_WIDTHS, sizedSrc, VARIANT_FILE } from "@/lib/media";
 import { collectImages, normalizeSections, sectionType } from "@/lib/sections";
 import { mergeSettings, type Settings } from "@/lib/settings";
+import { logStock, stockDiff } from "@/lib/stock";
 import { TEMPLATES } from "@/lib/templates";
 
 /**
@@ -45,6 +46,7 @@ const CONTENT_TABLES = [
   "products",
   "product_images",
   "product_variants",
+  "product_categories",
   "categories",
   "collections",
   "collection_products",
@@ -58,6 +60,7 @@ async function loadContent(db: Pool | PoolConnection): Promise<Content> {
   const products = await select("SELECT * FROM products ORDER BY position");
   const productImages = await select("SELECT * FROM product_images ORDER BY position");
   const productVariants = await select("SELECT * FROM product_variants ORDER BY position");
+  const productCategories = await select("SELECT * FROM product_categories ORDER BY position");
   const categories = await select("SELECT * FROM categories ORDER BY position");
   const collections = await select("SELECT * FROM collections ORDER BY position");
   const collectionProducts = await select("SELECT * FROM collection_products ORDER BY position");
@@ -72,6 +75,18 @@ async function loadContent(db: Pool | PoolConnection): Promise<Content> {
       name: row.name,
       sku: row.sku,
       category: row.category,
+      // Glavna kategorija je uvek prva; ostale redom kojim su izabrane.
+      categories: [
+        ...new Set([
+          ...(row.category ? [row.category as string] : []),
+          ...productCategories
+            .filter((item) => item.product_slug === row.slug)
+            .map((item) => item.category_id as string),
+        ]),
+      ],
+      seoTitle: row.seo_title ?? "",
+      seoDescription: row.seo_description ?? "",
+      related: JSON.parse(row.related ?? "[]"),
       active: row.active === 1,
       summary: row.summary,
       description: row.description,
@@ -102,7 +117,14 @@ async function loadContent(db: Pool | PoolConnection): Promise<Content> {
           enabled: variant.enabled === 1,
         })),
     })),
-    categories: categories.map((row) => ({ id: row.id, label: row.label })),
+    categories: categories.map((row) => ({
+      id: row.id,
+      label: row.label,
+      parent: row.parent ?? "",
+      description: row.description ?? "",
+      seoTitle: row.seo_title ?? "",
+      seoDescription: row.seo_description ?? "",
+    })),
     collections: collections.map((row) => ({
       id: row.id,
       name: row.name,
@@ -146,13 +168,15 @@ async function storeContent(connection: PoolConnection, content: Content) {
     connection,
     `INSERT INTO products (slug, position, name, sku, category, active, summary, description,
       attributes, price, sale_price, weight, in_stock, stock_qty, low_stock_mode,
-      low_stock_threshold, image, options, highlight) VALUES ?`,
+      low_stock_threshold, image, options, highlight, seo_title, seo_description, related)
+      VALUES ?`,
     content.products.map((product, index) => [
       product.slug,
       index,
       product.name,
       product.sku,
-      product.category,
+      // Glavna kategorija je prva izabrana; kolona ostaje radi sajtova koji čitaju staru šemu.
+      product.categories[0] ?? "",
       product.active,
       product.summary,
       product.description,
@@ -167,7 +191,17 @@ async function storeContent(connection: PoolConnection, content: Content) {
       product.image ?? null,
       JSON.stringify(product.options),
       JSON.stringify(product.highlight),
+      product.seoTitle,
+      product.seoDescription,
+      JSON.stringify(product.related),
     ]),
+  );
+  await insertRows(
+    connection,
+    "INSERT INTO product_categories (product_slug, category_id, position) VALUES ?",
+    content.products.flatMap((product) =>
+      [...new Set(product.categories)].map((id, index) => [product.slug, id, index]),
+    ),
   );
   await insertRows(
     connection,
@@ -197,8 +231,17 @@ async function storeContent(connection: PoolConnection, content: Content) {
   );
   await insertRows(
     connection,
-    "INSERT INTO categories (id, position, label) VALUES ?",
-    content.categories.map((category, index) => [category.id, index, category.label]),
+    `INSERT INTO categories (id, position, label, parent, description, seo_title, seo_description)
+     VALUES ?`,
+    content.categories.map((category, index) => [
+      category.id,
+      index,
+      category.label,
+      category.parent,
+      category.description,
+      category.seoTitle,
+      category.seoDescription,
+    ]),
   );
   await insertRows(
     connection,
@@ -292,12 +335,18 @@ export async function withContentLock<T>(
  * Jedini put za izmene sadržaja iz panela: učita ga iz baze, primeni `change`
  * i upiše nazad. Tabele sadržaja se prepisuju cele — jednostavno i dovoljno brzo
  * za kataloge do nekoliko stotina proizvoda.
+ * Promene broja komada ulaze u istoriju stanja, uz `reason` (lib/stock.ts).
  */
-export async function updateContent(change: (content: Content) => void): Promise<void> {
+export async function updateContent(
+  change: (content: Content) => void,
+  reason = "Izmena u panelu",
+): Promise<void> {
   await withContentLock(async (connection) => {
     const content = await loadContent(connection);
+    const before = structuredClone(content.products);
     change(content);
     await storeContent(connection, content);
+    await logStock(connection, stockDiff(before, content.products, reason));
   });
 }
 
@@ -378,7 +427,15 @@ export async function saveUpload(
       error: "Slika je veća od 15 MB. Smanjite je pa pokušajte ponovo.",
     };
   }
-  const bytes = Buffer.from(await file.arrayBuffer());
+  return saveImage(Buffer.from(await file.arrayBuffer()), name, options);
+}
+
+/** Isto što i saveUpload, za sliku koja je već učitana u memoriju (npr. preuzeta pri uvozu). */
+export async function saveImage(
+  bytes: Buffer,
+  name: string,
+  options: UploadOptions = {},
+): Promise<UploadResult> {
   const kind = detectImage(bytes);
   if (!kind) {
     return { ok: false, error: "Slika mora biti JPG, PNG, WebP ili SVG." };

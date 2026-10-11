@@ -18,3 +18,52 @@ export function csvResponse(fileName: string, rows: (string | number)[][]): Resp
     },
   });
 }
+
+/**
+ * Čita CSV: polja pod navodnicima mogu da sadrže razdelnik, prelom reda i udvojen navodnik.
+ * Razdelnik (zarez ili tačka-zarez) se prepoznaje iz prvog reda. Prazni redovi se preskaču.
+ */
+export function parseCsv(input: string): string[][] {
+  const text = input.replace(/^\uFEFF/, "");
+  const firstLine = text.slice(0, text.search(/\r?\n|$/));
+  const delimiter = (firstLine.match(/;/g)?.length ?? 0) > (firstLine.match(/,/g)?.length ?? 0) ? ";" : ",";
+
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (quoted) {
+      if (char === '"' && text[index + 1] === '"') {
+        cell += '"';
+        index++;
+      } else if (char === '"') quoted = false;
+      else cell += char;
+    } else if (char === '"' && cell === "") quoted = true;
+    else if (char === delimiter) {
+      row.push(cell);
+      cell = "";
+    } else if (char === "\n" || char === "\r") {
+      if (char === "\r" && text[index + 1] === "\n") index++;
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else cell += char;
+  }
+  if (cell !== "" || row.length > 0) {
+    row.push(cell);
+    rows.push(row);
+  }
+  return rows.filter((cells) => cells.some((value) => value.trim() !== ""));
+}
+
+/** Redovi kao objekti po nazivu kolone iz zaglavlja; nazivi se porede bez razlike u velikim slovima. */
+export function csvRecords(rows: string[][]): Record<string, string>[] {
+  const [header = [], ...body] = rows;
+  const names = header.map((name) => name.trim().toLowerCase());
+  return body.map((cells) =>
+    Object.fromEntries(names.map((name, index) => [name, (cells[index] ?? "").trim()])),
+  );
+}

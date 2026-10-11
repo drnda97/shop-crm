@@ -8,7 +8,7 @@ import {
   publicStore,
 } from "@/lib/api";
 import { getPricing, toLines } from "@/lib/cart";
-import { currentPrice, getCollectionProducts } from "@/lib/catalog";
+import { currentPrice, getCollectionProducts, inCategory } from "@/lib/catalog";
 import {
   getCategories,
   getCollections,
@@ -98,7 +98,11 @@ export async function GET(request: Request, { params }: Context) {
       list = collection ? getCollectionProducts(collection, products) : [];
     }
     const category = query.get("category");
-    if (category) list = list.filter((product) => product.category === category);
+    if (category) {
+      // Kategorija obuhvata i svoje podkategorije.
+      const categories = await getCategories();
+      list = list.filter((product) => inCategory(product, category, categories));
+    }
     const search = query.get("q")?.trim().toLocaleLowerCase();
     if (search) {
       list = list.filter((product) =>

@@ -79,19 +79,23 @@ Ostalo:
 - SEO polja za proizvod i kategoriju, slika za deljenje po stranici, preusmerenja starih adresa.
 - Blog.
 
-### Faza 2 — Katalog
+### Faza 2 — Katalog ✅
 
-Varijante završene 12. 10. 2026.
+Završeno 12. 10. 2026.
 
-- **Varijante** (`lib/catalog.ts`, tabela `product_variants`): svaka kombinacija opcija je varijanta sa svojom cenom i akcijom, šifrom, brojem komada i slikom; kombinacija koja se ne pravi se isključuje. Bez sopstvene cene važi cena proizvoda. Najviše 100 varijanti po proizvodu.
-- Varijanta prolazi kroz ceo tok: stranica proizvoda (cena, slika i dostupnost prate izbor), korpa, obračun, skidanje sa stanja, porudžbina u panelu, email, izvoz, API i `sdk.js`. Oznaka „pri kraju" i pregled stanja u panelu (Pregled, Proizvodi) gledaju stanje po varijanti.
+- **Varijante** (`lib/catalog.ts`, tabela `product_variants`): svaka kombinacija opcija je varijanta sa svojom cenom i akcijom, šifrom, brojem komada i slikom; kombinacija koja se ne pravi se isključuje. Bez sopstvene cene važi cena proizvoda. Najviše 100 varijanti po proizvodu. Varijanta prolazi kroz ceo tok: stranica proizvoda, korpa, obračun, skidanje sa stanja, porudžbina u panelu, email, izvoz, API i `sdk.js`. Oznaka „pri kraju" i pregled stanja u panelu gledaju stanje po varijanti.
+- **Kategorije**: podkategorije na bilo kojoj dubini, proizvod u više kategorija (jedna glavna), stranica svake kategorije na `/kolekcija/{oznaka}` sa svojim tekstom i podacima za pretraživače. Proizvod iz podkategorije vidi se i u nadkategoriji.
+- **Filteri i sortiranje** na stranici kolekcije: po ceni i po vrednostima opcija, sortiranje po ceni i nazivu.
+- **Uvoz i izvoz proizvoda** (`lib/product-import.ts`, Proizvodi → Uvoz / Izvoz): CSV izvoz iz Shopify-ja i WooCommerce-a i sopstveni izvoz, sa pregledom pre upisa; kategorije, opcije, varijante i slike. Slike se preuzimaju samo sa javnih adresa.
+- **Izmena više proizvoda odjednom**: objava, nacrt, kategorija, cena za procenat, brisanje.
+- **Slični proizvodi** se biraju uz proizvod; ostatak se dopunjuje iz iste kategorije.
+- **Istorija stanja** (`lib/stock.ts`, tabela `stock_log`): porudžbina, otkazivanje, izmena u panelu i uvoz ostavljaju trag, vidljiv u formi proizvoda. Otkazivanje vraća komade na stanje varijante.
+- **SEO polja** za proizvod i kategoriju.
 
-Ostalo:
+Ostalo za kasnije:
 
-- Podkategorije, proizvod u više kategorija, filteri po osobinama i ceni, sortiranje.
-- Uvoz i izvoz proizvoda u CSV-u, uključujući uvoz Shopify i WooCommerce izvoza: to je put kojim postojeće prodavnice prelaze.
-- Izmena više proizvoda odjednom, ručno izabrani povezani proizvodi, istorija promena stanja.
-- SEO polja za proizvod i kategoriju (preneto iz Faze 1).
+- Uvoz ne prenosi utiske, oznake (tagove), poreze ni dostavu, i ne čita Shopify-jev i WooCommerce-ov izvoz kupaca i porudžbina.
+- Filteri rade nad proizvodima učitanim u pregledač; za kataloge od više hiljada proizvoda treba ih preseliti na server (isto važi i za prepisivanje celog kataloga pri svakoj izmeni).
 
 ### Faza 3 — Porudžbine, plaćanje, dostava
 

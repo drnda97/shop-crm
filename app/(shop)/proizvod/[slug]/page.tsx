@@ -17,9 +17,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = (await getShopProducts()).find((candidate) => candidate.slug === slug);
   if (!product) return {};
-  const description = (product.description || product.variant).slice(0, 160);
+  const description = product.seoDescription || (product.description || product.variant).slice(0, 160);
   return {
-    title: product.name,
+    title: product.seoTitle || product.name,
     ...(description ? { description } : {}),
     alternates: { canonical: `/proizvod/${product.slug}` },
     openGraph: { title: product.name, ...(product.image ? { images: [product.image] } : {}) },
@@ -32,11 +32,14 @@ export default async function ProductPage({ params }: Props) {
   const product = products.find((candidate) => candidate.slug === slug);
   if (!product) notFound();
 
-  // Slični proizvodi: prvo iz iste kategorije, pa ostali.
+  // Slični proizvodi: prvo ručno izabrani u panelu, pa iz iste kategorije, pa ostali.
   const others = products.filter((candidate) => candidate.slug !== product.slug);
   const related = [
-    ...others.filter((candidate) => candidate.category === product.category),
-    ...others.filter((candidate) => candidate.category !== product.category),
+    ...new Set([
+      ...product.related.flatMap((id) => others.filter((candidate) => candidate.slug === id)),
+      ...others.filter((candidate) => candidate.categoryId === product.categoryId),
+      ...others,
+    ]),
   ].slice(0, 4);
 
   // Podaci o proizvodu za pretraživače (schema.org), da rezultat pretrage prikaže cenu i dostupnost.
@@ -72,8 +75,12 @@ export default async function ProductPage({ params }: Props) {
           <nav className="crumbs" aria-label="Putanja">
             <Link href="/">Početna</Link>
             <span>/</span>
-            <Link href={`/kolekcija?kategorija=${product.category}`}>{product.category}</Link>
-            <span>/</span>
+            {product.categoryId && (
+              <>
+                <Link href={`/kolekcija/${product.categoryId}`}>{product.category}</Link>
+                <span>/</span>
+              </>
+            )}
             <span style={{ color: "var(--ink)" }}>{product.name}</span>
           </nav>
 

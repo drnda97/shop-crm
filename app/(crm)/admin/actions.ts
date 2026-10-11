@@ -1,5 +1,6 @@
 "use server";
 
+import { existsSync } from "node:fs";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -19,6 +20,7 @@ import {
   RESERVED_SLUGS,
   slugify,
   syncVariants,
+  withDescendants,
   type LowStockMode,
   type Product,
 } from "@/lib/catalog";
@@ -31,10 +33,13 @@ import {
   getSettings,
   getUsedImages,
   removeUpload,
+  saveImage,
   saveUpload,
   setStoredValue,
   updateContent,
+  uploadPath,
   type UploadResult,
+  getStoredValue,
 } from "@/lib/content";
 import { setCustomerNote } from "@/lib/customers";
 import {
@@ -53,10 +58,13 @@ import {
 } from "@/lib/order-email";
 import { setOrderNote, setOrderStatus } from "@/lib/order-store";
 import { orderStatusLabels, type OrderStatus } from "@/lib/orders";
+import { applyImport, parseImport, type ParsedImport } from "@/lib/product-import";
 import { clientIp, TOO_MANY, tooMany } from "@/lib/rate-limit";
+import { fetchImage } from "@/lib/remote-image";
 import { newSection, normalizeData, normalizeSections } from "@/lib/sections";
 import { defaultSettings, mergeSettings } from "@/lib/settings";
 import { mergeSite } from "@/lib/site";
+import { IMPORT_KEY } from "./import-key";
 import type { VariantRow } from "./variants-editor";
 import { deleteMessage } from "@/lib/storefront/inbox";
 import { PREVIEW_KEY, type PreviewDraft, type SettingsDraft } from "@/lib/storefront/pages";
@@ -155,6 +163,12 @@ export async function saveProductAction(formData: FormData) {
   if (category !== "" && !categories.some((candidate) => candidate.id === category)) {
     backWithError(formPath, "Izabrana kategorija više ne postoji.");
   }
+  // Glavna kategorija je prva; dodatne su one označene u formi koje još postoje.
+  const extra = formData
+    .getAll("categories")
+    .filter((value): value is string => typeof value === "string")
+    .filter((id) => id !== category && categories.some((candidate) => candidate.id === id));
+  const productCategories = [...new Set([...(category ? [category] : []), ...extra])];
 
   // Slug se pravi jednom, pri dodavanju, i više se ne menja — da linkovi i korpe kupaca ostanu ispravni.
   const slug =
@@ -271,7 +285,15 @@ export async function saveProductAction(formData: FormData) {
     slug,
     name,
     sku: text(formData, "sku").slice(0, 64),
-    category,
+    category: productCategories[0] ?? "",
+    categories: productCategories,
+    seoTitle: text(formData, "seoTitle").slice(0, 255),
+    seoDescription: text(formData, "seoDescription").slice(0, 500),
+    related: formData
+      .getAll("related")
+      .filter((value): value is string => typeof value === "string")
+      .filter((value) => value !== slug && products.some((candidate) => candidate.slug === value))
+      .slice(0, 12),
     active: text(formData, "status") !== "draft",
     summary: text(formData, "summary").slice(0, 500),
     description: text(formData, "description"),
@@ -367,6 +389,154 @@ export async function moveProductAction(formData: FormData) {
   redirect(PRODUCTS_PATH);
 }
 
+/* ---------- Više proizvoda odjednom ---------- */
+
+/** Ista izmena na svim označenim proizvodima iz spiska. */
+export async function bulkProductsAction(formData: FormData) {
+  await requireAdmin();
+
+  const slugs = formData.getAll("slugs").filter((value): value is string => typeof value === "string");
+  if (slugs.length === 0) backWithError(PRODUCTS_PATH, "Označite bar jedan proizvod.");
+  const operation = text(formData, "operation");
+  const category = text(formData, "category");
+  const percent = Number(text(formData, "percent").replace(",", "."));
+  const categories = await getCategories();
+
+  if ((operation === "addCategory" || operation === "removeCategory") && !categories.some((item) => item.id === category)) {
+    backWithError(PRODUCTS_PATH, "Izaberite kategoriju.");
+  }
+  if (operation === "price" && (!Number.isFinite(percent) || percent === 0 || percent <= -100 || percent > 1000)) {
+    backWithError(PRODUCTS_PATH, "Upišite procenat promene cene, npr. 10 ili -15.");
+  }
+  // Cena se menja za procenat i zaokružuje na ceo iznos u najmanjoj jedinici valute.
+  const scale = (value: number | null) => (value === null ? null : Math.max(0, Math.round(value * (1 + percent / 100))));
+  const removed: Product[] = [];
+
+  await updateContent((content) => {
+    const picked = content.products.filter((product) => slugs.includes(product.slug));
+    for (const product of picked) {
+      if (operation === "publish") product.active = true;
+      else if (operation === "draft") product.active = false;
+      else if (operation === "addCategory") {
+        product.categories = [...new Set([...product.categories, category])];
+        product.category = product.categories[0];
+      } else if (operation === "removeCategory") {
+        product.categories = product.categories.filter((id) => id !== category);
+        product.category = product.categories[0] ?? "";
+      } else if (operation === "price") {
+        product.price = scale(product.price);
+        product.salePrice = scale(product.salePrice);
+        for (const variant of product.variants) {
+          variant.price = scale(variant.price);
+          variant.salePrice = scale(variant.salePrice);
+        }
+      }
+    }
+    if (operation === "delete") {
+      removed.push(...picked);
+      content.products = content.products.filter((product) => !slugs.includes(product.slug));
+      for (const collection of content.collections) {
+        collection.productSlugs = collection.productSlugs.filter((slug) => !slugs.includes(slug));
+      }
+    }
+  }, "Izmena više proizvoda");
+  for (const product of removed) {
+    for (const src of [product.image, product.highlight.image, ...product.gallery]) await removeUpload(src);
+  }
+
+  refreshSite();
+  redirect(PRODUCTS_PATH);
+}
+
+/* ---------- Uvoz proizvoda ---------- */
+
+const IMPORT_PATH = `${PRODUCTS_PATH}/uvoz`;
+const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
+/** Najviše slika koje jedan uvoz preuzima; ostale se preskaču i mogu da se dodaju ponovnim uvozom. */
+const MAX_IMPORT_IMAGES = 400;
+
+/** Prvi korak: čita CSV i čuva ono što je pročitano, da ga vlasnik pregleda pre upisa. */
+export async function startImportAction(formData: FormData) {
+  await requireAdmin();
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) backWithError(IMPORT_PATH, "Izaberite CSV fajl.");
+  if (file.size > MAX_IMPORT_BYTES) backWithError(IMPORT_PATH, "Fajl je veći od 10 MB. Podelite ga na više manjih.");
+
+  const settings = await getSettings();
+  const parsed = parseImport(await file.text(), settings.store.currencyDecimals);
+  if (!parsed) {
+    backWithError(
+      IMPORT_PATH,
+      "Fajl nije prepoznat. Uvozi se CSV izvoz proizvoda iz Shopify-ja, WooCommerce-a ili ovog panela.",
+    );
+  }
+  await setStoredValue(IMPORT_KEY, JSON.stringify({ ...parsed, fileName: file.name.slice(0, 120) }));
+  redirect(IMPORT_PATH);
+}
+
+export async function cancelImportAction() {
+  await requireAdmin();
+  await setStoredValue(IMPORT_KEY, null);
+  redirect(IMPORT_PATH);
+}
+
+/** Drugi korak: upisuje pročitane proizvode u katalog i, po izboru, preuzima njihove slike. */
+export async function applyImportAction(formData: FormData) {
+  await requireAdmin();
+  const stored = await getStoredValue(IMPORT_KEY);
+  if (!stored) backWithError(IMPORT_PATH, "Nema pročitanog fajla. Izaberite ga ponovo.");
+  const pending = JSON.parse(stored) as ParsedImport;
+
+  // Slike: adresa iz CSV-a → putanja ubačene slike. Slika koja je već u biblioteci (izvoz iz
+  // ovog panela) se ne preuzima ponovo.
+  const images = new Map<string, string>();
+  let failed = 0;
+  let skipped = 0;
+  const urls = [...new Set(pending.products.flatMap((item) => item.images))];
+  for (const url of urls) {
+    const local = localMedia(url);
+    if (local) {
+      images.set(url, local);
+      continue;
+    }
+    if (formData.get("images") !== "on") continue;
+    if (images.size >= MAX_IMPORT_IMAGES) {
+      skipped++;
+      continue;
+    }
+    const bytes = await fetchImage(url);
+    const owner = pending.products.find((item) => item.images.includes(url));
+    const saved = bytes ? await saveImage(bytes, owner?.slug || "slika") : null;
+    if (saved?.ok) images.set(url, saved.src);
+    else failed++;
+  }
+
+  let stats = { created: 0, updated: 0, categories: 0 };
+  await updateContent((content) => {
+    stats = applyImport(content, pending.products, images);
+  }, "Uvoz proizvoda");
+  await setStoredValue(IMPORT_KEY, null);
+
+  refreshSite();
+  const notes = [
+    `Uvezeno: novih proizvoda ${stats.created}, izmenjenih ${stats.updated}, novih kategorija ${stats.categories}.`,
+    failed > 0 ? `Slika koje nisu preuzete: ${failed}.` : "",
+    skipped > 0 ? `Preskočeno slika preko granice od ${MAX_IMPORT_IMAGES}: ${skipped}.` : "",
+  ];
+  redirect(`${IMPORT_PATH}?ok=${encodeURIComponent(notes.filter(Boolean).join(" "))}`);
+}
+
+/** Putanja slike iz biblioteke kada adresa pokazuje na sliku koja već postoji na ovom serveru. */
+function localMedia(url: string): string | null {
+  try {
+    const path = new URL(url).pathname;
+    const file = uploadPath(path);
+    return file && existsSync(file) ? path : null;
+  } catch {
+    return null;
+  }
+}
+
 /* ---------- Kolekcije ---------- */
 
 const COLLECTIONS_PATH = `${ADMIN_PATH}/kolekcije`;
@@ -428,17 +598,26 @@ const CATEGORIES_PATH = `${ADMIN_PATH}/kategorije`;
 export async function createCategoryAction(formData: FormData) {
   await requireAdmin();
 
-  const label = text(formData, "label");
+  const categories = await getCategories();
+  const label = text(formData, "label").slice(0, 255);
   const id = uniqueSlug(
     label,
-    (await getCategories()).map((category) => category.id),
+    categories.map((category) => category.id),
   );
   if (!id) backWithError(CATEGORIES_PATH, "Upišite naziv kategorije.");
+  const parent = text(formData, "parent");
 
   await updateContent((content) => {
-    content.categories.push({ id, label });
+    content.categories.push({
+      id,
+      label,
+      parent: categories.some((category) => category.id === parent) ? parent : "",
+      description: "",
+      seoTitle: "",
+      seoDescription: "",
+    });
   });
-  refresh();
+  refreshSite();
   redirect(CATEGORIES_PATH);
 }
 
@@ -446,14 +625,27 @@ export async function saveCategoryAction(formData: FormData) {
   await requireAdmin();
 
   const id = text(formData, "id");
-  const label = text(formData, "label");
+  const label = text(formData, "label").slice(0, 255);
   if (!label) backWithError(CATEGORIES_PATH, "Naziv kategorije ne može biti prazan.");
+  const categories = await getCategories();
+  const parent = text(formData, "parent");
+  // Kategorija ne može biti pod sobom ni pod svojom podkategorijom: stablo bi dobilo petlju.
+  if (parent !== "" && withDescendants(categories, id).includes(parent)) {
+    backWithError(CATEGORIES_PATH, "Kategorija ne može biti podkategorija same sebe ili svoje podkategorije.");
+  }
 
   await updateContent((content) => {
     const category = content.categories.find((candidate) => candidate.id === id);
-    if (category) category.label = label;
+    if (!category) return;
+    Object.assign(category, {
+      label,
+      parent: content.categories.some((candidate) => candidate.id === parent) ? parent : "",
+      description: text(formData, "description").slice(0, 2000),
+      seoTitle: text(formData, "seoTitle").slice(0, 255),
+      seoDescription: text(formData, "seoDescription").slice(0, 500),
+    });
   });
-  refresh();
+  refreshSite();
   redirect(CATEGORIES_PATH);
 }
 
@@ -461,7 +653,7 @@ export async function deleteCategoryAction(formData: FormData) {
   await requireAdmin();
 
   const id = text(formData, "id");
-  const used = (await getProducts()).filter((product) => product.category === id).length;
+  const used = (await getProducts()).filter((product) => product.categories.includes(id)).length;
   if (used > 0) {
     backWithError(
       CATEGORIES_PATH,
@@ -469,9 +661,14 @@ export async function deleteCategoryAction(formData: FormData) {
     );
   }
   await updateContent((content) => {
+    const removed = content.categories.find((category) => category.id === id);
     content.categories = content.categories.filter((category) => category.id !== id);
+    // Podkategorije obrisane kategorije prelaze pod njenu nadkategoriju.
+    for (const category of content.categories) {
+      if (category.parent === id) category.parent = removed?.parent ?? "";
+    }
   });
-  refresh();
+  refreshSite();
   redirect(CATEGORIES_PATH);
 }
 

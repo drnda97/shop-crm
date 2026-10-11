@@ -12,8 +12,15 @@ export type Product = {
   name: string;
   /** Šifra artikla; neobavezna. */
   sku: string;
-  /** Id kategorije, ili prazno kada proizvod nije ni u jednoj. */
+  /** Glavna kategorija (id), ili prazno kada proizvod nije ni u jednoj; uvek prva u `categories`. */
   category: string;
+  /** Sve kategorije proizvoda (id). Proizvod u podkategoriji se vidi i u njenim nadkategorijama. */
+  categories: string[];
+  /** Naslov i opis za pretraživače; prazno: naziv, odnosno početak opisa proizvoda. */
+  seoTitle: string;
+  seoDescription: string;
+  /** Ručno izabrani slični proizvodi (slug); ostatak se dopunjuje iz iste kategorije. */
+  related: string[];
   /** Nacrt (false) se ne vidi u API-ju i ne može da se poruči. */
   active: boolean;
   /** Kratak opis, za karticu proizvoda. */
@@ -137,7 +144,57 @@ export function formatOptions(options: ProductOption[]): string {
 }
 
 
-export type Category = { id: string; label: string };
+export type Category = {
+  id: string;
+  label: string;
+  /** Id nadkategorije, ili prazno za kategoriju na vrhu. */
+  parent: string;
+  /** Tekst na vrhu stranice kategorije. */
+  description: string;
+  /** Naslov i opis za pretraživače; prazno: naziv kategorije, odnosno njen tekst. */
+  seoTitle: string;
+  seoDescription: string;
+};
+
+/** Kategorija i sve njene podkategorije, na bilo kojoj dubini (id). */
+export function withDescendants(categories: Category[], id: string): string[] {
+  const ids = [id];
+  for (let index = 0; index < ids.length; index++) {
+    for (const category of categories) {
+      if (category.parent === ids[index] && !ids.includes(category.id)) ids.push(category.id);
+    }
+  }
+  return ids;
+}
+
+/** Put od vrha do kategorije: „Nameštaj › Stolice › Barske". Prekida se ako zapis ima petlju. */
+export function categoryPath(categories: Category[], id: string): Category[] {
+  const path: Category[] = [];
+  let current = categories.find((category) => category.id === id);
+  while (current && !path.includes(current)) {
+    path.unshift(current);
+    const parent = current.parent;
+    current = categories.find((category) => category.id === parent);
+  }
+  return path;
+}
+
+/** Kategorije složene kao stablo: nadkategorija, pa njene podkategorije; `depth` je uvlačenje. */
+export function categoryTree(categories: Category[]): { category: Category; depth: number }[] {
+  const ids = new Set(categories.map((category) => category.id));
+  const walk = (parent: string, depth: number, seen: string[]): { category: Category; depth: number }[] =>
+    categories
+      // Kategorija čija nadkategorija više ne postoji prikazuje se na vrhu.
+      .filter((category) => (ids.has(category.parent) ? category.parent : "") === parent && !seen.includes(category.id))
+      .flatMap((category) => [{ category, depth }, ...walk(category.id, depth + 1, [...seen, category.id])]);
+  return walk("", 0, []);
+}
+
+/** Da li je proizvod u kategoriji ili u nekoj njenoj podkategoriji. */
+export function inCategory(product: Product, id: string, categories: Category[]): boolean {
+  const ids = withDescendants(categories, id);
+  return product.categories.some((category) => ids.includes(category));
+}
 
 /** Ručno složena grupa proizvoda, npr. „Izdvojeno" ili „Za poklon". */
 export type Collection = { id: string; name: string; description: string; productSlugs: string[] };

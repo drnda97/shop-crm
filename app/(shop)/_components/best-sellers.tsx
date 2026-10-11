@@ -19,9 +19,11 @@ type ProductsBlockProps = {
 /** Sekcija „Proizvodi": mreža proizvoda, po želji sa tabovima po kategoriji. */
 export function ProductsBlock({ heading, collection, limit, tabs, button }: ProductsBlockProps) {
   const { products, config } = useCart();
-  const [cat, setCat] = useState("Sve");
+  // Izabrana kategorija (id); prazno: sve. Tabovi su kategorije na vrhu stabla.
+  const [cat, setCat] = useState("");
+  const tops = config.categories.filter((category) => !category.parent);
   const source = collection ? products.filter((p) => p.collections.includes(collection)) : products;
-  const list = source.filter((p) => !tabs || cat === "Sve" || p.category === cat).slice(0, limit);
+  const list = source.filter((p) => !tabs || cat === "" || p.categoryIds.includes(cat)).slice(0, limit);
 
   return (
     <div className="wrap" style={{ display: "flex", flexDirection: "column", gap: "clamp(28px, 3.6vw, 48px)" }}>
@@ -29,9 +31,9 @@ export function ProductsBlock({ heading, collection, limit, tabs, button }: Prod
         <h2 className="display h-l">{heading}</h2>
         {tabs && (
           <div className="seg" role="group" aria-label="Kategorije">
-            {config.categories.map((c) => (
-              <button className={c === cat ? "chip on" : "chip"} onClick={() => setCat(c)} key={c}>
-                {c}
+            {[{ id: "", label: "Sve" }, ...tops].map((c) => (
+              <button className={c.id === cat ? "chip on" : "chip"} onClick={() => setCat(c.id)} key={c.id}>
+                {c.label}
               </button>
             ))}
           </div>

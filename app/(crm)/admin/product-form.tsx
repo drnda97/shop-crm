@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ADMIN_PATH } from "@/lib/admin-auth";
-import { formatOptions, type Category, type Product } from "@/lib/catalog";
+import type { ReactNode } from "react";
+import { categoryTree, formatOptions, type Category, type Product } from "@/lib/catalog";
 import { fromMinor, type Currency } from "@/lib/format";
 import { saveProductAction } from "./actions";
 import { VariantsEditor } from "./variants-editor";
@@ -27,13 +28,18 @@ type ProductFormProps = {
   /** Proizvod koji se menja; bez njega forma dodaje novi. */
   product?: Product;
   categories: Category[];
+  /** Ostali proizvodi, za izbor sličnih. */
+  others: { slug: string; name: string }[];
   currency: Currency;
   error?: string;
+  /** Sadržaj ispod forme (istorija stanja postojećeg proizvoda). */
+  children?: ReactNode;
 };
 
 const textareaClass = `${inputClass} min-h-[110px]`;
 
-export function ProductForm({ product, categories, currency, error }: ProductFormProps) {
+export function ProductForm({ product, categories, others, currency, error, children }: ProductFormProps) {
+  const tree = categoryTree(categories);
   const backPath = `${ADMIN_PATH}/proizvodi`;
   const priceStep = currency.decimals === 0 ? "1" : "0.01";
 
@@ -71,8 +77,9 @@ export function ProductForm({ product, categories, currency, error }: ProductFor
                     className={inputClass}
                   >
                     <option value="">Bez kategorije</option>
-                    {categories.map((category) => (
+                    {tree.map(({ category, depth }) => (
                       <option key={category.id} value={category.id}>
+                        {"\u00a0\u00a0".repeat(depth)}
                         {category.label}
                       </option>
                     ))}
@@ -99,6 +106,27 @@ export function ProductForm({ product, categories, currency, error }: ProductFor
                   </select>
                 </label>
               </div>
+              {categories.length > 1 && (
+                <fieldset className="flex flex-col gap-[8px]">
+                  <legend className={`${labelClass} mb-[8px]`}>Dodatne kategorije</legend>
+                  <div className="flex flex-wrap gap-x-[20px] gap-y-[8px]">
+                    {tree.map(({ category, depth }) => (
+                      <label key={category.id} className="flex cursor-pointer items-center gap-[8px] text-[15px]">
+                        <Checkbox
+                          name="categories"
+                          value={category.id}
+                          defaultChecked={product?.categories.slice(1).includes(category.id)}
+                        />
+                        {depth > 0 && <span className="text-muted">›</span>}
+                        {category.label}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-[14px] text-muted">
+                    Proizvod se vidi u glavnoj kategoriji, u dodatnim i u svim njihovim nadkategorijama.
+                  </p>
+                </fieldset>
+              )}
 
               <label className={labelClass}>
                 Kratak opis (kartica proizvoda)
@@ -132,6 +160,53 @@ export function ProductForm({ product, categories, currency, error }: ProductFor
                   className={textareaClass}
                 />
               </label>
+            </section>
+            <section className={panelClass}>
+              <h2 className={panelTitleClass}>Pretraživači i slični proizvodi</h2>
+              <label className={labelClass}>
+                Naslov za pretraživače
+                <input
+                  name="seoTitle"
+                  maxLength={255}
+                  placeholder={product?.name}
+                  defaultValue={product?.seoTitle}
+                  className={inputClass}
+                />
+              </label>
+              <label className={labelClass}>
+                Opis za pretraživače
+                <textarea
+                  name="seoDescription"
+                  maxLength={500}
+                  defaultValue={product?.seoDescription}
+                  className={textareaClass}
+                />
+              </label>
+              <p className="mt-[-8px] text-[14px] text-muted">
+                Prazno: naziv proizvoda, odnosno početak njegovog opisa.
+              </p>
+              {others.length > 0 && (
+                <label className={labelClass}>
+                  Slični proizvodi
+                  <select
+                    name="related"
+                    multiple
+                    size={Math.min(8, others.length)}
+                    defaultValue={product?.related ?? []}
+                    className={`${inputClass} h-auto py-[8px]`}
+                  >
+                    {others.map((other) => (
+                      <option key={other.slug} value={other.slug}>
+                        {other.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="font-sans text-[14px] font-normal text-muted">
+                    Više njih birate uz Ctrl (na Mac-u Cmd). Bez izbora, ili dok ih nema četiri, stranica
+                    proizvoda nudi proizvode iz iste kategorije.
+                  </span>
+                </label>
+              )}
             </section>
             <section className={panelClass}>
               <h2 className={panelTitleClass}>Istaknuti deo stranice</h2>
@@ -364,6 +439,7 @@ export function ProductForm({ product, categories, currency, error }: ProductFor
           </Link>
         </div>
       </form>
+      {children}
     </>
   );
 }

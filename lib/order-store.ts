@@ -17,6 +17,7 @@ import {
   type OrderStatus,
 } from "@/lib/orders";
 import { enabledPayments, type PaymentMethod, type Settings } from "@/lib/settings";
+import { logStock, type StockChange } from "@/lib/stock";
 
 /**
  * Porudžbine i kodovi za popust: upis pri poručivanju i čitanje za admin panel.
@@ -110,17 +111,35 @@ export async function setOrderStatus(number: string, status: OrderStatus) {
     const isCancelled = status === "cancelled";
     if (wasCancelled !== isCancelled) {
       const [items] = await connection.query<RowDataPacket[]>(
-        "SELECT slug, qty FROM order_items WHERE order_number = ?",
+        "SELECT slug, variant_id, qty FROM order_items WHERE order_number = ?",
         [number],
       );
+      const changes: StockChange[] = [];
       for (const item of items) {
-        await connection.query(
-          isCancelled
-            ? "UPDATE products SET stock_qty = stock_qty + ? WHERE slug = ? AND stock_qty IS NOT NULL"
-            : "UPDATE products SET stock_qty = GREATEST(stock_qty - ?, 0) WHERE slug = ? AND stock_qty IS NOT NULL",
-          [item.qty, item.slug],
+        // Stanje se vraća tamo odakle je skinuto: sa varijante, ili sa proizvoda.
+        const [table, where, key] = item.variant_id
+          ? ["product_variants", "product_slug = ? AND id = ?", [item.slug, item.variant_id]]
+          : ["products", "slug = ?", [item.slug]];
+        const [changed] = await connection.query<ResultSetHeader>(
+          `UPDATE ${table} SET stock_qty = ${
+            isCancelled ? "stock_qty + ?" : "GREATEST(stock_qty - ?, 0)"
+          } WHERE ${where} AND stock_qty IS NOT NULL`,
+          [item.qty, ...key],
         );
+        if (changed.affectedRows === 0) continue;
+        const [now] = await connection.query<RowDataPacket[]>(
+          `SELECT stock_qty FROM ${table} WHERE ${where}`,
+          key,
+        );
+        changes.push({
+          slug: item.slug,
+          variantId: item.variant_id,
+          change: isCancelled ? item.qty : -item.qty,
+          qtyAfter: now[0]?.stock_qty ?? null,
+          reason: isCancelled ? `Otkazana porudžbina #${number}` : `Vraćena porudžbina #${number}`,
+        });
       }
+      await logStock(connection, changes);
     }
     await connection.query("UPDATE orders SET status = ? WHERE number = ?", [status, number]);
   });
@@ -306,7 +325,8 @@ async function insertOrder(
     );
     const number = result.insertId;
     await connection.query(
-      "INSERT INTO order_items (order_number, position, slug, name, variant, sku, qty, price) VALUES ?",
+      `INSERT INTO order_items (order_number, position, slug, name, variant, variant_id, sku, qty, price)
+       VALUES ?`,
       [
         order.items.map((item, index) => [
           number,
@@ -314,6 +334,8 @@ async function insertOrder(
           item.slug,
           item.name,
           item.variant,
+          // Po id-u varijante se pri otkazivanju komadi vraćaju na njeno stanje.
+          stock[index]?.variantId ?? "",
           item.sku,
           item.qty,
           item.price,
@@ -324,6 +346,7 @@ async function insertOrder(
     // Skidanje sa stanja, samo tamo gde se vodi broj komada: kod varijante sa njenog stanja,
     // inače sa stanja proizvoda. Uslov u upitu čuva od toga da dve porudžbine u istom trenutku
     // prodaju isti poslednji komad.
+    const sold: StockChange[] = [];
     for (const { slug, variantId, qty } of stock) {
       const [table, where, key] = variantId
         ? ["product_variants", "product_slug = ? AND id = ?", [slug, variantId]]
@@ -338,7 +361,15 @@ async function insertOrder(
         [qty, ...key, qty],
       );
       if (taken.affectedRows === 0) throw new OutOfStock();
+      sold.push({
+        slug,
+        variantId: variantId ?? "",
+        change: -qty,
+        qtyAfter: tracked[0].stock_qty - qty,
+        reason: `Porudžbina #${number}`,
+      });
     }
+    await logStock(connection, sold);
 
     if (usedCode && usedCode.issuedId !== null) {
       // Uslov "used_order IS NULL" čuva od toga da dve porudžbine u istom trenutku potroše isti kod.

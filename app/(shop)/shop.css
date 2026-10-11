@@ -159,6 +159,7 @@
 .card-cat{font-size:14px;color:var(--soft)}
 .card-name{font-family:var(--display);font-weight:700;font-size:19px;line-height:1.3;letter-spacing:-.01em;text-decoration:none;display:block}
 .chip{min-height:44px;padding:0 20px;border-radius:999px;border:0;background:var(--mist);cursor:pointer;font:600 15px var(--display);transition:background .4s var(--ease),color .4s var(--ease)}
+a.chip{display:inline-flex;align-items:center;text-decoration:none}
 .chip:hover{background:var(--mist-2)}
 .chip.on{background:var(--ink)}
 .ds .chip.on{color:var(--on-ink)}

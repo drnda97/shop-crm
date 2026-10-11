@@ -27,8 +27,8 @@ Prvo otvorite **Podešavanja**: naziv prodavnice, valuta i zapis iznosa (celi iz
 | Porudžbine | pretraga, statusi (nova → potvrđena → poslata → isporučena, otkazana), beleška uz porudžbinu, izvoz u CSV |
 | Kupci | svi kupci sa brojem porudžbina i potrošnjom, istorija porudžbina kupca, beleška o kupcu, izvoz u CSV |
 | Poruke | poruke iz kontakt forme prodavnice i adrese prijavljene na novosti |
-| Proizvodi | cena i akcija, šifra, stanje (ručno ili po broju komada), oznaka „pri kraju", slike, opcije i varijante (cena, šifra, stanje i slika po varijanti), istaknuti deo stranice, nacrt/objavljen, redosled |
-| Kategorije, Kolekcije | kategorija je jedna po proizvodu; kolekcija je ručno složena grupa |
+| Proizvodi | cena i akcija, šifra, stanje (ručno ili po broju komada) sa istorijom promena, oznaka „pri kraju", slike, opcije i varijante (cena, šifra, stanje i slika po varijanti), slični proizvodi, podaci za pretraživače, nacrt/objavljen, redosled; izmena više proizvoda odjednom; uvoz i izvoz u CSV-u |
+| Kategorije, Kolekcije | kategorije sa podkategorijama, proizvod može biti u više njih; kolekcija je ručno složena grupa |
 | Popusti | promo kodovi (sa brojem korišćenja i rokom) i nagrade: kod koji kupac dobija emailom posle porudžbine |
 | Stranice | stranice sajta složene od sekcija, sa pregledom pre čuvanja; naslov i opis za pretraživače |
 | Izgled sajta | boje i fontovi; glavni meni, podnožje, traka sa obaveštenjem; tekstovi i fotografije na stranicama kolekcije, proizvoda, naloga, plaćanja i korpe — sve sa pregledom pre čuvanja |
@@ -65,9 +65,9 @@ Sajt koji ne koristi `sdk.js` (npr. server u PHP-u ili Next.js-u) zove API direk
 | Poziv | Šta vraća |
 |---|---|
 | `GET /api/v1/store` | podaci prodavnice i linkovi za podnožje |
-| `GET /api/v1/products` · `?category=` `?collection=` `?q=` | objavljeni proizvodi |
+| `GET /api/v1/products` · `?category=` `?collection=` `?q=` | objavljeni proizvodi; kategorija obuhvata i svoje podkategorije |
 | `GET /api/v1/products/{slug}` | jedan proizvod |
-| `GET /api/v1/categories` · `/collections` · `/collections/{id}` | kategorije i kolekcije |
+| `GET /api/v1/categories` · `/collections` · `/collections/{id}` | kategorije (sa `parent` za podkategorije) i kolekcije |
 | `GET /api/v1/pages` · `/pages/{slug}` | objavljene stranice; stranica ima `sections` (vrsta i sadržaj svake sekcije), i `body` i `images` izvedene iz njih |
 | `POST /api/v1/cart` `{ items, discountCode? }` | stavke i obračun: međuzbir, popust, dostava, ukupno; stavka je `{ slug, qty, variant? }` |
 | `POST /api/v1/discounts/check` `{ code }` | da li kod važi |
@@ -78,6 +78,15 @@ Iznosi u API-ju su celi brojevi u najmanjim jedinicama valute (uz `currency.deci
 Proizvod sa opcijama (`options`) ima `variants`: po jednu za svaku kombinaciju, sa svojim `id`, cenom (`currentPrice`), dostupnošću (`available`, `maxQty`) i slikom. Takav proizvod ulazi u korpu samo uz `variant` (id varijante); njegov `currentPrice` je najniža cena među varijantama, a `priceVaries` kaže da je treba ispisati kao „od".
 
 Cene, stanje, popust i dostava se uvek računaju u CRM-u; sajt šalje samo šta je u korpi. Kada sajt bude objavljen, upišite njegovu adresu u Podešavanja → Prodavnica → „Sajtovi koji smeju da zovu API".
+
+## Prelazak sa Shopify-ja ili WooCommerce-a
+
+Proizvodi → Uvoz čita CSV izvoz proizvoda iz obe platforme (i sopstveni izvoz iz ovog panela), prikaže šta će biti dodato i izmenjeno, pa ga upiše: naziv, opis, cene, stanje, kategorije, opcije, varijante i slike. Slike se preuzimaju sa adresa iz fajla i prolaze istu obradu kao ubačene iz panela.
+
+- Shopify: Products → Export → „All products", „Plain CSV file".
+- WooCommerce: Products → All Products → Export, sa svim kolonama.
+
+Ne uvoze se utisci, oznake (tagovi), porezi, dostava, kupci ni porudžbine. Proizvod čija oznaka već postoji se menja, pa se isti fajl može uvesti više puta.
 
 ## Demo prodavnica
 
@@ -134,6 +143,8 @@ U bazi su lični podaci kupaca i lozinka email naloga, pa kopije ne treba držat
 | Tabele baze | `lib/db.ts` (polazna šema), `lib/migrations.ts` (kasnije izmene) |
 | Čitanje i izmena sadržaja, slike | `lib/content.ts` |
 | Upis porudžbine, kodovi, statistika | `lib/order-store.ts` |
+| Istorija stanja | `lib/stock.ts` |
+| Uvoz i izvoz proizvoda | `lib/product-import.ts`, `lib/csv.ts`, `lib/remote-image.ts` |
 | Obračun korpe | `lib/cart.ts` |
 | Kupci | `lib/customers.ts` |
 | Email | `lib/order-email.ts`, `lib/email-template.ts` |

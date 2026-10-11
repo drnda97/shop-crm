@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  categoryPath,
+  categoryTree,
   currentPrice,
   getCollectionProducts,
+  inCategory,
   isAvailable,
   lowStockLabel,
   salePercent,
+  withDescendants,
 } from "@/lib/catalog";
 import { product } from "./helpers";
 
@@ -54,5 +58,40 @@ describe("kolekcija", () => {
     const products = [product({ slug: "a" }), product({ slug: "b" })];
     const collection = { id: "k", name: "K", description: "", productSlugs: ["b", "nema", "a"] };
     expect(getCollectionProducts(collection, products).map((item) => item.slug)).toEqual(["b", "a"]);
+  });
+});
+
+describe("stablo kategorija", () => {
+  const cat = (id: string, parent = "") => ({ id, label: id, parent, description: "", seoTitle: "", seoDescription: "" });
+  const categories = [cat("stolice", "namestaj"), cat("namestaj"), cat("barske", "stolice"), cat("rasveta"), cat("siroce", "obrisana")];
+
+  it("stablo ide od nadkategorije ka podkategorijama; kategorija bez roditelja je na vrhu", () => {
+    expect(categoryTree(categories).map((item) => `${item.depth}:${item.category.id}`)).toEqual([
+      "0:namestaj",
+      "1:stolice",
+      "2:barske",
+      "0:rasveta",
+      "0:siroce",
+    ]);
+  });
+
+  it("put do kategorije i sve njene podkategorije", () => {
+    expect(categoryPath(categories, "barske").map((item) => item.id)).toEqual(["namestaj", "stolice", "barske"]);
+    expect(withDescendants(categories, "namestaj")).toEqual(["namestaj", "stolice", "barske"]);
+    expect(withDescendants(categories, "rasveta")).toEqual(["rasveta"]);
+  });
+
+  it("petlja u zapisu ne zaglavljuje", () => {
+    const loop = [cat("a", "b"), cat("b", "a")];
+    expect(categoryPath(loop, "a").map((item) => item.id)).toEqual(["b", "a"]);
+    expect(withDescendants(loop, "a")).toEqual(["a", "b"]);
+    expect(categoryTree(loop)).toEqual([]);
+  });
+
+  it("proizvod iz podkategorije je i u nadkategoriji", () => {
+    const stool = product({ category: "barske", categories: ["barske", "rasveta"] });
+    expect(inCategory(stool, "namestaj", categories)).toBe(true);
+    expect(inCategory(stool, "rasveta", categories)).toBe(true);
+    expect(inCategory(product({ categories: ["namestaj"] }), "stolice", categories)).toBe(false);
   });
 });

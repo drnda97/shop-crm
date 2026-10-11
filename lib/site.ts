@@ -62,9 +62,9 @@ export const defaultSite: SiteSettings = {
       title: "Kupovina",
       links: [
         { label: "Sve kolekcije", href: "/kolekcija" },
-        { label: "Fotelje", href: "/kolekcija?kategorija=Fotelje" },
-        { label: "Stolice", href: "/kolekcija?kategorija=Stolice" },
-        { label: "Barske stolice", href: "/kolekcija?kategorija=Barske" },
+        { label: "Fotelje", href: "/kolekcija/fotelje" },
+        { label: "Stolice", href: "/kolekcija/stolice" },
+        { label: "Barske stolice", href: "/kolekcija/barske" },
       ],
     },
     {

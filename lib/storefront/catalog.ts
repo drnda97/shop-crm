@@ -1,5 +1,7 @@
 import { maxQty } from "@/lib/cart";
 import {
+  categoryPath,
+  categoryTree,
   currentPrice,
   isAvailable,
   isOnSale,
@@ -46,6 +48,16 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
       slug: product.slug,
       name: product.name,
       category: categories.find((category) => category.id === product.category)?.label ?? "",
+      categoryId: product.category,
+      // Proizvod iz podkategorije vidi se i u svim njenim nadkategorijama.
+      categoryIds: [
+        ...new Set(
+          product.categories.flatMap((id) => categoryPath(categories, id).map((category) => category.id)),
+        ),
+      ],
+      related: product.related,
+      seoTitle: product.seoTitle,
+      seoDescription: product.seoDescription,
       variant: product.summary,
       price: range.from as number,
       // Precrtana cena na kartici ima smisla samo kada sve varijante dele cenu proizvoda.
@@ -90,7 +102,11 @@ export async function getShopConfig(): Promise<ShopConfig> {
     logo: settings.logo ?? null,
     menu: settings.site.menu,
     texts: settings.templates,
-    categories: ["Sve", ...categories.map((category) => category.label)],
+    categories: categoryTree(categories).map(({ category }) => ({
+      id: category.id,
+      label: category.label,
+      parent: category.parent,
+    })),
     shippingPrice: shipping.price,
     freeFrom: shipping.freeEnabled ? shipping.freeFrom : null,
     pickup: shipping.pickupEnabled,
