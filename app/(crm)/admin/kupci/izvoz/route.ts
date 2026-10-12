@@ -1,4 +1,4 @@
-import { isAdmin } from "@/lib/admin-auth";
+import { hasAccess } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { csvResponse } from "@/lib/csv";
 import { getCustomers } from "@/lib/customers";
@@ -7,7 +7,7 @@ import { getOrders } from "@/lib/order-store";
 
 /** Svi kupci kao CSV, npr. za slanje ponuda ili uvoz u drugi program. */
 export async function GET() {
-  if (!(await isAdmin())) return new Response("Not found", { status: 404 });
+  if (!(await hasAccess("orders"))) return new Response("Not found", { status: 404 });
 
   const [orders, settings] = await Promise.all([getOrders(), getSettings()]);
   const decimals = settings.store.currencyDecimals;

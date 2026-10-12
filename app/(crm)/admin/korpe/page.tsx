@@ -22,7 +22,7 @@ import {
 type CartsPageProps = { searchParams: Promise<{ greska?: string; ok?: string }> };
 
 export default async function CartsPage({ searchParams }: CartsPageProps) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const { greska, ok } = await searchParams;
   const [carts, settings, products] = await Promise.all([listCarts(), getSettings(), getProducts()]);
   const { abandoned } = settings;

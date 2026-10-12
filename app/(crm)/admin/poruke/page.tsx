@@ -13,7 +13,7 @@ const sectionTitle = "mb-[14px] text-[22px]";
 type MessagesPageProps = { searchParams: Promise<{ greska?: string; ok?: string }> };
 
 export default async function MessagesPage({ searchParams }: MessagesPageProps) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const [{ greska, ok }, messages, subscribers, settings, campaigns] = await Promise.all([
     searchParams,
     getMessages(),

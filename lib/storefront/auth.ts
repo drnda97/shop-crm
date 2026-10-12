@@ -1,10 +1,11 @@
-import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { getDb } from "@/lib/db";
 import { getOrders } from "@/lib/order-store";
 import type { Order } from "@/lib/orders";
+import { DUMMY_HASH, hashPassword, passwordMatches } from "@/lib/password";
 
 /**
  * Nalozi kupaca na sajtu prodavnice: registracija, prijava i porudžbine kupca.
@@ -23,18 +24,6 @@ const COOKIE_NAME = "demoshop-session";
 const DAY_SECONDS = 60 * 60 * 24;
 /** Sa „Zapamti me" prijava važi 30 dana; bez toga do zatvaranja pregledača, a najduže jedan dan. */
 const REMEMBER_SECONDS = DAY_SECONDS * 30;
-
-function hashPassword(password: string, salt = randomBytes(16).toString("hex")): string {
-  return `scrypt$${salt}$${scryptSync(password, salt, 64).toString("hex")}`;
-}
-
-function passwordMatches(password: string, stored: string): boolean {
-  const [scheme, salt, hash] = stored.split("$");
-  if (scheme !== "scrypt" || !salt || !hash) return false;
-  const expected = Buffer.from(hash, "hex");
-  const actual = scryptSync(password, salt, 64);
-  return expected.length === actual.length && timingSafeEqual(expected, actual);
-}
 
 function tokenHash(token: string): string {
   return createHash("sha256").update(token).digest("hex");
@@ -70,7 +59,7 @@ export async function checkUser(email: string, password: string): Promise<ShopUs
     await getDb()
   ).query<RowDataPacket[]>("SELECT * FROM shop_users WHERE email = ?", [email]);
   // Heš se računa i kada naloga nema, da vreme odgovora ne otkrije koje adrese postoje.
-  const stored = rows.length > 0 ? rows[0].pass_hash : hashPassword("", "00");
+  const stored = rows.length > 0 ? rows[0].pass_hash : DUMMY_HASH;
   const matches = passwordMatches(password, stored);
   return rows.length > 0 && matches ? toUser(rows[0]) : null;
 }

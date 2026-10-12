@@ -56,6 +56,13 @@ const icons = {
       <path d="M3 17V9.500M8 17V4M13 17v-6M17.500 17V7" />
     </svg>
   ),
+  account: (
+    <svg {...stroke}>
+      <circle cx="10" cy="10" r="7.500" />
+      <circle cx="10" cy="8" r="2.500" />
+      <path d="M5 15.500c1-2.300 2.900-3.200 5-3.200s4 .900 5 3.200" />
+    </svg>
+  ),
   messages: (
     <svg {...stroke}>
       <rect x="2" y="3.500" width="16" height="13" rx="3" />
@@ -136,7 +143,7 @@ const item =
   "relative flex min-h-[44px] items-center gap-[12px] rounded-full px-[14px] font-display text-[15px] font-semibold transition-colors duration-300 md:group-data-[collapsed=true]/nav:justify-center md:group-data-[collapsed=true]/nav:px-0";
 const quiet = "text-ink hover:bg-band hover:text-ink";
 
-type NavItem = { href: string; label: string; icon: ReactNode; exact?: boolean; badge?: number };
+type NavItem = { href: string; label: string; icon: ReactNode; exact?: boolean; badge?: number; area?: string };
 
 type SidebarProps = {
   /** Koren panela (ADMIN_PATH). */
@@ -147,11 +154,14 @@ type SidebarProps = {
   /** Adresa sajta za kupce. */
   siteUrl: string;
   initialCollapsed: boolean;
+  /** Ime prijavljenog korisnika, i delovi panela u koje njegova uloga sme. */
+  user: string;
+  areas: string[];
   logout: () => Promise<void>;
 };
 
 /** Bočni meni panela. Dugme u zaglavlju ga skuplja na same ikonice. */
-export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, logout }: SidebarProps) {
+export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, areas, logout }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(initialCollapsed);
 
@@ -161,40 +171,48 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, logout
     document.cookie = `${NAV_COOKIE}=${next ? "1" : "0"}; path=/; max-age=31536000; samesite=lax`;
   }
 
-  const groups: { title?: string; items: NavItem[] }[] = [
+  const all: { title?: string; items: NavItem[] }[] = [
     {
       items: [
-        { href: base, label: "Pregled", icon: icons.overview, exact: true },
-        { href: `${base}/porudzbine`, label: "Porudžbine", icon: icons.orders, badge: waiting },
-        { href: `${base}/kupci`, label: "Kupci", icon: icons.customers },
-        { href: `${base}/korpe`, label: "Napuštene korpe", icon: icons.carts },
-        { href: `${base}/poruke`, label: "Poruke", icon: icons.messages },
-        { href: `${base}/utisci`, label: "Utisci", icon: icons.reviews },
-        { href: `${base}/izvestaji`, label: "Izveštaji", icon: icons.reports },
+        { href: base, label: "Pregled", icon: icons.overview, exact: true, area: "orders" },
+        { href: `${base}/porudzbine`, label: "Porudžbine", icon: icons.orders, badge: waiting, area: "orders" },
+        { href: `${base}/kupci`, label: "Kupci", icon: icons.customers, area: "orders" },
+        { href: `${base}/korpe`, label: "Napuštene korpe", icon: icons.carts, area: "orders" },
+        { href: `${base}/poruke`, label: "Poruke", icon: icons.messages, area: "orders" },
+        { href: `${base}/utisci`, label: "Utisci", icon: icons.reviews, area: "orders" },
+        { href: `${base}/izvestaji`, label: "Izveštaji", icon: icons.reports, area: "orders" },
       ],
     },
     {
       title: "Prodavnica",
       items: [
-        { href: `${base}/proizvodi`, label: "Proizvodi", icon: icons.products },
-        { href: `${base}/kategorije`, label: "Kategorije", icon: icons.categories },
-        { href: `${base}/kolekcije`, label: "Kolekcije", icon: icons.collections },
-        { href: `${base}/popusti`, label: "Popusti", icon: icons.discounts },
+        { href: `${base}/proizvodi`, label: "Proizvodi", icon: icons.products, area: "catalog" },
+        { href: `${base}/kategorije`, label: "Kategorije", icon: icons.categories, area: "catalog" },
+        { href: `${base}/kolekcije`, label: "Kolekcije", icon: icons.collections, area: "catalog" },
+        { href: `${base}/popusti`, label: "Popusti", icon: icons.discounts, area: "catalog" },
       ],
     },
     {
       title: "Sajt",
       items: [
-        { href: `${base}/stranice`, label: "Stranice", icon: icons.pages },
-        { href: `${base}/izgled`, label: "Izgled sajta", icon: icons.layout },
-        { href: `${base}/slike`, label: "Slike", icon: icons.images },
+        { href: `${base}/stranice`, label: "Stranice", icon: icons.pages, area: "content" },
+        { href: `${base}/izgled`, label: "Izgled sajta", icon: icons.layout, area: "content" },
+        { href: `${base}/slike`, label: "Slike", icon: icons.images, area: "content" },
       ],
     },
     {
       title: "Podešavanja",
-      items: [{ href: `${base}/podesavanja`, label: "Opšte", icon: icons.settings }],
+      items: [
+        { href: `${base}/podesavanja`, label: "Opšte", icon: icons.settings, area: "settings" },
+        { href: `${base}/korisnici`, label: "Korisnici", icon: icons.customers, area: "users" },
+        { href: `${base}/dnevnik`, label: "Dnevnik", icon: icons.pages, area: "users" },
+        { href: `${base}/nalog`, label: "Moj nalog", icon: icons.account },
+      ],
     },
   ];
+  const groups = all
+    .map((group) => ({ ...group, items: group.items.filter((link) => !link.area || areas.includes(link.area)) }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <aside
@@ -281,7 +299,7 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, logout
             className={`${item} ${quiet} w-full cursor-pointer`}
           >
             {icons.logout}
-            <span className={`whitespace-nowrap ${whenCollapsedHide}`}>Odjavi se</span>
+            <span className={`truncate whitespace-nowrap ${whenCollapsedHide}`}>Odjavi se · {user}</span>
           </button>
         </form>
       </div>

@@ -1,9 +1,9 @@
-import { isAdmin } from "@/lib/admin-auth";
+import { hasAccess } from "@/lib/admin-auth";
 import { defaultEmailTemplate } from "@/lib/email-template";
 
 /** Preuzimanje našeg šablona emaila, kao polazne tačke za sopstveni. */
 export async function GET() {
-  if (!(await isAdmin())) return new Response("Not found", { status: 404 });
+  if (!(await hasAccess("settings"))) return new Response("Not found", { status: 404 });
 
   return new Response(defaultEmailTemplate, {
     headers: {

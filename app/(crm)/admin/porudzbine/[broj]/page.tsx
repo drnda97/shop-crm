@@ -38,7 +38,7 @@ type OrderPageProps = {
 
 /** Jedna porudžbina: dostava i praćenje, uplata i povraćaj, podaci kupca, račun i istorija. */
 export default async function OrderPage({ params, searchParams }: OrderPageProps) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const [{ broj }, { greska }] = await Promise.all([params, searchParams]);
   const [order, events, settings, returns] = await Promise.all([
     getOrder(broj),

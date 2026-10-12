@@ -47,7 +47,7 @@ const checkboxLabel = "flex cursor-pointer items-start gap-[10px] text-[15px] le
 const codeClass = "rounded-[14px] bg-band px-[14px] py-[12px] font-mono text-[13px] break-all";
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
-  await requireAdmin();
+  await requireAdmin("settings");
   const { greska, ok } = await searchParams;
   // Lozinka za SMTP se namerno ne šalje u formu.
   const { store, logo, favicon, mail, shipping, payment, tax, analytics } = await getSettings();

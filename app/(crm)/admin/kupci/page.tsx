@@ -23,7 +23,7 @@ const CUSTOMERS_PATH = `${ADMIN_PATH}/kupci`;
 const SHOWN = 200;
 
 export default async function CustomersPage({ searchParams }: CustomersPageProps) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const { q = "", red } = await searchParams;
   const search = q.trim().toLocaleLowerCase();
 

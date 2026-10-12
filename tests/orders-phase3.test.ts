@@ -89,27 +89,27 @@ describe("plaćanje", () => {
 
   it("probni procesor radi samo kada je uključen, i prihvata samo potpisanu potvrdu", async () => {
     const provider = findProvider("test")!;
-    const before = { test: process.env.CARD_TEST_PROVIDER, password: process.env.ADMIN_PASSWORD };
+    const before = { test: process.env.CARD_TEST_PROVIDER, secret: process.env.APP_SECRET };
     delete process.env.CARD_TEST_PROVIDER;
     expect(provider.ready()).toBe(false);
     process.env.CARD_TEST_PROVIDER = "1";
-    process.env.ADMIN_PASSWORD = "tajna";
+    process.env.APP_SECRET = "tajna";
     expect(provider.ready()).toBe(true);
 
     const url = (order: string, outcome: string, signature: string) =>
       new Request(`https://shop.rs/api/v1/payments/test?porudzbina=${order}&ishod=${outcome}&potpis=${signature}`);
-    expect(await provider.confirm(url("1005", "uspeh", signPayment("1005", "uspeh")))).toEqual({ orderNumber: "1005", paid: true, reference: "TEST-1005" });
-    expect(await provider.confirm(url("1005", "odbijeno", signPayment("1005", "odbijeno")))).toMatchObject({ paid: false });
+    expect(await provider.confirm(url("1005", "uspeh", await signPayment("1005", "uspeh")))).toEqual({ orderNumber: "1005", paid: true, reference: "TEST-1005" });
+    expect(await provider.confirm(url("1005", "odbijeno", await signPayment("1005", "odbijeno")))).toMatchObject({ paid: false });
     // Potpis za drugu porudžbinu ili drugi ishod ne važi.
-    expect(await provider.confirm(url("1006", "uspeh", signPayment("1005", "uspeh")))).toBeNull();
-    expect(await provider.confirm(url("1005", "uspeh", signPayment("1005", "odbijeno")))).toBeNull();
+    expect(await provider.confirm(url("1006", "uspeh", await signPayment("1005", "uspeh")))).toBeNull();
+    expect(await provider.confirm(url("1005", "uspeh", await signPayment("1005", "odbijeno")))).toBeNull();
     expect(await provider.confirm(url("1005", "uspeh", ""))).toBeNull();
-    expect(await provider.confirm(url("1005", "nesto", signPayment("1005", "nesto")))).toBeNull();
+    expect(await provider.confirm(url("1005", "nesto", await signPayment("1005", "nesto")))).toBeNull();
 
     process.env.CARD_TEST_PROVIDER = before.test;
-    process.env.ADMIN_PASSWORD = before.password;
+    process.env.APP_SECRET = before.secret;
     if (before.test === undefined) delete process.env.CARD_TEST_PROVIDER;
-    if (before.password === undefined) delete process.env.ADMIN_PASSWORD;
+    if (before.secret === undefined) delete process.env.APP_SECRET;
   });
 });
 

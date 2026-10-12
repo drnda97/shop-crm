@@ -7,7 +7,7 @@ import { PageHeader, textLinkClass } from "../../ui";
 import { ManualOrderForm } from "./manual-order-form";
 
 export default async function NewOrderPage() {
-  await requireAdmin();
+  await requireAdmin("orders");
   const [products, settings] = await Promise.all([getProducts(), getSettings()]);
   const ordersPath = `${ADMIN_PATH}/porudzbine`;
 

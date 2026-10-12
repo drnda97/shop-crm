@@ -7,7 +7,7 @@ import { buttonClass, cardClass, PageHeader, quietButtonClass, rowClass } from "
 type PagesPageProps = { searchParams: Promise<{ greska?: string }> };
 
 export default async function PagesPage({ searchParams }: PagesPageProps) {
-  await requireAdmin();
+  await requireAdmin("content");
   const { greska } = await searchParams;
   const pages = await getPages();
 

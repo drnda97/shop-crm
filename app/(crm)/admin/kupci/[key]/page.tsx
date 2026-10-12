@@ -26,7 +26,7 @@ type CustomerPageProps = {
 };
 
 export default async function CustomerPage({ params, searchParams }: CustomerPageProps) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const [{ key }, { ok }] = await Promise.all([params, searchParams]);
   const [orders, settings, note] = await Promise.all([
     getOrders(),

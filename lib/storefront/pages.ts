@@ -31,7 +31,7 @@ export type SettingsDraft = Partial<Pick<Settings, "colors" | "fonts" | "site">>
 
 const getDraft = cache(async (): Promise<PreviewDraft | null> => {
   const token = (await headers()).get(PREVIEW_HEADER) ?? undefined;
-  if (!isPreviewToken(token)) return null;
+  if (!(await isPreviewToken(token))) return null;
   try {
     return JSON.parse((await getStoredValue(PREVIEW_KEY)) ?? "null") as PreviewDraft | null;
   } catch {

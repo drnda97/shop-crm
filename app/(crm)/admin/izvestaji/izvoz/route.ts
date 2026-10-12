@@ -1,4 +1,4 @@
-import { isAdmin } from "@/lib/admin-auth";
+import { hasAccess } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { csvResponse } from "@/lib/csv";
 import { fromMinor } from "@/lib/format";
@@ -7,7 +7,7 @@ import { buildReport, reportPeriod } from "@/lib/reports";
 
 /** Izveštaj za izabrani period kao CSV: zbir, pa prodaja po danima i po proizvodima. */
 export async function GET(request: Request) {
-  if (!(await isAdmin())) return new Response("Not found", { status: 404 });
+  if (!(await hasAccess("orders"))) return new Response("Not found", { status: 404 });
   const query = new URL(request.url).searchParams;
   const [orders, settings] = await Promise.all([getOrders(), getSettings()]);
   const period = reportPeriod(query.get("od") ?? undefined, query.get("do") ?? undefined, settings.store.timeZone);

@@ -7,7 +7,7 @@ import { editorOptions, HOME_PREVIEW, previewUrl, tabs } from "./parts";
 import { SettingsEditor } from "./settings-editor";
 
 export default async function ThemePage() {
-  await requireAdmin();
+  await requireAdmin("content");
   const [settings, all] = await Promise.all([getSettings(), editorOptions()]);
   const options = { collections: all.collections, products: all.products, links: all.links, media: all.media };
 
@@ -36,7 +36,7 @@ export default async function ThemePage() {
         hint="Četiri boje i dva fonta. Nijanse, tekst na tamnim sekcijama i tekst na dugmadima sajt računa sam, da ostane čitljiv. Boje važe i za email o porudžbini."
         fields={THEME_FIELDS}
         value={{ ...settings.colors, fontDisplay: settings.fonts.display, fontBody: settings.fonts.body }}
-        previewUrl={previewUrl(HOME_PREVIEW)}
+        previewUrl={await previewUrl(HOME_PREVIEW)}
         options={options}
       />
     </>

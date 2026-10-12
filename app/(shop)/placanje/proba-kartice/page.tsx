@@ -14,9 +14,10 @@ type Props = { searchParams: Promise<{ porudzbina?: string; iznos?: string; potp
  */
 export default async function TestCardPage({ searchParams }: Props) {
   const { porudzbina = "", iznos = "", potpis = "" } = await searchParams;
-  if (!findProvider("test")?.ready() || potpis !== signPayment(porudzbina, "start")) notFound();
-  const link = (outcome: string) =>
-    `/api/v1/payments/test?porudzbina=${encodeURIComponent(porudzbina)}&ishod=${outcome}&potpis=${signPayment(porudzbina, outcome)}`;
+  if (!findProvider("test")?.ready() || potpis !== (await signPayment(porudzbina, "start"))) notFound();
+  const signatures = { uspeh: await signPayment(porudzbina, "uspeh"), odbijeno: await signPayment(porudzbina, "odbijeno") };
+  const link = (outcome: "uspeh" | "odbijeno") =>
+    `/api/v1/payments/test?porudzbina=${encodeURIComponent(porudzbina)}&ishod=${outcome}&potpis=${signatures[outcome]}`;
 
   return (
     <div className="ds" style={DS_STYLE}>

@@ -26,7 +26,7 @@ export default async function EditCollectionPage({
   params,
   searchParams,
 }: EditCollectionPageProps) {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const [{ id }, { greska }] = await Promise.all([params, searchParams]);
   const [collections, products] = await Promise.all([getCollections(), getProducts()]);
   const collection = collections.find((candidate) => candidate.id === id);

@@ -17,7 +17,7 @@ import {
 type CollectionsPageProps = { searchParams: Promise<{ greska?: string }> };
 
 export default async function CollectionsPage({ searchParams }: CollectionsPageProps) {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const { greska } = await searchParams;
   const collections = await getCollections();
 

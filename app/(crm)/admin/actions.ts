@@ -7,10 +7,10 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   ADMIN_PATH,
-  checkCredentials,
   createSession,
   destroySession,
   requireAdmin,
+  verifyLogin,
 } from "@/lib/admin-auth";
 import {
   countCombinations,
@@ -80,6 +80,7 @@ import { findProvider } from "@/lib/payments";
 import { currencyOf, defaultSettings, INVOICE_EMAILS, mergeSettings, STATUS_EMAILS } from "@/lib/settings";
 import { normalizeMethods } from "@/lib/shipping";
 import { sendDueReminders } from "@/lib/abandoned";
+import { audit } from "@/lib/audit";
 import { baseUrl } from "@/lib/api";
 import { isMailReady, publicBase, sendMails, simpleEmail } from "@/lib/mail";
 import { createCampaign, getRecipients, sendCampaign } from "@/lib/newsletter";
@@ -139,16 +140,25 @@ function refresh() {
 
 /* ---------- Prijava ---------- */
 
-export type LoginState = { error?: string };
+export type LoginState = {
+  error?: string;
+  /** Lozinka je ispravna, a korisnik ima prijavu u dva koraka: forma traži kod iz aplikacije. */
+  needCode?: boolean;
+};
 
 export async function login(_previous: LoginState, formData: FormData): Promise<LoginState> {
   if (tooMany("admin-login", clientIp(await headers()), 10)) return { error: TOO_MANY };
-  if (!checkCredentials(text(formData, "username"), text(formData, "password"))) {
-    // Usporava nagađanje lozinke.
+  const result = await verifyLogin(text(formData, "username"), text(formData, "password"), text(formData, "code"));
+  if (!result.ok) {
+    if (result.reason === "code-needed") return { needCode: true };
+    // Usporava nagađanje lozinke i koda.
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    return { error: "Pogrešno korisničko ime ili lozinka." };
+    return result.reason === "code-invalid"
+      ? { needCode: true, error: "Kod nije ispravan. Upišite trenutni kod iz aplikacije ili rezervni kod." }
+      : { error: "Pogrešno korisničko ime ili lozinka." };
   }
-  await createSession();
+  await createSession(result.user.id);
+  await audit("Prijava u panel", undefined, result.user);
   redirect(ADMIN_PATH);
 }
 
@@ -167,7 +177,7 @@ function parseAttributes(value: string): Product["attributes"] {
 }
 
 export async function saveProductAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const [products, categories, settings] = await Promise.all([
     getProducts(),
@@ -353,11 +363,12 @@ export async function saveProductAction(formData: FormData) {
   }
 
   refresh();
+  await audit("Sačuvan proizvod", formData);
   redirect(PRODUCTS_PATH);
 }
 
 export async function deleteProductAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const slug = text(formData, "slug");
   const product = (await getProducts()).find((candidate) => candidate.slug === slug);
@@ -373,12 +384,13 @@ export async function deleteProductAction(formData: FormData) {
     for (const src of product.gallery) await removeUpload(src);
     refresh();
   }
+  await audit("Obrisan proizvod", formData);
   redirect(PRODUCTS_PATH);
 }
 
 /** Brza izmena stanja iz spiska proizvoda: klik menja ručno stanje, a broj se upisuje direktno. */
 export async function setStockAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const slug = text(formData, "slug");
   const stockQty = formData.has("stockQty") ? optionalCount(formData, "stockQty") : undefined;
@@ -392,12 +404,13 @@ export async function setStockAction(formData: FormData) {
     else product.stockQty = stockQty;
   });
   refresh();
+  await audit("Promenjeno stanje proizvoda", formData);
   redirect(PRODUCTS_PATH);
 }
 
 /** Pomera proizvod za jedno mesto gore ili dole; tim redom ih API vraća sajtu. */
 export async function moveProductAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const slug = text(formData, "slug");
   const step = text(formData, "direction") === "up" ? -1 : 1;
@@ -416,7 +429,7 @@ export async function moveProductAction(formData: FormData) {
 
 /** Ista izmena na svim označenim proizvodima iz spiska. */
 export async function bulkProductsAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const slugs = formData.getAll("slugs").filter((value): value is string => typeof value === "string");
   if (slugs.length === 0) backWithError(PRODUCTS_PATH, "Označite bar jedan proizvod.");
@@ -468,6 +481,7 @@ export async function bulkProductsAction(formData: FormData) {
   }
 
   refreshSite();
+  await audit("Izmenjeno više proizvoda", formData);
   redirect(PRODUCTS_PATH);
 }
 
@@ -480,7 +494,7 @@ const MAX_IMPORT_IMAGES = 400;
 
 /** Prvi korak: čita CSV i čuva ono što je pročitano, da ga vlasnik pregleda pre upisa. */
 export async function startImportAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) backWithError(IMPORT_PATH, "Izaberite CSV fajl.");
   if (file.size > MAX_IMPORT_BYTES) backWithError(IMPORT_PATH, "Fajl je veći od 10 MB. Podelite ga na više manjih.");
@@ -498,14 +512,14 @@ export async function startImportAction(formData: FormData) {
 }
 
 export async function cancelImportAction() {
-  await requireAdmin();
+  await requireAdmin("catalog");
   await setStoredValue(IMPORT_KEY, null);
   redirect(IMPORT_PATH);
 }
 
 /** Drugi korak: upisuje pročitane proizvode u katalog i, po izboru, preuzima njihove slike. */
 export async function applyImportAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const stored = await getStoredValue(IMPORT_KEY);
   if (!stored) backWithError(IMPORT_PATH, "Nema pročitanog fajla. Izaberite ga ponovo.");
   const pending = JSON.parse(stored) as ParsedImport;
@@ -546,6 +560,7 @@ export async function applyImportAction(formData: FormData) {
     failed > 0 ? `Slika koje nisu preuzete: ${failed}.` : "",
     skipped > 0 ? `Preskočeno slika preko granice od ${MAX_IMPORT_IMAGES}: ${skipped}.` : "",
   ];
+  await audit("Uvezeni proizvodi", `novih ${stats.created}, izmenjenih ${stats.updated}`);
   redirect(`${IMPORT_PATH}?ok=${encodeURIComponent(notes.filter(Boolean).join(" "))}`);
 }
 
@@ -565,7 +580,7 @@ function localMedia(url: string): string | null {
 const COLLECTIONS_PATH = `${ADMIN_PATH}/kolekcije`;
 
 export async function createCollectionAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const name = text(formData, "name");
   const id = uniqueSlug(
@@ -578,11 +593,12 @@ export async function createCollectionAction(formData: FormData) {
     content.collections.push({ id, name, description: "", productSlugs: [] });
   });
   refresh();
+  await audit("Napravljena kolekcija", formData);
   redirect(`${COLLECTIONS_PATH}/${id}`);
 }
 
 export async function saveCollectionAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const id = text(formData, "id");
   const name = text(formData, "name");
@@ -600,17 +616,19 @@ export async function saveCollectionAction(formData: FormData) {
       .filter((slug) => chosen.includes(slug));
   });
   refresh();
+  await audit("Sačuvana kolekcija", formData);
   redirect(COLLECTIONS_PATH);
 }
 
 export async function deleteCollectionAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const id = text(formData, "id");
   await updateContent((content) => {
     content.collections = content.collections.filter((collection) => collection.id !== id);
   });
   refresh();
+  await audit("Obrisana kolekcija", formData);
   redirect(COLLECTIONS_PATH);
 }
 
@@ -619,7 +637,7 @@ export async function deleteCollectionAction(formData: FormData) {
 const CATEGORIES_PATH = `${ADMIN_PATH}/kategorije`;
 
 export async function createCategoryAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const categories = await getCategories();
   const label = text(formData, "label").slice(0, 255);
@@ -641,11 +659,12 @@ export async function createCategoryAction(formData: FormData) {
     });
   });
   refreshSite();
+  await audit("Napravljena kategorija", formData);
   redirect(CATEGORIES_PATH);
 }
 
 export async function saveCategoryAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const id = text(formData, "id");
   const label = text(formData, "label").slice(0, 255);
@@ -669,11 +688,12 @@ export async function saveCategoryAction(formData: FormData) {
     });
   });
   refreshSite();
+  await audit("Sačuvana kategorija", formData);
   redirect(CATEGORIES_PATH);
 }
 
 export async function deleteCategoryAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const id = text(formData, "id");
   const used = (await getProducts()).filter((product) => product.categories.includes(id)).length;
@@ -692,6 +712,7 @@ export async function deleteCategoryAction(formData: FormData) {
     }
   });
   refreshSite();
+  await audit("Obrisana kategorija", formData);
   redirect(CATEGORIES_PATH);
 }
 
@@ -700,7 +721,7 @@ export async function deleteCategoryAction(formData: FormData) {
 const DISCOUNTS_PATH = `${ADMIN_PATH}/popusti`;
 
 export async function saveDiscountAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const [discounts, settings] = await Promise.all([getDiscounts(), getSettings()]);
   const editedId = text(formData, "id");
@@ -810,29 +831,32 @@ export async function saveDiscountAction(formData: FormData) {
       : [...content.discounts, discount];
   });
   refreshSite();
+  await audit("Sačuvan popust", formData);
   redirect(DISCOUNTS_PATH);
 }
 
 /** Prebacuje popust između nacrta i aktivnog. */
 export async function toggleDiscountAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const id = text(formData, "id");
   await updateContent((content) => {
     const discount = content.discounts.find((item) => item.id === id);
     if (discount) discount.status = discount.status === "active" ? "draft" : "active";
   });
+  await audit("Uključen ili isključen popust", formData);
   redirect(DISCOUNTS_PATH);
 }
 
 /** Briše pravilo. Kodovi koji su već poslati kupcima ostaju da važe. */
 export async function deleteDiscountAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("catalog");
 
   const id = text(formData, "id");
   await updateContent((content) => {
     content.discounts = content.discounts.filter((item) => item.id !== id);
   });
+  await audit("Obrisan popust", formData);
   redirect(DISCOUNTS_PATH);
 }
 
@@ -848,7 +872,7 @@ function refreshSite() {
 
 /** Nova stranica: naslov, pa se otvara uređivač. Adresa se pravi iz naslova i više se ne menja. */
 export async function createPageAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("content");
   const formPath = `${PAGES_PATH}/nova`;
 
   const title = text(formData, "title").slice(0, 255);
@@ -872,6 +896,7 @@ export async function createPageAction(formData: FormData) {
   });
 
   refresh();
+  await audit("Napravljena stranica", formData);
   redirect(`${PAGES_PATH}/${slug}`);
 }
 
@@ -889,7 +914,7 @@ export type SaveResult = { ok: true } | { ok: false; error: string };
 
 /** Čuva stranicu iz uređivača. Sekcije stižu iz pregledača, pa se svode na opis polja. */
 export async function savePageAction(input: SavePageInput): Promise<SaveResult> {
-  await requireAdmin();
+  await requireAdmin("content");
 
   const slug = typeof input?.slug === "string" ? input.slug : "";
   const title = typeof input.title === "string" ? input.title.trim().slice(0, 255) : "";
@@ -915,6 +940,7 @@ export async function savePageAction(input: SavePageInput): Promise<SaveResult> 
   await setStoredValue(PREVIEW_KEY, null);
 
   refreshSite();
+  await audit("Sačuvana stranica", input.slug);
   return { ok: true };
 }
 
@@ -960,21 +986,21 @@ function settingsPart(input: SettingsPart): { kind: "settings"; settings: Settin
  * Kupci ih ne vide: sajt se menja tek kada se izmene sačuvaju.
  */
 export async function savePreviewAction(slug: string, sections: unknown): Promise<void> {
-  await requireAdmin();
+  await requireAdmin("content");
   if (!(await getPages()).some((page) => page.slug === slug)) return;
   const draft: PreviewDraft = { kind: "page", slug, sections: normalizeSections(sections) };
   await setStoredValue(PREVIEW_KEY, JSON.stringify(draft));
 }
 
 export async function saveSettingsPreviewAction(input: SettingsPart): Promise<void> {
-  await requireAdmin();
+  await requireAdmin("content");
   const draft = settingsPart(input);
   if (draft) await setStoredValue(PREVIEW_KEY, JSON.stringify(draft));
 }
 
 /** Čuva temu, meni i podnožje, ili tekstove jednog šablona. */
 export async function saveSettingsPartAction(input: SettingsPart): Promise<SaveResult> {
-  await requireAdmin();
+  await requireAdmin("content");
   const draft = settingsPart(input);
   if (!draft) return { ok: false, error: "Ovaj deo sajta više ne postoji." };
   const { colors, fonts, site, templates } = draft.settings;
@@ -985,11 +1011,12 @@ export async function saveSettingsPartAction(input: SettingsPart): Promise<SaveR
   });
   await setStoredValue(PREVIEW_KEY, null);
   refreshSite();
+  await audit("Sačuvan izgled sajta", input.part === "template" ? `tekstovi: ${input.id}` : input.part === "theme" ? "tema" : "meni i podnožje");
   return { ok: true };
 }
 
 export async function deletePageAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("content");
 
   const slug = text(formData, "slug");
   if (slug === HOME_SLUG) backWithError(PAGES_PATH, "Početna strana ne može da se obriše.");
@@ -999,6 +1026,7 @@ export async function deletePageAction(formData: FormData) {
   await setStoredValue(PREVIEW_KEY, null);
 
   refreshSite();
+  await audit("Obrisana stranica", formData);
   redirect(PAGES_PATH);
 }
 
@@ -1008,7 +1036,7 @@ const MEDIA_PATH = `${ADMIN_PATH}/slike`;
 
 /** Slika ubačena iz uređivača; vraća putanju koja se upisuje u polje. */
 export async function uploadImageAction(formData: FormData): Promise<UploadResult> {
-  await requireAdmin();
+  await requireAdmin("content");
   const file = image(formData, "image");
   if (!file) return { ok: false, error: "Izaberite sliku pre slanja." };
   const result = await saveUpload(file, "slika");
@@ -1018,7 +1046,7 @@ export async function uploadImageAction(formData: FormData): Promise<UploadResul
 
 /** Više slika odjednom, sa stranice Slike. */
 export async function uploadImagesAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("content");
   const files = formData
     .getAll("images")
     .filter((value): value is File => value instanceof File && value.size > 0);
@@ -1028,17 +1056,19 @@ export async function uploadImagesAction(formData: FormData) {
     if (!result.ok) backWithError(MEDIA_PATH, `${file.name}: ${result.error}`);
   }
   refresh();
+  await audit("Ubačene slike", formData);
   redirect(MEDIA_PATH);
 }
 
 export async function deleteImageAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("content");
   const src = text(formData, "src");
   if ((await getUsedImages()).has(src)) {
     backWithError(MEDIA_PATH, "Slika se koristi na sajtu. Prvo je zamenite tamo gde je prikazana.");
   }
   await removeUpload(src);
   refresh();
+  await audit("Obrisana slika", formData);
   redirect(MEDIA_PATH);
 }
 
@@ -1051,7 +1081,7 @@ function returnPath(formData: FormData, fallback: string): string {
 }
 
 export async function setOrderStatusAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
 
   const number = text(formData, "number");
   const status = text(formData, "status");
@@ -1071,13 +1101,14 @@ export async function setOrderStatusAction(formData: FormData) {
     });
   }
   refresh();
+  await audit("Promenjen status porudžbine", formData);
   redirect(returnPath(formData, `${ADMIN_PATH}/porudzbine`));
 }
 
 const orderPath = (number: string) => `${ADMIN_PATH}/porudzbine/${number}`;
 
 export async function saveTrackingAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const number = text(formData, "number");
   const url = text(formData, "trackingUrl").slice(0, 500);
   if (url !== "" && !/^https?:\/\//.test(url)) {
@@ -1085,21 +1116,23 @@ export async function saveTrackingAction(formData: FormData) {
   }
   await setOrderTracking(number, { number: text(formData, "trackingNumber").slice(0, 100), url });
   refresh();
+  await audit("Upisan broj pošiljke", formData);
   redirect(orderPath(number));
 }
 
 export async function setOrderPaidAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const number = text(formData, "number");
   const paid = text(formData, "paid") === "yes";
   await setOrderPaid(number, paid, paid ? "Označeno kao plaćeno" : "Oznaka plaćeno je uklonjena");
   refresh();
+  await audit("Promenjena oznaka plaćeno", formData);
   redirect(orderPath(number));
 }
 
 /** Evidencija povraćaja: iznos se upisuje uz porudžbinu i oduzima od prodaje. Novac vraća prodavac. */
 export async function refundOrderAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const number = text(formData, "number");
   const [order, settings] = await Promise.all([getOrder(number), getSettings()]);
   if (!order) backWithError(`${ADMIN_PATH}/porudzbine`, "Porudžbina više ne postoji.");
@@ -1138,11 +1171,12 @@ export async function refundOrderAction(formData: FormData) {
     await addOrderEvent(await getDb(), number, outcome === "sent" ? "Kupcu je poslat email o povraćaju" : `Email o povraćaju nije poslat: ${outcome}`);
   });
   refresh();
+  await audit("Upisan povraćaj", formData);
   redirect(orderPath(number));
 }
 
 export async function saveOrderCustomerAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const number = text(formData, "number");
   const customer = {
     name: text(formData, "name").slice(0, 255),
@@ -1158,6 +1192,7 @@ export async function saveOrderCustomerAction(formData: FormData) {
   const settings = await getSettings();
   await setOrderCustomer(number, customer, customerKey(customer, settings.store.phonePrefix));
   refresh();
+  await audit("Izmenjeni podaci kupca na porudžbini", formData);
   redirect(orderPath(number));
 }
 
@@ -1165,25 +1200,26 @@ export type ManualOrderResult = { ok: true; number: string } | { ok: false; erro
 
 /** Porudžbina uneta u panelu (telefonom, u radnji): prolazi iste provere kao porudžbina sa sajta. */
 export async function createManualOrderAction(input: unknown): Promise<ManualOrderResult> {
-  await requireAdmin();
+  await requireAdmin("orders");
   const raw = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   // Kartica traži kupca na stranici procesora, pa se ručno unose samo pouzeće i uplata na račun.
   if (raw.paymentMethod === "card") return { ok: false, error: "Ručna porudžbina se ne plaća karticom." };
   const result = await submitOrder(raw, "Uneta ručno u panelu");
   if (!result.ok) return { ok: false, error: result.message ?? Object.values(result.errors)[0] ?? "Proverite podatke." };
   refresh();
+  await audit("Ručno uneta porudžbina", `#${result.orderNumber}`);
   return { ok: true, number: result.orderNumber };
 }
 
 export async function saveOrderNoteAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
 
   await setOrderNote(text(formData, "number"), text(formData, "note").slice(0, 2000));
   redirect(returnPath(formData, `${ADMIN_PATH}/porudzbine`));
 }
 
 export async function saveCustomerNoteAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
 
   const key = text(formData, "key");
   if (/^[A-Za-z0-9_-]{2,191}$/.test(key)) {
@@ -1196,7 +1232,7 @@ export async function saveCustomerNoteAction(formData: FormData) {
 
 /** Odgovor na zahtev kupca za povrat. Kupac ga dobija emailom; sam povraćaj se upisuje kada roba stigne. */
 export async function resolveReturnAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const number = text(formData, "number");
   const id = wholeNumber(formData, "id");
   const approved = text(formData, "decision") === "approve";
@@ -1227,6 +1263,7 @@ export async function resolveReturnAction(formData: FormData) {
     if (errors.length > 0) await addOrderEvent(await getDb(), order.number, `Email o zahtevu za povrat nije poslat: ${errors[0]}`);
   });
   refresh();
+  await audit("Odgovoreno na zahtev za povrat", formData);
   redirect(orderPath(request.orderNumber));
 }
 
@@ -1235,19 +1272,21 @@ export async function resolveReturnAction(formData: FormData) {
 const REVIEWS_PATH = `${ADMIN_PATH}/utisci`;
 
 export async function reviewStatusAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const id = wholeNumber(formData, "id");
   const status = text(formData, "status");
   if (id !== null && (status === "approved" || status === "rejected" || status === "pending")) await setReviewStatus(id, status);
   refreshSite();
+  await audit("Promenjen status utiska", formData);
   redirect(REVIEWS_PATH);
 }
 
 export async function deleteReviewAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const id = wholeNumber(formData, "id");
   if (id !== null) await deleteReview(id);
   refreshSite();
+  await audit("Obrisan utisak", formData);
   redirect(REVIEWS_PATH);
 }
 
@@ -1255,10 +1294,11 @@ export async function deleteReviewAction(formData: FormData) {
 
 /** Briše podatke kupca na njegov zahtev. Porudžbine ostaju bez imena, kontakta i adrese. */
 export async function eraseCustomerAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const key = text(formData, "key");
   const count = await eraseCustomer(key);
   refresh();
+  await audit("Obrisani podaci kupca", formData);
   redirect(`${ADMIN_PATH}/kupci?ok=${encodeURIComponent(count > 0 ? `Podaci kupca su obrisani. Porudžbina bez ličnih podataka: ${count}.` : "Kupac više ne postoji.")}`);
 }
 
@@ -1268,7 +1308,7 @@ const MESSAGES_PATH = `${ADMIN_PATH}/poruke`;
 
 /** Poruka svim prijavljenima na novosti. Slanje ide u pozadini; tok se vidi na stranici Poruke. */
 export async function sendCampaignAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const subject = text(formData, "subject").slice(0, 200);
   const body = text(formData, "body").slice(0, 10000);
   if (!subject || body.length < 10) backWithError(MESSAGES_PATH, "Upišite naslov i tekst poruke.");
@@ -1282,13 +1322,14 @@ export async function sendCampaignAction(formData: FormData) {
   const id = await createCampaign(subject, body, recipients.length);
   after(() => sendCampaign(id, base));
   refresh();
+  await audit("Poslate novosti", formData);
   redirect(`${MESSAGES_PATH}?ok=${encodeURIComponent(`Poruka se šalje na ${recipients.length} adresa.`)}`);
 }
 
 /* ---------- Analitika ---------- */
 
 export async function saveAnalyticsAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("settings");
   const ga4 = text(formData, "ga4").toUpperCase();
   const metaPixel = text(formData, "metaPixel");
   // Oznake idu u kod stranice, pa prolazi samo njihov tačan oblik.
@@ -1298,6 +1339,7 @@ export async function saveAnalyticsAction(formData: FormData) {
     content.settings.analytics = { ga4, metaPixel };
   });
   refreshSite();
+  await audit("Sačuvana analitika", formData);
   backWithNotice("Analitika je sačuvana.");
 }
 
@@ -1306,7 +1348,7 @@ export async function saveAnalyticsAction(formData: FormData) {
 const CARTS_PATH = `${ADMIN_PATH}/korpe`;
 
 export async function saveAbandonedAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const hours = Math.round(Number(text(formData, "delayHours")));
   if (!Number.isFinite(hours) || hours < 1 || hours > 168) {
     backWithError(CARTS_PATH, "Podsetnik se šalje posle najmanje 1, a najviše 168 sati.");
@@ -1320,12 +1362,13 @@ export async function saveAbandonedAction(formData: FormData) {
     };
   });
   refreshSite();
+  await audit("Sačuvana podešavanja podsetnika za korpu", formData);
   redirect(`${CARTS_PATH}?ok=${encodeURIComponent("Podešavanja podsetnika su sačuvana.")}`);
 }
 
 /** Šalje podsetnike kojima je vreme odmah, bez čekanja na raspored. */
 export async function sendRemindersAction() {
-  await requireAdmin();
+  await requireAdmin("orders");
   const sent = await sendDueReminders();
   refresh();
   redirect(`${CARTS_PATH}?ok=${encodeURIComponent(`Poslato podsetnika: ${sent}.`)}`);
@@ -1334,10 +1377,11 @@ export async function sendRemindersAction() {
 /* ---------- Poruke ---------- */
 
 export async function deleteMessageAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("orders");
 
   const id = wholeNumber(formData, "id");
   if (id !== null) await deleteMessage(id);
+  await audit("Obrisana poruka", formData);
   redirect(`${ADMIN_PATH}/poruke`);
 }
 
@@ -1358,7 +1402,7 @@ function emailAddress(formData: FormData, name: string, label: string): string {
 }
 
 export async function saveStoreAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("settings");
 
   const name = text(formData, "name");
   if (!name) backWithError(SETTINGS_PATH, "Upišite naziv prodavnice.");
@@ -1415,11 +1459,12 @@ export async function saveStoreAction(formData: FormData) {
     };
   });
   refresh();
+  await audit("Sačuvani podaci prodavnice", formData);
   backWithNotice("Podaci o prodavnici su sačuvani.");
 }
 
 export async function saveAppearanceAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("settings");
   const current = await getSettings();
 
   // Slike: nova zamenjuje staru; „Ukloni" je briše.
@@ -1444,12 +1489,13 @@ export async function saveAppearanceAction(formData: FormData) {
   for (const src of replaced) await removeUpload(src);
 
   refresh();
+  await audit("Sačuvan logo i favicon", formData);
   backWithNotice("Logo i favicon su sačuvani.");
 }
 
 /** Načini dostave iz uređivača: iznosi stižu kao tekst, granice težine u kilogramima. */
 export async function saveShippingAction(input: unknown): Promise<SaveResult> {
-  await requireAdmin();
+  await requireAdmin("settings");
   const decimals = (await getSettings()).store.currencyDecimals;
   const amount = (value: unknown) => toMinor(typeof value === "string" ? value : "", decimals);
 
@@ -1486,11 +1532,12 @@ export async function saveShippingAction(input: unknown): Promise<SaveResult> {
     content.settings.shipping = { methods: normalized };
   });
   refreshSite();
+  await audit("Sačuvana dostava");
   return { ok: true };
 }
 
 export async function savePaymentAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("settings");
 
   const cod = formData.get("cod") === "on";
   const bank = formData.get("bank") === "on";
@@ -1509,11 +1556,12 @@ export async function savePaymentAction(formData: FormData) {
     content.settings.payment = { cod, bank, bankInstructions, card, cardProvider };
   });
   refreshSite();
+  await audit("Sačuvani načini plaćanja", formData);
   backWithNotice("Načini plaćanja su sačuvani.");
 }
 
 export async function saveTaxAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("settings");
   const percent = Number(text(formData, "taxPercent").replace(",", "."));
   if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
     backWithError(SETTINGS_PATH, "Stopa PDV-a je broj od 0 do 100.");
@@ -1526,11 +1574,12 @@ export async function saveTaxAction(formData: FormData) {
       invoiceEmail: INVOICE_EMAILS.find((value) => value === text(formData, "invoiceEmail")) ?? "none",
     };
   });
+  await audit("Sačuvan račun i PDV", formData);
   backWithNotice("Račun i PDV su sačuvani.");
 }
 
 export async function saveStatusEmailsAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("settings");
   await updateContent((content) => {
     for (const key of STATUS_EMAILS) {
       content.settings.mail.statusEmails[key] = {
@@ -1540,11 +1589,12 @@ export async function saveStatusEmailsAction(formData: FormData) {
       };
     }
   });
+  await audit("Sačuvane poruke o statusu", formData);
   backWithNotice("Poruke o statusu su sačuvane.");
 }
 
 export async function saveMailAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("settings");
 
   const sellerEmail = emailAddress(formData, "sellerEmail", "Vaš email");
   const fromEmail = emailAddress(formData, "fromEmail", "Adresa pošiljaoca");
@@ -1570,11 +1620,12 @@ export async function saveMailAction(formData: FormData) {
       smtpPassword: typeof password === "string" && password !== "" ? password : mail.smtpPassword,
     };
   });
+  await audit("Sačuvana podešavanja emaila", formData);
   backWithNotice("Podešavanja emaila su sačuvana.");
 }
 
 export async function uploadTemplateAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("settings");
 
   const file = formData.get("template");
   if (!(file instanceof File) || file.size === 0) {
@@ -1593,21 +1644,23 @@ export async function uploadTemplateAction(formData: FormData) {
   await updateContent((content) => {
     content.settings.mail.customTemplate = true;
   });
+  await audit("Ubačen šablon emaila", formData);
   backWithNotice("Vaš šablon je ubačen. Pogledajte pregled pre nego što stigne prva porudžbina.");
 }
 
 export async function resetTemplateAction() {
-  await requireAdmin();
+  await requireAdmin("settings");
 
   await updateContent((content) => {
     content.settings.mail.customTemplate = false;
   });
   await removeCustomTemplate();
+  await audit("Vraćen podrazumevani šablon emaila");
   backWithNotice("Koristi se naš šablon.");
 }
 
 export async function sendTestEmailAction() {
-  await requireAdmin();
+  await requireAdmin("settings");
 
   const error = await sendTestEmail();
   if (error) backWithError(SETTINGS_PATH, `Probni email nije poslat — ${error}`);

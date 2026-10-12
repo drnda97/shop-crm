@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { getSecret } from "@/lib/admin-auth";
 import type { Settings } from "@/lib/settings";
 
 /**
@@ -51,17 +52,13 @@ export type PaymentProvider = {
 
 /* ---------- Probni procesor ---------- */
 
-/** Tajna za potpis probnih uplata; bez nje probni procesor ne radi. */
-function secret(): string {
-  return process.env.ADMIN_PASSWORD ?? "";
+/** Potpis probne uplate tajnom servera: bez njega niko spolja ne može da označi porudžbinu kao plaćenu. */
+export async function signPayment(orderNumber: string, outcome: string): Promise<string> {
+  return createHmac("sha256", `shopcrm-payment:${await getSecret()}`).update(`${orderNumber}:${outcome}`).digest("hex");
 }
 
-export function signPayment(orderNumber: string, outcome: string): string {
-  return createHmac("sha256", `shopcrm-payment:${secret()}`).update(`${orderNumber}:${outcome}`).digest("hex");
-}
-
-function validSignature(orderNumber: string, outcome: string, signature: string): boolean {
-  const expected = Buffer.from(signPayment(orderNumber, outcome));
+async function validSignature(orderNumber: string, outcome: string, signature: string): Promise<boolean> {
+  const expected = Buffer.from(await signPayment(orderNumber, outcome));
   const given = Buffer.from(signature);
   return expected.length === given.length && timingSafeEqual(expected, given);
 }
@@ -74,12 +71,12 @@ function validSignature(orderNumber: string, outcome: string, signature: string)
 const testProvider: PaymentProvider = {
   id: "test",
   label: "Probni procesor (ne naplaćuje)",
-  ready: () => process.env.CARD_TEST_PROVIDER === "1" && secret() !== "",
+  ready: () => process.env.CARD_TEST_PROVIDER === "1",
   async start({ orderNumber, amount, callbackUrl }) {
     const page = new URL("/placanje/proba-kartice", callbackUrl);
     page.searchParams.set("porudzbina", orderNumber);
     page.searchParams.set("iznos", String(amount));
-    page.searchParams.set("potpis", signPayment(orderNumber, "start"));
+    page.searchParams.set("potpis", await signPayment(orderNumber, "start"));
     return { ok: true, redirectUrl: page.toString() };
   },
   async confirm(request) {
@@ -87,7 +84,7 @@ const testProvider: PaymentProvider = {
     const orderNumber = params.get("porudzbina") ?? "";
     const outcome = params.get("ishod") ?? "";
     if (outcome !== "uspeh" && outcome !== "odbijeno") return null;
-    if (!validSignature(orderNumber, outcome, params.get("potpis") ?? "")) return null;
+    if (!(await validSignature(orderNumber, outcome, params.get("potpis") ?? ""))) return null;
     return { orderNumber, paid: outcome === "uspeh", reference: `TEST-${orderNumber}` };
   },
   async refund() {

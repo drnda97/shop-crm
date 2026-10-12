@@ -1,10 +1,10 @@
-import { isAdmin } from "@/lib/admin-auth";
+import { hasAccess } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { getEmailTemplate, renderOrderEmail, sampleOrder } from "@/lib/order-email";
 
 /** Pregled emaila sa probnom porudžbinom: ?za=prodavac ili (podrazumevano) za kupca. */
 export async function GET(request: Request) {
-  if (!(await isAdmin())) return new Response("Not found", { status: 404 });
+  if (!(await hasAccess("settings"))) return new Response("Not found", { status: 404 });
 
   const settings = await getSettings();
   const { html } = renderOrderEmail({

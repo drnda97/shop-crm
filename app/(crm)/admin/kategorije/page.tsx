@@ -18,7 +18,7 @@ type CategoriesPageProps = { searchParams: Promise<{ greska?: string }> };
 const fieldClass = `${labelClass} min-w-[180px] grow basis-0`;
 
 export default async function CategoriesPage({ searchParams }: CategoriesPageProps) {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const { greska } = await searchParams;
   const [categories, products] = await Promise.all([getCategories(), getProducts()]);
   const tree = categoryTree(categories);

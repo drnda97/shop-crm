@@ -145,9 +145,25 @@ Ostalo:
 - Novosti idu preko SMTP naloga prodavnice, poruku po poruku; za spiskove od više hiljada adresa treba servis za slanje.
 - Povraćaj kao kod za sledeću kupovinu umesto novca nije urađen.
 
-### Faza 5 — Panel za više ljudi
+### Faza 5 — Panel za više ljudi ✅
 
-- Korisnici u bazi umesto u `.env`, uloge (vlasnik, prodaja, sadržaj), dnevnik izmena, prijava u dva koraka.
+Završeno 12. 10. 2026.
+
+- **Korisnici u bazi** (`lib/admin-auth.ts`, tabele `admin_users` i `admin_sessions`; panel → Korisnici): svako ima svoje ime i lozinku. `ADMIN_USERNAME` i `ADMIN_PASSWORD` iz `.env.local` služe samo dok je baza prazna: pri prvoj prijavi od njih nastaje nalog vlasnika. Prijava je sesija u bazi, pa isključivanje korisnika ili nova lozinka odmah odjavljuju njegove uređaje.
+- **Uloge**: vlasnik (sve), prodaja (porudžbine, kupci, korpe, poruke, utisci, izveštaji, proizvodi, popusti), sadržaj (stranice, izgled sajta, slike, proizvodi). Podešavanja, Korisnici i Dnevnik su samo za vlasnika. Uloga se proverava na svakoj stranici, akciji i ruti za izvoz, ne samo u meniju. Poslednji aktivan vlasnik ne može biti obrisan, isključen ni prebačen u drugu ulogu.
+- **Dnevnik izmena** (`lib/audit.ts`, tabela `audit_log`; panel → Dnevnik): ko je, kada i šta uradio, uključujući prijave. Čuva se šest meseci.
+- **Prijava u dva koraka** (`lib/totp.ts`; panel → Moj nalog): kod iz aplikacije na telefonu (TOTP), podešava se skeniranjem QR koda; osam rezervnih kodova, svaki za jednu prijavu. Vlasnik je može isključiti korisniku koji je ostao bez telefona.
+- **Moj nalog**: promena sopstvene lozinke, koja odjavljuje ostale uređaje.
+- **Povratak pristupa**: `npm run admin:user -- <ime> <nova-lozinka>` na serveru postavlja lozinku, vraća ulogu vlasnika i isključuje dva koraka.
+- Žetoni za pregled izmena na sajtu i probno plaćanje više se ne potpisuju lozinkom panela, već tajnom servera (`APP_SECRET`, ili ona koju server sam napravi i čuva u bazi).
+
+Ostalo:
+
+- Uloge su tri i zadate u kodu; nema sopstvenih uloga ni dozvola po stavci.
+- Dnevnik beleži šta je urađeno i na čemu, ne i staru i novu vrednost. Beleške i pomeranje redosleda se ne upisuju.
+- Prijava u dva koraka je po izboru korisnika; vlasnik ne može da je zahteva od svih.
+- Isti kod iz aplikacije može se upotrebiti dva puta dok važi (oko minut).
+- Korisnik koji zaboravi lozinku ne dobija link emailom: novu mu postavlja vlasnik, a vlasniku skripta.
 
 ### Faza 6 — Objavljivanje kao otvoren kod
 

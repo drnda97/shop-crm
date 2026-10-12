@@ -9,7 +9,7 @@ import { buttonClass, cardClass, inputClass, labelClass, PageHeader, panelTitleC
 type ReportsPageProps = { searchParams: Promise<{ od?: string; do?: string }> };
 
 export default async function ReportsPage({ searchParams }: ReportsPageProps) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const query = await searchParams;
   const [orders, settings] = await Promise.all([getOrders(), getSettings()]);
   const period = reportPeriod(query.od, query.do, settings.store.timeZone);

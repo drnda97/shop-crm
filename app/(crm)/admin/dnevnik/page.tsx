@@ -1,0 +1,49 @@
+import { requireAdmin } from "@/lib/admin-auth";
+import { getAuditLog } from "@/lib/audit";
+import { getSettings } from "@/lib/content";
+import { dateFormats } from "../order-ui";
+import { cardClass, PageHeader } from "../ui";
+
+/** Dnevnik izmena: ko je i kada šta uradio u panelu. Samo za vlasnika. */
+export default async function AuditPage() {
+  await requireAdmin("users");
+  const [entries, settings] = await Promise.all([getAuditLog(), getSettings()]);
+  const { orderDate } = dateFormats(settings.store);
+
+  return (
+    <>
+      <PageHeader
+        title="Dnevnik"
+        hint="Izmene napravljene u panelu, najnovije prve. Čuva se šest meseci. Beleške i pomeranje redosleda se ne upisuju."
+      />
+      <div className={cardClass}>
+        {entries.length === 0 ? (
+          <p className="text-[15px] text-muted">Još nema zapisa.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[14.5px]">
+              <thead>
+                <tr className="font-display text-[13px] text-muted">
+                  <th className="py-[6px] pr-[16px] font-semibold">Kada</th>
+                  <th className="py-[6px] pr-[16px] font-semibold">Ko</th>
+                  <th className="py-[6px] pr-[16px] font-semibold">Šta</th>
+                  <th className="py-[6px] font-semibold">Na čemu</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((entry, index) => (
+                  <tr key={index} className="border-t border-line align-top">
+                    <td className="py-[8px] pr-[16px] whitespace-nowrap text-muted">{orderDate(entry.at)}</td>
+                    <td className="py-[8px] pr-[16px] font-display font-bold whitespace-nowrap">{entry.userName}</td>
+                    <td className="py-[8px] pr-[16px]">{entry.action}</td>
+                    <td className="py-[8px] text-muted">{entry.detail}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}

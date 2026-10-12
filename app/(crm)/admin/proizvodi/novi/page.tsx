@@ -6,7 +6,7 @@ import { ProductForm } from "../../product-form";
 type NewProductPageProps = { searchParams: Promise<{ greska?: string }> };
 
 export default async function NewProductPage({ searchParams }: NewProductPageProps) {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const { greska } = await searchParams;
   const [categories, settings, products] = await Promise.all([getCategories(), getSettings(), getProducts()]);
 

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { ADMIN_PATH, isAdmin, isAdminConfigured } from "@/lib/admin-auth";
+import { ADMIN_PATH, getCurrentAdmin, isAdminConfigured, roleCan } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { countNewOrders } from "@/lib/order-store";
 import { logout } from "./actions";
@@ -25,7 +25,7 @@ function Brand({ name }: { name: string }) {
   );
 }
 
-function Login({ name }: { name: string }) {
+function Login({ name, configured }: { name: string; configured: boolean }) {
   return (
     <main className="grid min-h-screen grid-cols-[repeat(auto-fit,minmax(min(400px,100%),1fr))] gap-[clamp(24px,4vw,72px)] bg-paper p-[16px]">
       <div className="relative min-h-[clamp(240px,40vw,400px)] overflow-hidden rounded-[36px] bg-ink text-paper md:min-h-0">
@@ -58,12 +58,12 @@ function Login({ name }: { name: string }) {
             </h1>
             <p className="text-muted">Prijavite se da biste upravljali prodavnicom.</p>
           </div>
-          {isAdminConfigured() ? (
+          {configured ? (
             <LoginForm />
           ) : (
             <p className="text-muted">
               Prijava nije podešena. Upišite ADMIN_USERNAME i ADMIN_PASSWORD u .env.local i ponovo
-              pokrenite server.
+              pokrenite server: od njih pri prvoj prijavi nastaje nalog vlasnika.
             </p>
           )}
         </div>
@@ -75,7 +75,8 @@ function Login({ name }: { name: string }) {
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   // Bez prijave se umesto bilo koje stranice panela prikazuje samo forma za prijavu.
   // Svaka stranica i akcija uz to sama proverava prijavu (requireAdmin).
-  if (!(await isAdmin())) return <Login name={(await getSettings()).store.name} />;
+  const user = await getCurrentAdmin();
+  if (!user) return <Login name={(await getSettings()).store.name} configured={await isAdminConfigured()} />;
 
   const [settings, waiting] = await Promise.all([getSettings(), countNewOrders()]);
   const { name, storefrontUrl } = settings.store;
@@ -92,6 +93,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         waiting={waiting}
         siteUrl={storefrontUrl || "/"}
         initialCollapsed={collapsed}
+        user={user.name || user.username}
+        // Stavke menija za delove panela u koje uloga ne sme se ne prikazuju.
+        areas={(["orders", "catalog", "content", "settings", "users"] as const).filter((area) => roleCan(user.role, area))}
         logout={logout}
       />
 

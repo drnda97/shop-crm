@@ -13,7 +13,7 @@ type EditProductPageProps = {
 };
 
 export default async function EditProductPage({ params, searchParams }: EditProductPageProps) {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const [{ slug }, { greska }] = await Promise.all([params, searchParams]);
   const [product, products, categories, settings, log] = await Promise.all([
     getProduct(slug),

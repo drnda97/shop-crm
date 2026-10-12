@@ -11,7 +11,7 @@ type SitePartPageProps = { params: Promise<{ deo: string }> };
 
 /** Meni i podnožje, ili tekstovi jedne stranice sa stalnim rasporedom (lib/templates.ts). */
 export default async function SitePartPage({ params }: SitePartPageProps) {
-  await requireAdmin();
+  await requireAdmin("content");
   const { deo } = await params;
   const [settings, { sampleProduct, ...options }] = await Promise.all([getSettings(), editorOptions()]);
 
@@ -26,7 +26,7 @@ export default async function SitePartPage({ params }: SitePartPageProps) {
           hint="Delovi koji su isti na svakoj stranici: glavni meni, podnožje i traka sa obaveštenjem."
           fields={SITE_FIELDS}
           value={settings.site}
-          previewUrl={previewUrl(HOME_PREVIEW)}
+          previewUrl={await previewUrl(HOME_PREVIEW)}
           options={options}
         />
       </>
@@ -54,7 +54,7 @@ export default async function SitePartPage({ params }: SitePartPageProps) {
         hint={template.hint}
         fields={template.fields}
         value={settings.templates[template.id]}
-        previewUrl={previewUrl(paths[template.id])}
+        previewUrl={await previewUrl(paths[template.id])}
         options={options}
       />
     </>

@@ -15,7 +15,7 @@ npm run dev                  # http://localhost:3000/admin
 npm run build && npm run start
 ```
 
-Tabele se prave same pri prvom pokretanju. Prijava u panel je jednim nalogom iz `.env.local` (`ADMIN_USERNAME`, `ADMIN_PASSWORD`).
+Tabele se prave same pri prvom pokretanju. Prva prijava u panel je podacima iz `.env.local` (`ADMIN_USERNAME`, `ADMIN_PASSWORD`): od njih nastaje nalog vlasnika, a posle se korisnici, uloge i lozinke vode u panelu. Ako ostanete bez pristupa: `npm run admin:user -- <ime> <nova-lozinka>`.
 
 Prvo otvorite **Podešavanja**: naziv prodavnice, valuta i zapis iznosa (celi iznosi ili dve decimale), cena dostave, načini plaćanja i email nalog. Zapis iznosa izaberite pre unosa proizvoda.
 
@@ -36,6 +36,7 @@ Prvo otvorite **Podešavanja**: naziv prodavnice, valuta i zapis iznosa (celi iz
 | Stranice | stranice sajta složene od sekcija, sa pregledom pre čuvanja; naslov i opis za pretraživače |
 | Izgled sajta | boje i fontovi; glavni meni, podnožje, traka sa obaveštenjem; tekstovi i fotografije na stranicama kolekcije, proizvoda, naloga, plaćanja i korpe — sve sa pregledom pre čuvanja |
 | Slike | biblioteka ubačenih slika; fotografije se čuvaju kao WebP u više širina |
+| Korisnici, Dnevnik, Moj nalog | korisnici panela i uloge (vlasnik, prodaja, sadržaj); ko je i kada šta menjao; sopstvena lozinka i prijava u dva koraka kodom iz aplikacije |
 | Podešavanja | prodavnica, načini dostave (cena, težina, zone), plaćanje (pouzeće, uplata na račun, kartica uz povezan procesor), račun i PDV, SMTP, poruke o statusu, šablon emaila |
 
 ## Povezivanje sajta

@@ -12,7 +12,7 @@ import { PageEditor } from "./editor";
 type AdminPagePageProps = { params: Promise<{ id: string }> };
 
 export default async function AdminPagePage({ params }: AdminPagePageProps) {
-  await requireAdmin();
+  await requireAdmin("content");
   const { id } = await params;
 
   const [pages, collections, products, media] = await Promise.all([
@@ -56,7 +56,7 @@ export default async function AdminPagePage({ params }: AdminPagePageProps) {
         page={page}
         isHome={isHome}
         // U pregledu je uvek sama stranica (i početna pod svojom oznakom), sa žetonom za nesačuvane izmene.
-        previewUrl={`/${page.slug}?${PREVIEW_PARAM}=${previewToken()}`}
+        previewUrl={`/${page.slug}?${PREVIEW_PARAM}=${await previewToken()}`}
         options={{
           collections: collections.map((item) => ({ value: item.id, label: item.name })),
           products: products.map((item) => ({ value: item.slug, label: item.name })),

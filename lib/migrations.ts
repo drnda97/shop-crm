@@ -375,6 +375,48 @@ export const MIGRATIONS: Migration[] = [
       );
     },
   },
+  {
+    id: 15,
+    name: "panel: korisnici sa ulogama, sesije i dnevnik izmena",
+    up: async (connection) => {
+      const tail = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS admin_users (
+          id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          username VARCHAR(100) NOT NULL,
+          name VARCHAR(100) NOT NULL,
+          pass_hash VARCHAR(255) NOT NULL,
+          role VARCHAR(20) NOT NULL,
+          totp_secret VARCHAR(64) NULL,
+          totp_enabled TINYINT(1) NOT NULL DEFAULT 0,
+          recovery_codes TEXT NULL,
+          disabled TINYINT(1) NOT NULL DEFAULT 0,
+          created_at DATETIME(3) NOT NULL,
+          last_login_at DATETIME(3) NULL,
+          UNIQUE KEY admin_users_username (username)
+        ) ${tail}`,
+      );
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS admin_sessions (
+          token_hash CHAR(64) NOT NULL PRIMARY KEY,
+          user_id INT NOT NULL,
+          expires_at DATETIME(3) NOT NULL,
+          KEY admin_sessions_user (user_id)
+        ) ${tail}`,
+      );
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS audit_log (
+          id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          at DATETIME(3) NOT NULL,
+          user_id INT NOT NULL,
+          user_name VARCHAR(100) NOT NULL,
+          action VARCHAR(191) NOT NULL,
+          detail VARCHAR(500) NOT NULL DEFAULT '',
+          KEY audit_log_at (at)
+        ) ${tail}`,
+      );
+    },
+  },
 ];
 
 // GET_LOCK važi za ceo MySQL server, pa ime sadrži i bazu (najviše 64 znaka).

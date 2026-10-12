@@ -11,7 +11,7 @@ import { buttonClass, cardClass, Checkbox, fileClass, PageHeader, panelTitleClas
 type ImportPageProps = { searchParams: Promise<{ greska?: string; ok?: string }> };
 
 export default async function ImportPage({ searchParams }: ImportPageProps) {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const { greska, ok } = await searchParams;
   const [stored, products, settings] = await Promise.all([getStoredValue(IMPORT_KEY), getProducts(), getSettings()]);
   const pending = stored ? (JSON.parse(stored) as ParsedImport & { fileName: string }) : null;

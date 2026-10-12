@@ -9,7 +9,7 @@ type EditDiscountPageProps = {
 };
 
 export default async function EditDiscountPage({ params, searchParams }: EditDiscountPageProps) {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const [{ id }, { greska }] = await Promise.all([params, searchParams]);
   const discount = (await getDiscounts()).find((candidate) => candidate.id === id);
   if (!discount) notFound();

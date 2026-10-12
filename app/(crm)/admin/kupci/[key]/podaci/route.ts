@@ -1,9 +1,9 @@
-import { isAdmin } from "@/lib/admin-auth";
+import { hasAccess } from "@/lib/admin-auth";
 import { exportCustomer } from "@/lib/privacy";
 
 /** Svi podaci koje prodavnica čuva o kupcu, kao JSON fajl — za predaju kupcu na njegov zahtev. */
 export async function GET(_request: Request, { params }: { params: Promise<{ key: string }> }) {
-  if (!(await isAdmin())) return new Response("Not found", { status: 404 });
+  if (!(await hasAccess("orders"))) return new Response("Not found", { status: 404 });
   const { key } = await params;
   const data = await exportCustomer(key);
   if (!data) return new Response("Not found", { status: 404 });

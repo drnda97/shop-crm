@@ -12,7 +12,7 @@ function size(bytes: number): string {
 }
 
 export default async function MediaPage({ searchParams }: MediaPageProps) {
-  await requireAdmin();
+  await requireAdmin("content");
   const { greska } = await searchParams;
   const [files, used] = await Promise.all([listUploads(), getUsedImages()]);
 

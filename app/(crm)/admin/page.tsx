@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ADMIN_PATH, isAdmin } from "@/lib/admin-auth";
+import { redirect } from "next/navigation";
+import { ADMIN_PATH, getCurrentAdmin, roleCan } from "@/lib/admin-auth";
 import { hasPrice, isSoldOut, lowStockUnits, soldOutVariants } from "@/lib/catalog";
 import { getProducts, getSettings } from "@/lib/content";
 import { formatMoney, formatOrderCount, formatPieces } from "@/lib/format";
@@ -53,7 +54,10 @@ function StatTile({
 
 export default async function DashboardPage() {
   // Prijavu ovde rešava layout (prikazuje formu), pa se neprijavljenom samo ne daje sadržaj.
-  if (!(await isAdmin())) return null;
+  const user = await getCurrentAdmin();
+  if (!user) return null;
+  // Pregled prodaje je za uloge koje vide porudžbine; ostale idu na svoj deo panela.
+  if (!roleCan(user.role, "orders")) redirect(`${ADMIN_PATH}/stranice`);
 
   const [orders, products, settings, openReturns, pendingReviews] = await Promise.all([
     getOrders(),

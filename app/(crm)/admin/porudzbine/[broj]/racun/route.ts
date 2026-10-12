@@ -1,11 +1,11 @@
-import { isAdmin } from "@/lib/admin-auth";
+import { hasAccess } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { invoiceFileName, invoicePdf } from "@/lib/invoice";
 import { getOrder } from "@/lib/order-store";
 
 /** Račun porudžbine u PDF-u (lib/invoice.ts). Nije fiskalni račun. */
 export async function GET(_request: Request, { params }: { params: Promise<{ broj: string }> }) {
-  if (!(await isAdmin())) return new Response("Not found", { status: 404 });
+  if (!(await hasAccess("orders"))) return new Response("Not found", { status: 404 });
   const [order, settings] = await Promise.all([getOrder((await params).broj), getSettings()]);
   if (!order) return new Response("Not found", { status: 404 });
 

@@ -5,7 +5,7 @@ import { buttonClass, inputClass, labelClass, PageHeader, panelClass } from "../
 type NewPagePageProps = { searchParams: Promise<{ greska?: string }> };
 
 export default async function NewPagePage({ searchParams }: NewPagePageProps) {
-  await requireAdmin();
+  await requireAdmin("content");
   const { greska } = await searchParams;
 
   return (

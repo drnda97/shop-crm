@@ -17,8 +17,8 @@ export function tabs(current: string) {
 }
 
 /** Adresa sajta sa žetonom za pregled nesačuvanih izmena. */
-export function previewUrl(path: string): string {
-  return `${path}?${PREVIEW_PARAM}=${previewToken()}`;
+export async function previewUrl(path: string): Promise<string> {
+  return `${path}?${PREVIEW_PARAM}=${await previewToken()}`;
 }
 
 export const HOME_PREVIEW = `/${HOME_SLUG}`;

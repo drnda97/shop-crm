@@ -35,7 +35,7 @@ const moveButton =
   "flex size-[28px] cursor-pointer items-center justify-center rounded-full bg-band text-[13px] transition-colors duration-300 hover:bg-gold disabled:cursor-default disabled:opacity-30";
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const { greska, q = "" } = await searchParams;
   const [all, categories, settings] = await Promise.all([
     getProducts(),

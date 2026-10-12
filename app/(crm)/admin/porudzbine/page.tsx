@@ -37,7 +37,7 @@ function listUrl(params: Record<string, string | undefined>): string {
 }
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
-  await requireAdmin();
+  await requireAdmin("orders");
   const { status, q = "", strana } = await searchParams;
   const active = statuses.find((candidate) => candidate === status);
   const search = q.trim().toLocaleLowerCase();

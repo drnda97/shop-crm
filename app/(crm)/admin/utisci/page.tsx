@@ -11,7 +11,7 @@ const statusLabels: Record<ReviewStatus, string> = { pending: "čeka odobrenje",
 const badge = "rounded-full px-[12px] font-display text-[12.5px] leading-[26px] font-bold";
 
 export default async function ReviewsPage() {
-  await requireAdmin();
+  await requireAdmin("orders");
   const [reviews, products, settings] = await Promise.all([getAllReviews(), getProducts(), getSettings()]);
   const { orderDate } = dateFormats(settings.store);
   const waiting = reviews.filter((review) => review.status === "pending").length;

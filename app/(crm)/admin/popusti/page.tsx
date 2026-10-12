@@ -22,7 +22,7 @@ function describeTrigger(discount: Discount, currency: Currency): string {
 }
 
 export default async function DiscountsPage({ searchParams }: DiscountsPageProps) {
-  await requireAdmin();
+  await requireAdmin("catalog");
   const { greska } = await searchParams;
   const [discounts, counts, uses, settings] = await Promise.all([
     getDiscounts(),
