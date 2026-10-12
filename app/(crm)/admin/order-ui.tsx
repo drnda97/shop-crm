@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import { orderStatusLabels, type OrderStatus } from "@/lib/orders";
 import type { StoreSettings } from "@/lib/settings";
 
@@ -32,12 +33,13 @@ const statusClasses: Record<OrderStatus, string> = {
   cancelled: "bg-band text-muted line-through",
 };
 
-export function StatusBadge({ status }: { status: OrderStatus }) {
+export async function StatusBadge({ status }: { status: OrderStatus }) {
+  const t = await getPanelT();
   return (
     <span
       className={`inline-block rounded-full px-[12px] font-display text-[12.5px] leading-[26px] font-bold whitespace-nowrap ${statusClasses[status]}`}
     >
-      {orderStatusLabels[status]}
+      {t(orderStatusLabels[status])}
     </span>
   );
 }

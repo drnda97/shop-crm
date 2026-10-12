@@ -1,5 +1,6 @@
 "use client";
 
+import { usePath } from "@/lib/i18n/client";
 import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
 import { useState } from "react";
@@ -19,6 +20,7 @@ type ProductsBlockProps = {
 
 /** Sekcija „Proizvodi": mreža proizvoda, po želji sa tabovima po kategoriji. */
 export function ProductsBlock({ heading, collection, limit, tabs, button }: ProductsBlockProps) {
+  const to = usePath();
   const t = useT();
   const { products, config } = useCart();
   // Izabrana kategorija (id); prazno: sve. Tabovi su kategorije na vrhu stabla.
@@ -48,7 +50,7 @@ export function ProductsBlock({ heading, collection, limit, tabs, button }: Prod
       </div>
       {button && (
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <Link className="btn ghost" href={button.href}>
+          <Link className="btn ghost" href={to(button.href)}>
             {button.label.replace("{broj}", String(products.length))}
           </Link>
         </div>

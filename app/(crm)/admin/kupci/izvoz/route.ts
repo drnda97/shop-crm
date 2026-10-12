@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import { hasAccess } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { csvResponse } from "@/lib/csv";
@@ -7,6 +8,7 @@ import { getOrders } from "@/lib/order-store";
 
 /** Svi kupci kao CSV, npr. za slanje ponuda ili uvoz u drugi program. */
 export async function GET() {
+  const t = await getPanelT();
   if (!(await hasAccess("orders"))) return new Response("Not found", { status: 404 });
 
   const [orders, settings] = await Promise.all([getOrders(), getSettings()]);
@@ -14,16 +16,16 @@ export async function GET() {
 
   return csvResponse("kupci.csv", [
     [
-      "Ime i prezime",
-      "Telefon",
-      "Email",
-      "Ulica",
-      "Poštanski broj",
-      "Mesto",
-      "Porudžbina",
-      "Potrošeno",
-      "Prva porudžbina",
-      "Poslednja porudžbina",
+      t("Ime i prezime"),
+      t("Telefon"),
+      t("Email"),
+      t("Ulica"),
+      t("Poštanski broj"),
+      t("Mesto"),
+      t("Porudžbina"),
+      t("Potrošeno"),
+      t("Prva porudžbina"),
+      t("Poslednja porudžbina"),
     ],
     ...getCustomers(orders).map((customer) => [
       customer.name,

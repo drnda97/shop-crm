@@ -1,5 +1,6 @@
 "use client";
 
+import { usePath } from "@/lib/i18n/client";
 import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -53,6 +54,7 @@ export function ResetRequestForm() {
 
 /** Nova lozinka po linku iz emaila. */
 export function ResetForm({ token }: { token: string }) {
+  const to = usePath();
   const t = useT();
   const [password, setPassword] = useState("");
   const [state, setState] = useState<{ done: boolean; error: string }>({ done: false, error: "" });
@@ -70,7 +72,7 @@ export function ResetForm({ token }: { token: string }) {
     return (
       <div style={stack}>
         <p className="lead" role="status">{t("Lozinka je promenjena. Prijavite se novom lozinkom.")}</p>
-        <Link className="btn" href="/nalog" style={{ alignSelf: "flex-start" }}>{t("Prijava")}</Link>
+        <Link className="btn" href={to("/nalog")} style={{ alignSelf: "flex-start" }}>{t("Prijava")}</Link>
       </div>
     );
   }
@@ -166,6 +168,7 @@ type OrderLookupProps = {
 
 /** Praćenje porudžbine po broju i email adresi, i zahtev za povrat. */
 export function OrderLookup({ number: initial, loggedIn }: OrderLookupProps) {
+  const to = usePath();
   const t = useT();
   const [number, setNumber] = useState(initial);
   const [email, setEmail] = useState("");
@@ -213,7 +216,7 @@ export function OrderLookup({ number: initial, loggedIn }: OrderLookupProps) {
               {order.tracking.url && (
                 <>
                   {" · "}
-                  <a className="ul" href={order.tracking.url} target="_blank" rel="noreferrer">{t("Pratite pošiljku")}</a>
+                  <a className="ul" href={to(order.tracking.url)} target="_blank" rel="noreferrer">{t("Pratite pošiljku")}</a>
                 </>
               )}
             </div>
@@ -227,7 +230,7 @@ export function OrderLookup({ number: initial, loggedIn }: OrderLookupProps) {
             <span className="lab">{t("Ukupno")}</span>
             <span className="display h-s">{formatPrice(order.total)}</span>
           </div>
-          {order.refunded > 0 && <div className="muted" style={{ fontSize: "15px" }}>Vraćeno: {formatPrice(order.refunded)}</div>}
+          {order.refunded > 0 && <div className="muted" style={{ fontSize: "15px" }}>{t("Vraćeno:")} {formatPrice(order.refunded)}</div>}
 
           {order.returns.map((request, index) => (
             <div key={index} style={{ background: "var(--paper)", borderRadius: "18px", padding: "14px 18px", fontSize: "15px" }}>

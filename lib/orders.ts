@@ -90,6 +90,8 @@ export type Order = {
   emailError?: string;
   /** Beleška prodavca; kupac je ne vidi. */
   adminNote?: string;
+  /** Jezik sajta na kom je kupac poručio; na njemu dobija email i račun. Nema ga kod starijih i ručnih porudžbina. */
+  lang?: string;
 };
 
 export type OrderEvent = { at: string; text: string };

@@ -62,7 +62,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
           {t("← Porudžbine")}
         </Link>
         <a href={`${path}/racun`} target="_blank" rel="noreferrer" className={quietButtonClass}>
-          Račun (PDF)
+          {t("Račun (PDF)")}
         </a>
       </div>
       <ErrorNote message={greska} />
@@ -74,7 +74,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
         {returns.map((request) => (
           <div key={request.id} className={`${cardClass} flex flex-col gap-[10px]`}>
             <div className="flex flex-wrap items-baseline justify-between gap-[8px]">
-              <h2 className={panelTitleClass}>Zahtev za povrat · {returnStatusLabels[request.status]}</h2>
+              <h2 className={panelTitleClass}>{t("Zahtev za povrat ·")} {t(returnStatusLabels[request.status])}</h2>
               <span className="text-[14px] text-muted">{orderDate(request.createdAt)}</span>
             </div>
             <p className="text-[15px]">
@@ -86,7 +86,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
                 <input type="hidden" name="number" value={order.number} />
                 <input type="hidden" name="id" value={request.id} />
                 <label className={labelClass}>
-                  Odgovor kupcu (kako da pošalje robu, ili zašto zahtev nije odobren)
+                  {t("Odgovor kupcu (kako da pošalje robu, ili zašto zahtev nije odobren)")}
                   <textarea name="answer" maxLength={1000} className={`${inputClass} min-h-[80px]`} />
                 </label>
                 <div className="flex flex-wrap gap-[8px]">
@@ -102,7 +102,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
                 </p>
               </form>
             ) : (
-              request.answer && <p className="text-[15px] text-muted">Odgovor: {request.answer}</p>
+              request.answer && <p className="text-[15px] text-muted">{t("Odgovor:")} {request.answer}</p>
             )}
           </div>
         ))}
@@ -111,8 +111,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
           <form action={saveTrackingAction} className={panelClass}>
             <h2 className={panelTitleClass}>{t("Dostava i praćenje")}</h2>
             <p className="mt-[-8px] text-[14.5px] text-muted">
-              {order.deliveryMethod || "Dostava"}. Broj pošiljke i link kupac dobija u emailu kada porudžbinu
-              označite kao poslatu, pa ih upišite pre toga.
+              {order.deliveryMethod || t("Dostava")}{t(". Broj pošiljke i link kupac dobija u emailu kada porudžbinu označite kao poslatu, pa ih upišite pre toga.")}
             </p>
             <input type="hidden" name="number" value={order.number} />
             <div className={fieldRowClass}>
@@ -142,15 +141,15 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
           <div className={panelClass}>
             <h2 className={panelTitleClass}>{t("Uplata i povraćaj")}</h2>
             <p className="mt-[-8px] text-[15px]">
-              {order.paidAt ? `Plaćeno ${orderDate(order.paidAt)}` : "Nije označeno kao plaćeno"}
+              {order.paidAt ? t("Plaćeno {a}", { a: orderDate(order.paidAt) }) : t("Nije označeno kao plaćeno")}
               {order.paymentRef && <span className="text-muted"> · {order.paymentRef}</span>}
-              {order.refunded > 0 && ` · vraćeno ${formatMoney(order.refunded, currency)}`}
+              {order.refunded > 0 && t(" · vraćeno {a}", { a: formatMoney(order.refunded, currency) })}
             </p>
             <form action={setOrderPaidAction}>
               <input type="hidden" name="number" value={order.number} />
               <input type="hidden" name="paid" value={order.paidAt ? "no" : "yes"} />
               <button type="submit" className={quietButtonClass}>
-                {order.paidAt ? "Ukloni oznaku plaćeno" : "Označi kao plaćeno"}
+                {order.paidAt ? t("Ukloni oznaku plaćeno") : t("Označi kao plaćeno")}
               </button>
             </form>
             {left > 0 && (
@@ -158,7 +157,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
                 <input type="hidden" name="number" value={order.number} />
                 <div className={fieldRowClass}>
                   <label className={labelClass}>
-                    Iznos povraćaja ({currency.code})
+                    {t("Iznos povraćaja (")}{currency.code})
                     <input
                       name="amount"
                       type="number"
@@ -188,11 +187,11 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
                               max={item.qty - item.returned}
                               step="1"
                               defaultValue="0"
-                              aria-label={`Vraćeno komada: ${itemName(item)}`}
+                              aria-label={t("Vraćeno komada: {a}", { a: itemName(item) })}
                               className={inputClass}
                             />
                           </span>
-                          od {item.qty - item.returned} × {itemName(item)}
+                          {t("od")} {item.qty - item.returned} × {itemName(item)}
                         </label>
                       ) : null,
                     )}
@@ -204,9 +203,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
                   </button>
                 </div>
                 <p className="text-[14px] text-muted">
-                  Može da se vrati još {formatMoney(left, currency)}. Iznos se oduzima od prodaje u Pregledu, a kupac
-                  dobija email o povraćaju. Novac vraćate sami, osim kada je porudžbina plaćena karticom preko
-                  procesora koji to ume. Vraćeni komadi idu na stanje tamo gde se broj komada vodi.
+                  {t("Može da se vrati još")} {formatMoney(left, currency)}{t(". Iznos se oduzima od prodaje u Pregledu, a kupac dobija email o povraćaju. Novac vraćate sami, osim kada je porudžbina plaćena karticom preko procesora koji to ume. Vraćeni komadi idu na stanje tamo gde se broj komada vodi.")}
                 </p>
               </form>
             )}
@@ -259,7 +256,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
             <ul className="mt-[10px] flex flex-col">
               {events.map((event, index) => (
                 <li key={index} className="flex flex-wrap justify-between gap-x-[16px] border-t border-line py-[8px] text-[15px] first:border-t-0">
-                  <span>{event.text}</span>
+                  <span>{t(event.text)}</span>
                   <span className="text-[14px] text-muted">{orderDate(event.at)}</span>
                 </li>
               ))}

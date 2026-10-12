@@ -24,6 +24,13 @@ export function SetupForm() {
     <form action={action} className="flex flex-col gap-[14px]">
       <ErrorNote message={state.error} />
       <label className={labelClass}>
+        Jezik · Language
+        <select name="language" defaultValue="sr" className={inputClass}>
+          <option value="sr">Srpski</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <label className={labelClass}>
         {t("Naziv prodavnice")}
         <input {...field("store")} maxLength={100} placeholder={t("Može i kasnije, u Podešavanjima")} />
       </label>
@@ -40,7 +47,7 @@ export function SetupForm() {
         <input {...field("username")} required maxLength={100} autoComplete="username" />
       </label>
       <label className={labelClass}>
-        Lozinka (najmanje 10 znakova)
+        {t("Lozinka (najmanje 10 znakova)")}
         <input name="password" type="password" required minLength={10} autoComplete="new-password" className={inputClass} />
       </label>
       <label className={labelClass}>
@@ -48,7 +55,7 @@ export function SetupForm() {
         <input name="repeat" type="password" required minLength={10} autoComplete="new-password" className={inputClass} />
       </label>
       <button type="submit" disabled={pending} className={`${buttonClass} mt-[6px] min-h-[58px] w-full`}>
-        {pending ? "Pravljenje naloga…" : "Napravi nalog i uđi u panel"}
+        {pending ? t("Pravljenje naloga…") : t("Napravi nalog i uđi u panel")}
       </button>
     </form>
   );

@@ -29,22 +29,22 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
         <div className={panelClass}>
           <h2 className={panelTitleClass}>{t("API ključevi")}</h2>
           <p className="mt-[-8px] text-[15px] text-muted">
-            {t("Spoljni sistem šalje ključ u zaglavlju")} <code className="font-mono text-ink">Authorization: Bearer …</code> na adrese{" "}
-            <code className="font-mono text-ink">/api/v1/admin/…</code> (spisak je u README-u). Ključ ne ide u kod sajta koji vidi kupac.
+            {t("Spoljni sistem šalje ključ u zaglavlju")} <code className="font-mono text-ink">Authorization: Bearer …</code> {t("na adrese")}{" "}
+            <code className="font-mono text-ink">/api/v1/admin/…</code> {t("(spisak je u README-u). Ključ ne ide u kod sajta koji vidi kupac.")}
           </p>
           {keys.map((key) => (
             <div key={key.id} className="flex flex-wrap items-center justify-between gap-[10px] border-t border-line pt-[14px]">
               <div className="min-w-0">
                 <div className="font-display text-[16px] font-bold">{key.name}</div>
                 <div className="text-[14px] text-muted">
-                  <span className="font-mono">{key.prefix}…</span> · {scopeLabels[key.scope]} ·{" "}
-                  {key.lastUsedAt ? `korišćen ${orderDate(key.lastUsedAt)}` : "još nije korišćen"}
+                  <span className="font-mono">{key.prefix}…</span> · {t(scopeLabels[key.scope])} ·{" "}
+                  {key.lastUsedAt ? t("korišćen {a}", { a: orderDate(key.lastUsedAt) }) : t("još nije korišćen")}
                 </div>
               </div>
               <form action={deleteApiKeyAction}>
                 <input type="hidden" name="id" value={key.id} />
                 <input type="hidden" name="name" value={key.name} />
-                <ConfirmButton question={`Obrisati ključ „${key.name}"? Sistem koji ga koristi ostaje bez pristupa.`} className={quietButtonClass}>
+                <ConfirmButton question={t("Obrisati ključ „{a}\"? Sistem koji ga koristi ostaje bez pristupa.", { a: key.name })} className={quietButtonClass}>
                   {t("Obriši")}
                 </ConfirmButton>
               </form>
@@ -58,14 +58,13 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
         <div className={panelClass}>
           <h2 className={panelTitleClass}>{t("Webhook-ovi")}</h2>
           <p className="mt-[-8px] text-[15px] text-muted">
-            Kada se desi izabrani događaj, panel na adresu šalje porudžbinu kao JSON. Poruka je potpisana tajnom
-            (zaglavlje <code className="font-mono text-ink">X-ShopCRM-Signature</code>), da primalac zna da je stigla odavde.
+            {t("Kada se desi izabrani događaj, panel na adresu šalje porudžbinu kao JSON. Poruka je potpisana tajnom (zaglavlje")} <code className="font-mono text-ink">X-ShopCRM-Signature</code>{t("), da primalac zna da je stigla odavde.")}
           </p>
           {webhooks.map((hook) => (
             <div key={hook.id} className="flex flex-col gap-[8px] border-t border-line pt-[14px]">
               <div className="font-display text-[15px] font-bold break-all">{hook.url}</div>
               <div className="text-[14px] text-muted">
-                {hook.active ? "" : "isključen · "}
+                {hook.active ? "" : t("isključen · ")}
                 {hook.events.map((event) => webhookEvents[event]).join(", ")}
               </div>
               <div className="text-[14px] text-muted">
@@ -73,10 +72,10 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
               </div>
               <div className="text-[14px] text-muted">
                 {hook.lastAt === null
-                  ? "Još ništa nije poslato."
+                  ? t("Još ništa nije poslato.")
                   : hook.lastError
-                    ? `Poslednje slanje ${orderDate(hook.lastAt)} nije uspelo: ${hook.lastError}`
-                    : `Poslednje slanje ${orderDate(hook.lastAt)}: uspelo (${hook.lastStatus}).`}
+                    ? t("Poslednje slanje {a} nije uspelo: {b}", { a: orderDate(hook.lastAt), b: hook.lastError })
+                    : t("Poslednje slanje {a}: uspelo ({b}).", { a: orderDate(hook.lastAt), b: hook.lastStatus ?? 0 })}
               </div>
               <div className="flex flex-wrap gap-[8px]">
                 <form action={testWebhookAction}>
@@ -90,7 +89,7 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
                   <input type="hidden" name="url" value={hook.url} />
                   <input type="hidden" name="active" value={hook.active ? "0" : "1"} />
                   <button type="submit" className={quietButtonClass}>
-                    {hook.active ? "Isključi" : "Uključi"}
+                    {hook.active ? t("Isključi") : t("Uključi")}
                   </button>
                 </form>
                 <form action={deleteWebhookAction}>
@@ -112,7 +111,7 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
               {Object.entries(webhookEvents).map(([event, label]) => (
                 <label key={event} className="flex cursor-pointer items-center gap-[10px] text-[15px]">
                   <Checkbox name="events" value={event} defaultChecked />
-                  {label} <span className="font-mono text-[13px] text-muted">{event}</span>
+                  {t(label)} <span className="font-mono text-[13px] text-muted">{event}</span>
                 </label>
               ))}
             </div>

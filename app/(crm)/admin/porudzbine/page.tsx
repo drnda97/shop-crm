@@ -64,10 +64,10 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const back = listUrl({ status: active, q: q.trim(), strana: page > 1 ? String(page) : "" });
 
   const tabs = [
-    { href: listUrl({ q: q.trim() }), label: "Sve", count: found.length, current: !active },
+    { href: listUrl({ q: q.trim() }), label: t("Sve"), count: found.length, current: !active },
     ...statuses.map((value) => ({
       href: listUrl({ status: value, q: q.trim() }),
-      label: orderStatusLabels[value],
+      label: t(orderStatusLabels[value]),
       count: found.filter((order) => order.status === value).length,
       current: active === value,
     })),
@@ -123,8 +123,8 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       {orders.length === 0 && (
         <p className={`${cardClass} text-[15px] text-muted`}>
           {allOrders.length === 0
-            ? "Još nema porudžbina. Čim kupac poruči sa sajta, porudžbina se pojavljuje ovde."
-            : "Nema porudžbina za ovaj izbor."}
+            ? t("Još nema porudžbina. Čim kupac poruči sa sajta, porudžbina se pojavljuje ovde.")
+            : t("Nema porudžbina za ovaj izbor.")}
         </p>
       )}
 
@@ -143,7 +143,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       {orders.length > 0 && (
         <div className="mt-[16px] flex flex-wrap items-center gap-[12px] text-[14px] text-muted">
           <span>
-            {formatOrderCount(orders.length)}
+            {t(formatOrderCount(orders.length))}
             {pages > 1 && ` · strana ${page} od ${pages}`}
           </span>
           {page > 1 && (

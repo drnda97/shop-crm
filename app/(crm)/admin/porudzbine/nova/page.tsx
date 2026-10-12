@@ -35,7 +35,7 @@ export default async function NewOrderPage() {
         }))}
         methods={settings.shipping.methods.map(({ id, name }) => ({ id, name }))}
         // Kartica traži kupca na stranici procesora, pa se ovde ne nudi.
-        payments={enabledPayments(settings).map((id) => ({ id, label: paymentLabels[id] }))}
+        payments={enabledPayments(settings).map((id) => ({ id, label: t(paymentLabels[id]) }))}
       />
     </>
   );

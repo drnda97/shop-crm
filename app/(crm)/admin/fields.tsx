@@ -59,13 +59,13 @@ type FieldInputProps = {
 
 function FieldInput({ field, value, onChange, options }: FieldInputProps) {
   const t = useT();
-  const hint = field.hint && <span className={hintClass}>{field.hint}</span>;
+  const hint = field.hint && <span className={hintClass}>{t(field.hint)}</span>;
 
   switch (field.kind) {
     case "text":
       return (
         <label className={labelClass}>
-          {field.label}
+          {t(field.label)}
           <input className={inputClass} value={value as string} onChange={(event) => onChange(event.target.value)} />
           {hint}
         </label>
@@ -73,7 +73,7 @@ function FieldInput({ field, value, onChange, options }: FieldInputProps) {
     case "textarea":
       return (
         <label className={labelClass}>
-          {field.label}
+          {t(field.label)}
           <textarea
             className={`${inputClass} min-h-[110px]`}
             value={value as string}
@@ -85,7 +85,7 @@ function FieldInput({ field, value, onChange, options }: FieldInputProps) {
     case "link":
       return (
         <label className={labelClass}>
-          {field.label}
+          {t(field.label)}
           <input
             className={inputClass}
             list="link-options"
@@ -97,7 +97,7 @@ function FieldInput({ field, value, onChange, options }: FieldInputProps) {
         </label>
       );
     case "color":
-      return <ColorInput label={field.label} value={value as string} onChange={onChange} />;
+      return <ColorInput label={t(field.label)} value={value as string} onChange={onChange} />;
     case "boolean":
       return (
         <label className="flex cursor-pointer items-center gap-[10px] font-display text-[14px] font-semibold">
@@ -107,7 +107,7 @@ function FieldInput({ field, value, onChange, options }: FieldInputProps) {
             checked={value === true}
             onChange={(event) => onChange(event.target.checked)}
           />
-          {field.label}
+          {t(field.label)}
         </label>
       );
     case "select":
@@ -117,16 +117,16 @@ function FieldInput({ field, value, onChange, options }: FieldInputProps) {
         field.kind === "select"
           ? field.options
           : [
-              { value: "", label: field.kind === "collection" ? "Svi proizvodi" : "Bez proizvoda" },
+              { value: "", label: field.kind === "collection" ? t("Svi proizvodi") : t("Bez proizvoda") },
               ...(field.kind === "collection" ? options.collections : options.products),
             ];
       return (
         <label className={labelClass}>
-          {field.label}
+          {t(field.label)}
           <select className={inputClass} value={value as string} onChange={(event) => onChange(event.target.value)}>
             {list.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {t(option.label)}
               </option>
             ))}
           </select>
@@ -135,7 +135,7 @@ function FieldInput({ field, value, onChange, options }: FieldInputProps) {
       );
     }
     case "image":
-      return <ImageInput label={field.label} value={value as ImageValue} onChange={onChange} options={options} />;
+      return <ImageInput label={t(field.label)} value={value as ImageValue} onChange={onChange} options={options} />;
     case "list":
       return <ListInput field={field} value={value as SectionData[]} onChange={onChange} options={options} />;
   }
@@ -147,6 +147,7 @@ type ColorInputProps = { label: string; value: string; onChange: (value: string)
 
 /** Birač boje i šifra koja može i da se upiše; dalje ide samo ispravna šifra (#rrggbb). */
 function ColorInput({ label, value, onChange }: ColorInputProps) {
+  const t = useT();
   const [typed, setTyped] = useState(value);
   return (
     <label className={labelClass}>
@@ -154,7 +155,7 @@ function ColorInput({ label, value, onChange }: ColorInputProps) {
       <span className="flex min-h-[50px] items-center gap-[10px] rounded-full border-[1.5px] border-line bg-white py-[5px] pr-[16px] pl-[5px] transition-colors duration-300 focus-within:border-ink hover:border-line-strong">
         <input
           type="color"
-          aria-label={`${label}: birač`}
+          aria-label={t("{a}: birač", { a: label })}
           value={value}
           onChange={(event) => {
             setTyped(event.target.value);
@@ -163,7 +164,7 @@ function ColorInput({ label, value, onChange }: ColorInputProps) {
           className="size-[38px] shrink-0 cursor-pointer rounded-full border-0 bg-transparent p-0 [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-line-strong [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-line-strong [&::-webkit-color-swatch-wrapper]:p-0"
         />
         <input
-          aria-label={`${label}: šifra boje`}
+          aria-label={t("{a}: šifra boje", { a: label })}
           value={typed}
           maxLength={7}
           spellCheck={false}
@@ -201,7 +202,7 @@ function ImageInput({ label, value, onChange, options }: ImageInputProps) {
     formData.set("image", file);
     startTransition(async () => {
       const result = await uploadImageAction(formData);
-      if (!result.ok) return setError(result.error);
+      if (!result.ok) return setError(t(result.error));
       setError("");
       options.onUpload(result.src);
       onChange({ ...value, src: result.src });
@@ -211,7 +212,7 @@ function ImageInput({ label, value, onChange, options }: ImageInputProps) {
   // Isecanje upisano u početnom sadržaju teme (npr. „70% 60%") ostaje u ponudi dok se ne promeni.
   const positions = IMAGE_POSITIONS.some((option) => option.value === value.position)
     ? IMAGE_POSITIONS
-    : [...IMAGE_POSITIONS, { value: value.position, label: `podešeno (${value.position})` }];
+    : [...IMAGE_POSITIONS, { value: value.position, label: t("podešeno ({a})", { a: value.position }) }];
 
   return (
     <div className="flex flex-col gap-[10px]">
@@ -242,7 +243,7 @@ function ImageInput({ label, value, onChange, options }: ImageInputProps) {
             }}
           />
           <button type="button" className={quietButtonClass} disabled={pending} onClick={() => input.current?.click()}>
-            {pending ? "Šaljem…" : "Ubaci sliku"}
+            {pending ? t("Šaljem…") : t("Ubaci sliku")}
           </button>
           <button type="button" className={quietButtonClass} aria-expanded={picking} onClick={() => setPicking(!picking)}>
             {t("Iz biblioteke")}
@@ -257,7 +258,7 @@ function ImageInput({ label, value, onChange, options }: ImageInputProps) {
       {error ? (
         <p role="alert" className="text-[14px] font-semibold">{error}</p>
       ) : (
-        <p className={hintClass}>{IMAGE_HINT}</p>
+        <p className={hintClass}>{t(IMAGE_HINT)}</p>
       )}
 
       {picking && (
@@ -304,7 +305,7 @@ function ImageInput({ label, value, onChange, options }: ImageInputProps) {
             >
               {positions.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {t(option.label)}
                 </option>
               ))}
             </select>
@@ -351,8 +352,8 @@ function ListInput({ field, value, onChange, options }: ListInputProps) {
 
   return (
     <div className="flex flex-col gap-[8px]">
-      <div className={labelClass}>{field.label}</div>
-      {field.hint && <span className={hintClass}>{field.hint}</span>}
+      <div className={labelClass}>{t(field.label)}</div>
+      {field.hint && <span className={hintClass}>{t(field.hint)}</span>}
       {value.map((item, index) => {
         const title = itemTitle(field.fields, item);
         return (
@@ -364,7 +365,7 @@ function ListInput({ field, value, onChange, options }: ListInputProps) {
                 className="min-h-[40px] min-w-0 grow cursor-pointer truncate text-left font-display text-[14.5px] font-semibold"
                 onClick={() => setOpen(open === index ? null : index)}
               >
-                {field.itemLabel} {index + 1}
+                {t(field.itemLabel)} {index + 1}
                 {title && <span className="font-sans font-normal text-muted"> · {title}</span>}
               </button>
               <button type="button" className={smallButton} aria-label={t("Pomeri gore")} disabled={index === 0} onClick={() => move(index, -1)}>
@@ -376,7 +377,7 @@ function ListInput({ field, value, onChange, options }: ListInputProps) {
               <button
                 type="button"
                 className={smallButton}
-                aria-label={`Ukloni: ${field.itemLabel} ${index + 1}`}
+                aria-label={t("Ukloni: {a} {b}", { a: t(field.itemLabel), b: index + 1 })}
                 onClick={() => {
                   onChange(value.filter((_, position) => position !== index));
                   setOpen(null);
@@ -408,7 +409,7 @@ function ListInput({ field, value, onChange, options }: ListInputProps) {
             setOpen(value.length);
           }}
         >
-          + {field.itemLabel}
+          + {t(field.itemLabel)}
         </button>
       </div>
     </div>

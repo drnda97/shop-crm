@@ -36,7 +36,7 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
       />
 
       <section className="mb-[32px]">
-        <h2 className={sectionTitle}>Kontakt forma ({messages.length})</h2>
+        <h2 className={sectionTitle}>{t("Kontakt forma (")}{messages.length})</h2>
         <div className={cardClass}>
           {messages.length === 0 ? (
             <p className="text-[15px] text-muted">{t("Još nema poruka.")}</p>
@@ -69,7 +69,7 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
 
       <section>
         <div className="mb-[14px] flex flex-wrap items-center justify-between gap-[12px]">
-          <h2 className="text-[22px]">Novosti ({active.length} prijavljenih)</h2>
+          <h2 className="text-[22px]">{t("Novosti (")}{active.length} {t("prijavljenih)")}</h2>
           <a href={`${ADMIN_PATH}/poruke/izvoz`} className={quietButtonClass}>
             {t("Preuzmi CSV")}
           </a>
@@ -87,7 +87,7 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
               <textarea name="body" required maxLength={10000} className={`${inputClass} min-h-[180px]`} />
             </label>
             <div>
-              <ConfirmButton question={`Poslati poruku na ${active.length} adresa?`} className={buttonClass}>
+              <ConfirmButton question={t("Poslati poruku na {a} adresa?", { a: active.length })} className={buttonClass}>
                 {t("Pošalji svima")}
               </ConfirmButton>
             </div>
@@ -104,7 +104,7 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
                 <div key={campaign.id} className="border-t border-line py-[10px] text-[15px] first:border-t-0">
                   <div className="font-display font-bold">{campaign.subject}</div>
                   <div className="text-[13.5px] text-muted">
-                    {orderDate(campaign.createdAt)} · poslato {campaign.sent} od {campaign.recipients}
+                    {orderDate(campaign.createdAt)} {t("· poslato")} {campaign.sent} {t("od")} {campaign.recipients}
                     {campaign.failed > 0 && ` · neuspelo ${campaign.failed}`}
                     {!campaign.finished && " · slanje u toku"}
                   </div>
@@ -114,7 +114,7 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
           </div>
         </div>
         <details className={`${cardClass} mt-[16px]`}>
-          <summary className="cursor-pointer font-display text-[15px] font-bold">Spisak adresa ({subscribers.length})</summary>
+          <summary className="cursor-pointer font-display text-[15px] font-bold">{t("Spisak adresa (")}{subscribers.length})</summary>
           <div className="mt-[10px]">
             {subscribers.map((subscriber) => (
               <div key={subscriber.email} className={`${rowClass} justify-between text-[15px]`}>

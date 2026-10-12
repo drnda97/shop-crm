@@ -1,5 +1,7 @@
 "use server";
 
+import { isLang } from "@/lib/i18n";
+import { translateContent } from "@/lib/i18n/content";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -83,12 +85,17 @@ export async function setupAction(_previous: SetupState, formData: FormData): Pr
 
   const user = await createFirstOwner({ username, name, password });
   if (!user) return { error: "Panel je već podešen. Osvežite stranicu i prijavite se." };
-  if (store || email) {
-    await updateContent((content) => {
-      if (store) content.settings.store.name = store;
-      if (email) content.settings.store.email = email;
-    });
-  }
+  const language = formData.get("language");
+  await updateContent((content) => {
+    if (isLang(language)) {
+      // Izabrani jezik važi za sajt i za panel; početni sadržaj prelazi na njega.
+      translateContent(content, content.settings.store.language, language);
+      content.settings.store.language = language;
+      content.settings.store.panelLanguage = language;
+    }
+    if (store) content.settings.store.name = store;
+    if (email) content.settings.store.email = email;
+  });
   await createSession(user.id);
   await audit("Prvo pokretanje: napravljen vlasnik", user.username, user);
   redirect(`${ADMIN_PATH}/podesavanja`);

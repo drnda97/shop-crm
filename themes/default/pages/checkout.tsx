@@ -1,3 +1,4 @@
+import { getShopPath } from "@/lib/i18n/server";
 import { getShopT } from "@/lib/i18n/server";
 import Link from "next/link";
 import type { ComponentProps } from "react";
@@ -12,13 +13,14 @@ export type CheckoutPageProps = {
 
 /** Plaćanje: /placanje. Obračun i slanje porudžbine radi jezgro (akcije u app/(shop)/actions.ts). */
 export async function CheckoutPage({ storeName, user }: CheckoutPageProps) {
+  const to = await getShopPath();
   const t = await getShopT();
   return (
     <div className="ds" style={DS_STYLE}>
       <header className="hdr">
         <div className="wrap">
           <div className="pill-nav" style={{ width: "100%", padding: "0 24px 0 12px" }}>
-            <Link className="more" href="/" style={{ fontSize: "15px" }}>
+            <Link className="more" href={to("/")} style={{ fontSize: "15px" }}>
               <i>
                 <svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="currentColor" strokeWidth="1.800" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M13 5H1M5 1L1 5l4 4"></path>
@@ -26,7 +28,7 @@ export async function CheckoutPage({ storeName, user }: CheckoutPageProps) {
               </i>
               <span className="hide-s">{t("Nazad u prodavnicu")}</span>
             </Link>
-            <Link className="logo" href="/">
+            <Link className="logo" href={to("/")}>
               <b></b>
               {storeName}
             </Link>

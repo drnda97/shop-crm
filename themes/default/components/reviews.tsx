@@ -1,5 +1,6 @@
 "use client";
 
+import { usePath } from "@/lib/i18n/client";
 import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
@@ -12,8 +13,9 @@ const STAR = "M10 1.500l2.600 5.400 5.900.800-4.300 4.100 1.100 5.900L10 14.900l
 
 /** Ocena zvezdicama; `label` je čita čitač ekrana. */
 export function Stars({ rating, size = 18 }: { rating: number; size?: number }) {
+  const t = useT();
   return (
-    <span role="img" aria-label={`Ocena ${rating} od 5`} style={{ display: "inline-flex", gap: "2px", color: "var(--gold)" }}>
+    <span role="img" aria-label={t("Ocena {a} od 5", { a: rating })} style={{ display: "inline-flex", gap: "2px", color: "var(--gold)" }}>
       {[1, 2, 3, 4, 5].map((star) => (
         <svg key={star} width={size} height={size} viewBox="0 0 20 19" fill={rating >= star - 0.25 ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.400" strokeLinejoin="round" aria-hidden="true">
           <path d={STAR}></path>
@@ -33,6 +35,7 @@ type ReviewsProps = {
 
 /** Utisci na stranici proizvoda i forma za nov utisak. */
 export function Reviews({ slug, reviews, summary, loggedIn }: ReviewsProps) {
+  const to = usePath();
   const t = useT();
   const [rating, setRating] = useState(0);
   const [text, setText] = useState("");
@@ -94,7 +97,7 @@ export function Reviews({ slug, reviews, summary, loggedIn }: ReviewsProps) {
           </form>
         ) : (
           <p className="muted">
-            <Link className="ul keep" href="/nalog">{t("Prijavite se")}</Link> {t("da biste ostavili utisak.")}
+            <Link className="ul keep" href={to("/nalog")}>{t("Prijavite se")}</Link> {t("da biste ostavili utisak.")}
           </p>
         )}
       </div>

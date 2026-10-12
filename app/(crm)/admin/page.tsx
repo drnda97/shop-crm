@@ -94,50 +94,50 @@ export default async function DashboardPage() {
 
   const attention = [
     products.length === 0 && {
-      text: "Prodavnica je prazna — dodajte prvi proizvod",
+      text: t("Prodavnica je prazna — dodajte prvi proizvod"),
       href: `${ADMIN_PATH}/proizvodi/novi`,
     },
     !isMailConfigured(settings) && {
-      text: "Email nije podešen — za nove porudžbine ne stiže poruka ni vama ni kupcu",
+      text: t("Email nije podešen — za nove porudžbine ne stiže poruka ni vama ni kupcu"),
       href: `${ADMIN_PATH}/podesavanja`,
     },
     emailFailed > 0 && {
-      text: `Email nije poslat: ${formatOrderCount(emailFailed)}`,
+      text: t("Email nije poslat: {a}", { a: formatOrderCount(emailFailed) }),
       href: `${ADMIN_PATH}/porudzbine`,
     },
     stats.waiting > 0 && {
-      text: `Čeka na obradu: ${formatOrderCount(stats.waiting)}`,
+      text: t("Čeka na obradu: {a}", { a: t(formatOrderCount(stats.waiting)) }),
       href: `${ADMIN_PATH}/porudzbine?status=new`,
     },
     openReturns.length > 0 && {
-      text: `Zahtevi za povrat koji čekaju odgovor: ${openReturns.map((request) => `#${request.orderNumber}`).join(", ")}`,
+      text: t("Zahtevi za povrat koji čekaju odgovor: {a}", { a: openReturns.map((request) => `#${request.orderNumber}`).join(", ") }),
       href: `${ADMIN_PATH}/porudzbine/${openReturns[0].orderNumber}`,
     },
     pendingReviews > 0 && {
-      text: `Utisci koji čekaju odobrenje: ${pendingReviews}`,
+      text: t("Utisci koji čekaju odobrenje: {a}", { a: pendingReviews }),
       href: `${ADMIN_PATH}/utisci`,
     },
     withoutPrice.length > 0 && {
-      text: `Bez upisane cene, pa ne mogu da se poruče: ${names(withoutPrice)}`,
+      text: t("Bez upisane cene, pa ne mogu da se poruče: {a}", { a: names(withoutPrice) }),
       href: `${ADMIN_PATH}/proizvodi`,
     },
     soldOut.length > 0 && {
-      text: `Nema na stanju: ${names(soldOut)}`,
+      text: t("Nema na stanju: {a}", { a: names(soldOut) }),
       href: `${ADMIN_PATH}/proizvodi`,
     },
     soldOutParts.length > 0 && {
-      text: `Rasprodate varijante: ${names(soldOutParts)}`,
+      text: t("Rasprodate varijante: {a}", { a: names(soldOutParts) }),
       href: `${ADMIN_PATH}/proizvodi`,
     },
     runningLow.length > 0 && {
-      text: `Pri kraju: ${runningLow
+      text: t("Pri kraju: {a}{b}", { a: runningLow
         .slice(0, 6)
         .map((unit) => `${unit.name} (${unit.qty} kom.)`)
-        .join(", ")}${runningLow.length > 6 ? "…" : ""}`,
+        .join(", "), b: runningLow.length > 6 ? "…" : "" }),
       href: `${ADMIN_PATH}/proizvodi`,
     },
     withoutImage.length > 0 && {
-      text: `Bez slike: ${names(withoutImage)}`,
+      text: t("Bez slike: {a}", { a: names(withoutImage) }),
       href: `${ADMIN_PATH}/proizvodi`,
     },
   ].filter((item) => item !== false);
@@ -178,7 +178,7 @@ export default async function DashboardPage() {
           value={money(stats.last30.sales)}
           notes={[
             change(stats.last30.sales, stats.previous30.sales),
-            `Ukupno do sada: ${money(stats.all.sales)}`,
+            t("Ukupno do sada: {a}", { a: money(stats.all.sales) }),
           ]}
         />
         <StatTile
@@ -186,7 +186,7 @@ export default async function DashboardPage() {
           value={String(stats.last30.orders)}
           notes={[
             change(stats.last30.orders, stats.previous30.orders),
-            `Poslednjih 7 dana: ${stats.last7.orders} · ukupno: ${stats.all.orders}`,
+            t("Poslednjih 7 dana: {a} · ukupno: {b}", { a: stats.last7.orders, b: stats.all.orders }),
           ]}
         />
         <StatTile
@@ -194,21 +194,21 @@ export default async function DashboardPage() {
           value={money(stats.all.average)}
           notes={[
             stats.all.orders > 0
-              ? `U proseku ${(stats.all.pieces / stats.all.orders).toFixed(1).replace(".", ",")} komada po porudžbini`
+              ? t("U proseku {a} komada po porudžbini", { a: (stats.all.pieces / stats.all.orders).toFixed(1).replace(".", ",") })
               : null,
           ]}
         />
         <StatTile
           label={t("Prodato komada")}
           value={String(stats.all.pieces)}
-          notes={[`Poslednjih 30 dana: ${stats.last30.pieces}`]}
+          notes={[t("Poslednjih 30 dana: {a}", { a: stats.last30.pieces })]}
         />
         <StatTile
           label={t("Kupci")}
           value={String(stats.customers)}
           notes={[
-            `Poručili više puta: ${stats.returningCustomers}`,
-            stats.cancelled > 0 ? `Otkazano: ${formatOrderCount(stats.cancelled)}` : null,
+            t("Poručili više puta: {a}", { a: stats.returningCustomers }),
+            stats.cancelled > 0 ? t("Otkazano: {a}", { a: formatOrderCount(stats.cancelled) }) : null,
           ]}
         />
       </div>
@@ -249,7 +249,7 @@ export default async function DashboardPage() {
                     >
                       <div>{shortDay(day.date)}</div>
                       <div>
-                        {formatOrderCount(day.orders)} · {money(day.sales)}
+                        {t(formatOrderCount(day.orders))} · {money(day.sales)}
                       </div>
                     </div>
                   </div>
@@ -281,7 +281,7 @@ export default async function DashboardPage() {
                       {index + 1}. {product.name}
                     </span>
                     <span className="shrink-0 text-[14px] text-muted">
-                      {formatPieces(product.qty)} · {money(product.sales)}
+                      {t(formatPieces(product.qty))} · {money(product.sales)}
                     </span>
                   </div>
                   <div className="h-[8px] overflow-hidden rounded-full bg-band">
@@ -345,7 +345,7 @@ export default async function DashboardPage() {
                     <tr key={city.name} className="border-t border-line first:border-t-0">
                       <td className="py-[8px]">{city.name}</td>
                       <td className="py-[8px] text-right text-muted">
-                        {formatOrderCount(city.orders)}
+                        {t(formatOrderCount(city.orders))}
                       </td>
                     </tr>
                   ))}

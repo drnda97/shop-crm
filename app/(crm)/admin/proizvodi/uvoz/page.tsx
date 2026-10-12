@@ -57,12 +57,10 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
               <a href={`${ADMIN_PATH}/proizvodi/izvoz`} className={textLinkClass}>
                 {t("preuzmite izvoz")}
               </a>
-              , izmenite ga u Excel-u i uvezite nazad. Proizvod sa oznakom koja već postoji se menja, a
-              nova oznaka pravi nov proizvod.
+              {t(", izmenite ga u Excel-u i uvezite nazad. Proizvod sa oznakom koja već postoji se menja, a nova oznaka pravi nov proizvod.")}
             </p>
             <p className="text-muted">
-              Uvoze se naziv, opis, cene, stanje, kategorije, opcije, varijante i slike. Ne uvoze se utisci,
-              oznake (tagovi), porezi i dostava.
+              {t("Uvoze se naziv, opis, cene, stanje, kategorije, opcije, varijante i slike. Ne uvoze se utisci, oznake (tagovi), porezi i dostava.")}
             </p>
           </div>
         </div>
@@ -70,24 +68,23 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
         <div className="flex flex-col gap-[16px]">
           <div className={`${cardClass} flex flex-col gap-[12px]`}>
             <h2 className={panelTitleClass}>
-              {pending.fileName} · {formatLabels[pending.format]}
+              {pending.fileName} · {t(formatLabels[pending.format])}
             </h2>
             <p className="text-[15.5px]">
-              {t("Proizvoda:")} <strong>{pending.products.length}</strong> — novih{" "}
-              <strong>{pending.products.filter((item) => !products.some((product) => product.slug === item.slug)).length}</strong>,
-              postojećih koji će biti izmenjeni{" "}
-              <strong>{pending.products.filter((item) => products.some((product) => product.slug === item.slug)).length}</strong>{t(". Varijanti:")} <strong>{pending.products.reduce((sum, item) => sum + item.variants.length, 0)}</strong>. Slika:{" "}
+              {t("Proizvoda:")} <strong>{pending.products.length}</strong> {t("— novih")}{" "}
+              <strong>{pending.products.filter((item) => !products.some((product) => product.slug === item.slug)).length}</strong>{t(", postojećih koji će biti izmenjeni")}{" "}
+              <strong>{pending.products.filter((item) => products.some((product) => product.slug === item.slug)).length}</strong>{t(". Varijanti:")} <strong>{pending.products.reduce((sum, item) => sum + item.variants.length, 0)}</strong>{t(". Slika:")}{" "}
               <strong>{new Set(pending.products.flatMap((item) => item.images)).size}</strong>.
             </p>
             {pending.warnings.length > 0 && (
               <div className="rounded-[18px] bg-band px-[18px] py-[14px] text-[14.5px]">
-                <div className="mb-[6px] font-display font-bold">Upozorenja ({pending.warnings.length})</div>
+                <div className="mb-[6px] font-display font-bold">{t("Upozorenja (")}{pending.warnings.length})</div>
                 <ul className="flex list-disc flex-col gap-[4px] pl-[18px]">
                   {pending.warnings.slice(0, 30).map((warning, index) => (
                     <li key={index}>{warning}</li>
                   ))}
                 </ul>
-                {pending.warnings.length > 30 && <p className="mt-[6px] text-muted">…i još {pending.warnings.length - 30}.</p>}
+                {pending.warnings.length > 30 && <p className="mt-[6px] text-muted">{t("…i još")} {pending.warnings.length - 30}.</p>}
               </div>
             )}
             <form action={applyImportAction} className="flex flex-wrap items-center gap-[14px]">
@@ -96,7 +93,7 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
                 {t("Preuzmi slike sa adresa iz fajla")}
               </label>
               <button type="submit" className={buttonClass} disabled={pending.products.length === 0}>
-                Uvezi {pending.products.length} proizvoda
+                {t("Uvezi")} {pending.products.length} {t("proizvoda")}
               </button>
             </form>
             <form action={cancelImportAction}>
@@ -110,7 +107,7 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
           </div>
 
           <div className={cardClass}>
-            <h2 className={`${panelTitleClass} mb-[8px]`}>Prvih {Math.min(20, pending.products.length)} proizvoda</h2>
+            <h2 className={`${panelTitleClass} mb-[8px]`}>{t("Prvih")} {Math.min(20, pending.products.length)} {t("proizvoda")}</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-[14.5px]">
                 <thead>
@@ -133,7 +130,7 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
                           {!item.active && <span className="font-sans font-normal text-muted"> {t("· nacrt")}</span>}
                         </td>
                         <td className="py-[8px] pr-[16px] text-muted">
-                          {item.slug} {exists ? "· menja se" : "· nov"}
+                          {item.slug} {exists ? t("· menja se") : t("· nov")}
                         </td>
                         <td className="py-[8px] pr-[16px] whitespace-nowrap">
                           {item.price === null ? "—" : formatMoney(item.salePrice ?? item.price, currency)}
@@ -142,7 +139,7 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
                         <td className="py-[8px] pr-[16px]">
                           {item.options.length === 0 ? "—" : `${item.variants.length} (${item.options.map((option) => option.name).join(", ")})`}
                         </td>
-                        <td className="py-[8px]">{item.stockQty ?? (item.inStock ? "na stanju" : "nema")}</td>
+                        <td className="py-[8px]">{item.stockQty ?? (item.inStock ? t("na stanju") : "nema")}</td>
                       </tr>
                     );
                   })}

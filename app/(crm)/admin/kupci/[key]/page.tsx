@@ -42,16 +42,16 @@ export default async function CustomerPage({ params, searchParams }: CustomerPag
   const { orderDate } = dateFormats(settings.store);
   const cancelled = customer.orders.length - customer.orderCount;
   const facts = [
-    { label: "Porudžbine", value: formatOrderCount(customer.orderCount) },
-    { label: "Potrošeno", value: formatMoney(customer.spent, currency) },
+    { label: t("Porudžbine"), value: t(formatOrderCount(customer.orderCount)) },
+    { label: t("Potrošeno"), value: formatMoney(customer.spent, currency) },
     {
-      label: "Prosečna porudžbina",
+      label: t("Prosečna porudžbina"),
       value:
         customer.orderCount > 0
           ? formatMoney(Math.round(customer.spent / customer.orderCount), currency)
           : "—",
     },
-    { label: "Prva porudžbina", value: orderDate(customer.firstOrderAt) },
+    { label: t("Prva porudžbina"), value: orderDate(customer.firstOrderAt) },
   ];
 
   return (
@@ -87,7 +87,7 @@ export default async function CustomerPage({ params, searchParams }: CustomerPag
           </dl>
           {cancelled > 0 && (
             <p className="mt-[8px] text-[14px] text-muted">
-              Otkazano: {formatOrderCount(cancelled)}.
+              {t("Otkazano:")} {t(formatOrderCount(cancelled))}.
             </p>
           )}
         </div>
@@ -95,7 +95,7 @@ export default async function CustomerPage({ params, searchParams }: CustomerPag
         <form action={saveCustomerNoteAction} className={`${cardClass} flex flex-col gap-[12px]`}>
           <input type="hidden" name="key" value={customer.key} />
           <label className={labelClass}>
-            Beleška o kupcu (vidite je samo vi)
+            {t("Beleška o kupcu (vidite je samo vi)")}
             <textarea
               name="note"
               defaultValue={note}
@@ -115,8 +115,7 @@ export default async function CustomerPage({ params, searchParams }: CustomerPag
         <div className="min-w-[240px] grow text-[15px]">
           <div className="font-display font-bold">{t("Podaci na zahtev kupca")}</div>
           <div className="text-[14px] text-muted">
-            Izvoz daje sve što prodavnica čuva o kupcu. Brisanje uklanja nalog, poruke, prijavu na novosti i
-            belešku, a iz porudžbina ime, kontakt i adresu; same porudžbine ostaju kao evidencija prodaje.
+            {t("Izvoz daje sve što prodavnica čuva o kupcu. Brisanje uklanja nalog, poruke, prijavu na novosti i belešku, a iz porudžbina ime, kontakt i adresu; same porudžbine ostaju kao evidencija prodaje.")}
           </div>
         </div>
         <a href={`${ADMIN_PATH}/kupci/${customer.key}/podaci`} className={quietButtonClass}>
@@ -124,7 +123,7 @@ export default async function CustomerPage({ params, searchParams }: CustomerPag
         </a>
         <form action={eraseCustomerAction}>
           <input type="hidden" name="key" value={customer.key} />
-          <ConfirmButton question={`Obrisati podatke kupca „${customer.name}"? Ne može da se vrati.`} className={quietButtonClass}>
+          <ConfirmButton question={t("Obrisati podatke kupca „{a}\"? Ne može da se vrati.", { a: customer.name })} className={quietButtonClass}>
             {t("Obriši podatke")}
           </ConfirmButton>
         </form>

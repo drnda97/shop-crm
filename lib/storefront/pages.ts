@@ -1,3 +1,4 @@
+import { translateForShop } from "@/lib/i18n/server";
 import { headers } from "next/headers";
 import { cache } from "react";
 import { isPreviewToken } from "@/lib/admin-auth";
@@ -46,6 +47,13 @@ export async function inPreview(): Promise<boolean> {
 
 /** Podešavanja za prikaz sajta; u pregledu sa nesačuvanim izmenama teme, menija ili tekstova. */
 export const getShopSettings = cache(async (): Promise<Settings> => {
+  const settings = await rawShopSettings();
+  // Na dodatnom jeziku se prevode tekstovi (meni, podnožje, stalne stranice, dostava); ostalo je isto.
+  const { site, templates, shipping } = settings;
+  return { ...settings, ...(await translateForShop({ site, templates, shipping })) };
+});
+
+async function rawShopSettings(): Promise<Settings> {
   const [settings, draft] = await Promise.all([getSettings(), getDraft()]);
   if (draft?.kind !== "settings") return settings;
   const { colors, fonts, site, templates } = draft.settings;
@@ -56,13 +64,20 @@ export const getShopSettings = cache(async (): Promise<Settings> => {
     ...(site ? { site } : {}),
     ...(templates ? { templates: { ...settings.templates, ...templates } } : {}),
   });
-});
+}
 
 /**
  * Stranica za prikaz. U pregledu vraća nesačuvane izmene, i kada je stranica nacrt;
  * inače samo objavljenu stranicu.
  */
 export async function getSitePage(slug: string): Promise<Page | null> {
+  const page = await rawSitePage(slug);
+  if (!page) return null;
+  const { title, seoTitle, seoDescription, sections } = page;
+  return { ...page, ...(await translateForShop({ title, seoTitle, seoDescription, sections })) };
+}
+
+async function rawSitePage(slug: string): Promise<Page | null> {
   const page = (await getPages()).find((candidate) => candidate.slug === slug);
   if (!page) return null;
   if (await inPreview()) {

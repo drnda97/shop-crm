@@ -1,5 +1,6 @@
 "use client";
 
+import { usePath } from "@/lib/i18n/client";
 import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
 import { formatPrice, type ShopProduct } from "@/lib/storefront/products";
@@ -8,20 +9,21 @@ import { Photo } from "./ui";
 import { WishButton } from "./wishlist";
 
 export function ProductCard({ product: p }: { product: ShopProduct }) {
+  const to = usePath();
   const t = useT();
   const { add } = useCart();
   const href = `/proizvod/${p.slug}`;
 
   return (
     <article className="card">
-      <Link className="ph card-media" href={href} aria-label={p.name}>
+      <Link className="ph card-media" href={to(href)} aria-label={p.name}>
         {p.image && <Photo src={p.image} alt="" sizes="(max-width: 640px) 100vw, (max-width: 1000px) 50vw, 320px" />}
         {p.tag && <span className={p.oldPrice ? "tag sale" : "tag"}>{t(p.tag)}</span>}
         <WishButton slug={p.slug} name={p.name} floating />
       </Link>
       <div className="card-body">
         <div className="card-cat">{p.category}</div>
-        <Link className="card-name" href={href}>
+        <Link className="card-name" href={to(href)}>
           {p.name}
         </Link>
         <div className="card-row">
@@ -32,7 +34,7 @@ export function ProductCard({ product: p }: { product: ShopProduct }) {
           </span>
           {p.variants.length > 0 ? (
             // Proizvod sa varijantama se bira na svojoj stranici.
-            <Link className="add" href={href} aria-label={t("Izaberite opcije: {naziv}", { naziv: p.name })}>
+            <Link className="add" href={to(href)} aria-label={t("Izaberite opcije: {naziv}", { naziv: p.name })}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M8 2v12M2 8h12"></path>
               </svg>

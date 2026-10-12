@@ -1,3 +1,6 @@
+import { langCode } from "@/lib/i18n";
+import { contentWords, shopT } from "@/lib/i18n/server";
+import { translateDeep } from "@/lib/i18n/walk";
 import {
   baseUrl,
   corsHeaders,
@@ -27,6 +30,8 @@ import { availableMethods } from "@/lib/shipping";
 /**
  * Javni API prodavnice — sve što sajtu treba da prikaže proizvode i primi porudžbinu.
  *
+ * Svaki poziv prima ?lang=en: sadržaj i poruke na tom jeziku, kada ga prodavnica ima.
+ *
  *   GET  /api/v1/store                 naziv, valuta, dostava, načini plaćanja, boje
  *   GET  /api/v1/products              ?category=  ?collection=  ?q=
  *   GET  /api/v1/products/{slug}
@@ -48,14 +53,40 @@ import { availableMethods } from "@/lib/shipping";
 
 type Context = { params: Promise<{ path: string[] }> };
 
-function reply(request: Request, settings: Settings, body: unknown, status = 200): Response {
-  return Response.json(body, {
+/**
+ * Jezik odgovora: ?lang=en (ili zaglavlje X-Shop-Lang) kada prodavnica taj jezik ima, inače
+ * glavni. Na jeziku koji nije glavni sadržaj i poruke stižu prevedeni, kao na sajtu.
+ */
+function replyLang(request: Request, settings: Settings): string {
+  const asked = langCode(new URL(request.url).searchParams.get("lang") ?? request.headers.get("x-shop-lang"));
+  const { language, languages } = settings.store;
+  return asked && languages.includes(asked) ? asked : language;
+}
+
+async function reply(request: Request, settings: Settings, body: unknown, status = 200): Promise<Response> {
+  const lang = replyLang(request, settings);
+  let out = body;
+  if (lang !== settings.store.language) out = translateDeep(out, await contentWords(lang));
+  // Poruke o grešci su u kodu na srpskom; prevode se na jezik odgovora.
+  if (lang !== "sr" && typeof out === "object" && out !== null) {
+    const t = await shopT(lang);
+    const messages = out as { message?: unknown; errors?: unknown; error?: unknown };
+    out = {
+      ...out,
+      ...(typeof messages.message === "string" ? { message: t(messages.message) } : {}),
+      ...(typeof messages.error === "string" && messages.error !== "Not found" ? { error: t(messages.error) } : {}),
+      ...(typeof messages.errors === "object" && messages.errors !== null
+        ? { errors: Object.fromEntries(Object.entries(messages.errors).map(([field, text]) => [field, typeof text === "string" ? t(text) : text])) }
+        : {}),
+    };
+  }
+  return Response.json(out, {
     status,
-    headers: { ...corsHeaders(request, settings), "Cache-Control": "no-store" },
+    headers: { ...corsHeaders(request, settings), "Cache-Control": "no-store", "Content-Language": lang },
   });
 }
 
-function notFound(request: Request, settings: Settings): Response {
+function notFound(request: Request, settings: Settings): Promise<Response> {
   return reply(request, settings, { error: "Not found" }, 404);
 }
 

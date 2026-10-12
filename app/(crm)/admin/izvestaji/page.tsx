@@ -37,7 +37,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           <tbody>
             {rows.slice(0, 20).map((row) => (
               <tr key={row.label} className="border-t border-line">
-                <td className="py-[7px] pr-[12px]">{row.label}</td>
+                <td className="py-[7px] pr-[12px]">{t(row.label)}</td>
                 <td className="py-[7px] pr-[12px] text-right whitespace-nowrap">{columns[1] === "Komada" ? row.qty : row.orders}</td>
                 <td className="py-[7px] text-right font-display font-bold whitespace-nowrap">{money(row.amount)}</td>
               </tr>
@@ -76,14 +76,14 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
       <div className="mb-[16px] grid grid-cols-[repeat(auto-fit,minmax(min(170px,100%),1fr))] gap-[16px]">
         {[
-          ["Prodaja", money(report.sales)],
-          ["Porudžbine", String(report.orders)],
-          ["Prosečna porudžbina", money(report.average)],
-          ["Prodato komada", String(report.pieces)],
-          ["Naplaćena dostava", money(report.delivery)],
-          ["Dati popusti", money(report.discounts)],
-          ["Vraćeno kupcima", money(report.refunded)],
-          ["Otkazano", String(report.cancelled)],
+          [t("Prodaja"), money(report.sales)],
+          [t("Porudžbine"), String(report.orders)],
+          [t("Prosečna porudžbina"), money(report.average)],
+          [t("Prodato komada"), String(report.pieces)],
+          [t("Naplaćena dostava"), money(report.delivery)],
+          [t("Dati popusti"), money(report.discounts)],
+          [t("Vraćeno kupcima"), money(report.refunded)],
+          [t("Otkazano"), String(report.cancelled)],
         ].map(([label, value]) => (
           <div key={label} className={cardClass}>
             <div className="text-[13.5px] text-muted">{label}</div>
@@ -115,11 +115,11 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       </div>
 
       <div className="grid items-start gap-[16px] xl:grid-cols-2">
-        {table("Proizvodi", report.products, ["Proizvod", "Komada", "Iznos"])}
+        {table("Proizvodi", report.products, [t("Proizvod"), t("Komada"), t("Iznos")])}
         <div className="flex flex-col gap-[16px]">
-          {table("Načini plaćanja", report.payments, ["Način", "Porudžbina", "Naplaćeno"])}
-          {table("Načini dostave", report.deliveries, ["Način", "Porudžbina", "Dostava"])}
-          {table("Popusti", report.discountsUsed, ["Popust", "Porudžbina", "Dato"])}
+          {table(t("Načini plaćanja"), report.payments, [t("Način"), t("Porudžbina"), t("Naplaćeno")])}
+          {table(t("Načini dostave"), report.deliveries, [t("Način"), t("Porudžbina"), t("Dostava")])}
+          {table("Popusti", report.discountsUsed, [t("Popust"), t("Porudžbina"), t("Dato")])}
         </div>
       </div>
     </>

@@ -64,8 +64,7 @@ export default async function CartsPage({ searchParams }: CartsPageProps) {
             {t("Tekst")}
             <textarea name="text" maxLength={2000} defaultValue={abandoned.text} className={`${inputClass} min-h-[110px]`} />
             <span className="font-sans text-[14px] font-normal text-muted">
-              {"{ime}"} i {"{prodavnica}"} se menjaju podacima. Ispod teksta idu proizvodi iz korpe i dugme za
-              povratak na plaćanje.
+              {"{ime}"} i {"{prodavnica}"} {t("se menjaju podacima. Ispod teksta idu proizvodi iz korpe i dugme za povratak na plaćanje.")}
             </span>
           </label>
           <div>
@@ -77,7 +76,7 @@ export default async function CartsPage({ searchParams }: CartsPageProps) {
 
         <div className={cardClass}>
           <div className="mb-[8px] flex flex-wrap items-center justify-between gap-[12px]">
-            <h2 className={panelTitleClass}>Korpe ({carts.length})</h2>
+            <h2 className={panelTitleClass}>{t("Korpe (")}{carts.length})</h2>
             <form action={sendRemindersAction}>
               <button type="submit" className={quietButtonClass} disabled={!abandoned.enabled || !isMailConfigured(settings)}>
                 {t("Pošalji podsetnike sada")}
@@ -104,7 +103,7 @@ export default async function CartsPage({ searchParams }: CartsPageProps) {
                 <div className="font-display font-bold">{formatMoney(cart.value, currency)}</div>
                 <div className="text-[14px] text-muted">
                   {orderDate(cart.updatedAt)}
-                  {cart.unsubscribed ? " · odjavljen" : cart.remindedAt ? " · podsetnik poslat" : " · čeka"}
+                  {cart.unsubscribed ? " · odjavljen" : cart.remindedAt ? " · podsetnik poslat" : t(" · čeka")}
                 </div>
               </div>
             </div>

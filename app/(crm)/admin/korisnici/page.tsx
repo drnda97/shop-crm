@@ -37,7 +37,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     <select name="role" defaultValue={value} className={inputClass}>
       {roles.map((role) => (
         <option key={role} value={role}>
-          {roleLabels[role]} — {roleHints[role]}
+          {t(roleLabels[role])} — {t(roleHints[role])}
         </option>
       ))}
     </select>
@@ -61,9 +61,9 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                 {user.id === current.id && <span className="font-sans text-[15px] font-normal text-muted"> {t("· vi")}</span>}
               </h2>
               <span className="text-[14px] text-muted">
-                {user.disabled ? "isključen · " : ""}
+                {user.disabled ? t("isključen · ") : ""}
                 {user.totpEnabled ? "prijava u dva koraka · " : ""}
-                {user.lastLoginAt ? `poslednja prijava ${orderDate(user.lastLoginAt)}` : "još se nije prijavio"}
+                {user.lastLoginAt ? t("poslednja prijava {a}", { a: orderDate(user.lastLoginAt) }) : t("još se nije prijavio")}
               </span>
             </div>
             <form action={updateUserAction} className="flex flex-wrap items-end gap-[12px]">
@@ -73,7 +73,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                 <input name="name" required maxLength={100} defaultValue={user.name} className={inputClass} />
               </label>
               <label className={`${labelClass} min-w-[240px] grow-[2] basis-0`}>
-                Uloga
+                {t("Uloga")}
                 {roleSelect(user.role)}
               </label>
               <label className="flex min-h-[50px] cursor-pointer items-center gap-[10px] text-[15px]">
@@ -91,7 +91,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                   <input type="hidden" name="id" value={user.id} />
                   <input type="hidden" name="username" value={user.username} />
                   <label className={`${labelClass} min-w-[220px] grow basis-0`}>
-                    Nova lozinka (najmanje {PASSWORD_MIN} znakova)
+                    {t("Nova lozinka (najmanje")} {PASSWORD_MIN} {t("znakova)")}
                     <input name="password" type="password" autoComplete="new-password" required minLength={PASSWORD_MIN} className={inputClass} />
                   </label>
                   <button type="submit" className={quietButtonClass}>
@@ -102,7 +102,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                   <form action={resetUserTotpAction}>
                     <input type="hidden" name="id" value={user.id} />
                     <input type="hidden" name="username" value={user.username} />
-                    <ConfirmButton question={`Isključiti prijavu u dva koraka za ${user.username}?`} className={quietButtonClass}>
+                    <ConfirmButton question={t("Isključiti prijavu u dva koraka za {a}?", { a: user.username })} className={quietButtonClass}>
                       {t("Isključi dva koraka")}
                     </ConfirmButton>
                   </form>
@@ -111,7 +111,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                   <form action={deleteUserAction}>
                     <input type="hidden" name="id" value={user.id} />
                     <input type="hidden" name="username" value={user.username} />
-                    <ConfirmButton question={`Obrisati korisnika ${user.username}?`} className={quietButtonClass}>
+                    <ConfirmButton question={t("Obrisati korisnika {a}?", { a: user.username })} className={quietButtonClass}>
                       {t("Obriši")}
                     </ConfirmButton>
                   </form>
@@ -135,11 +135,11 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
           </div>
           <div className={fieldRowClass}>
             <label className={labelClass}>
-              Uloga
+              {t("Uloga")}
               {roleSelect("sales")}
             </label>
             <label className={labelClass}>
-              Lozinka (najmanje {PASSWORD_MIN} znakova)
+              {t("Lozinka (najmanje")} {PASSWORD_MIN} {t("znakova)")}
               <input name="password" type="password" autoComplete="new-password" required minLength={PASSWORD_MIN} className={inputClass} />
             </label>
           </div>

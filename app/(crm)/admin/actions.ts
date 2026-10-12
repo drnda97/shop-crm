@@ -1,6 +1,9 @@
 "use server";
 
-import { isLang, type Lang } from "@/lib/i18n";
+import { shopT } from "@/lib/i18n/server";
+import { saveTranslations } from "@/lib/translations";
+import { renamePage, translateContent } from "@/lib/i18n/content";
+import { isLang, langCode, type Lang } from "@/lib/i18n";
 import { existsSync } from "node:fs";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
@@ -78,7 +81,9 @@ import { clientIp, TOO_MANY, tooMany } from "@/lib/rate-limit";
 import { fetchImage } from "@/lib/remote-image";
 import { newSection, normalizeData, normalizeSections } from "@/lib/sections";
 import { findProvider } from "@/lib/payments";
-import { currencyOf, defaultSettings, INVOICE_EMAILS, mergeSettings, STATUS_EMAILS } from "@/lib/settings";
+import { currencyOf, defaultSettings, INVOICE_EMAILS, mergeSettings, STATUS_EMAILS,
+  storeLanguages,
+} from "@/lib/settings";
 import { normalizeMethods } from "@/lib/shipping";
 import { sendDueReminders } from "@/lib/abandoned";
 import { audit } from "@/lib/audit";
@@ -945,6 +950,44 @@ export async function savePageAction(input: SavePageInput): Promise<SaveResult> 
   return { ok: true };
 }
 
+/** Čuva prevode sa stranice Prevodi: parovi izvorni tekst → prevod za jedan jezik. */
+export async function saveTranslationsAction(formData: FormData) {
+  await requireAdmin("content");
+  const settings = await getSettings();
+  const lang = text(formData, "lang");
+  const backTo = text(formData, "back");
+  const path = backTo.startsWith(`${ADMIN_PATH}/prevodi`) ? backTo : `${ADMIN_PATH}/prevodi`;
+  if (!settings.store.languages.includes(lang)) backWithError(`${ADMIN_PATH}/prevodi`, "Taj jezik nije među jezicima sajta.");
+  const sources = formData.getAll("source");
+  const values = formData.getAll("value");
+  const entries = sources.flatMap((source, index) =>
+    typeof source === "string" && typeof values[index] === "string" ? [{ source, value: (values[index] as string).slice(0, 20000) }] : [],
+  );
+  await saveTranslations(lang, entries);
+  refreshSite();
+  await audit("Sačuvani prevodi", `${lang}: ${entries.filter((entry) => entry.value.trim() !== "").length}`);
+  redirect(`${path}${path.includes("?") ? "&" : "?"}ok=${encodeURIComponent("Prevodi su sačuvani.")}`);
+}
+
+/** Menja adresu stranice na sajtu (/o-nama → /about) i ispravlja linkove ka njoj u meniju, podnožju i sekcijama. */
+export async function renamePageAction(formData: FormData) {
+  await requireAdmin("content");
+  const slug = text(formData, "slug");
+  const next = slugify(text(formData, "newSlug"));
+  const formPath = `${PAGES_PATH}/${slug}`;
+  if (!next) backWithError(formPath, "Adresa mora da sadrži bar jedno slovo ili cifru.");
+  if (slug === HOME_SLUG) backWithError(formPath, "Početna strana je uvek na adresi sajta.");
+  let renamed = false;
+  await updateContent((content) => {
+    renamed = renamePage(content, slug, next);
+  });
+  if (!renamed) backWithError(formPath, "Ta adresa je zauzeta: koristi je druga stranica ili sama prodavnica.");
+  await setStoredValue(PREVIEW_KEY, null);
+  refreshSite();
+  await audit("Promenjena adresa stranice", `/${slug} → /${next}`);
+  redirect(`${PAGES_PATH}/${next}`);
+}
+
 /** Deo podešavanja sajta koji uređuje Izgled sajta: tema, meni i podnožje, ili jedan šablon. */
 export type SettingsPart =
   | { part: "theme"; value: unknown }
@@ -1246,16 +1289,19 @@ export async function resolveReturnAction(formData: FormData) {
   after(async () => {
     const [order, settings] = await Promise.all([getOrder(request.orderNumber), getSettings()]);
     if (!order?.customer.email) return;
+    // Kupcu na jeziku na kom je poručio.
+    const mailT = await shopT(order.lang ?? settings.store.language);
+    const firstName = order.customer.name.split(" ")[0];
     const { errors } = await sendMails(settings, [
       {
         to: order.customer.email,
-        subject: `Povrat za porudžbinu #${order.number} — ${settings.store.name}`,
+        subject: `${mailT("Povrat za porudžbinu #{broj}", { broj: order.number })} — ${settings.store.name}`,
         ...simpleEmail(settings, {
           message: [
             approved
-              ? `Zdravo ${order.customer.name.split(" ")[0]}, vaš zahtev za povrat za porudžbinu #${order.number} je odobren.`
-              : `Zdravo ${order.customer.name.split(" ")[0]}, vaš zahtev za povrat za porudžbinu #${order.number} nažalost nije odobren.`,
-            `Zatraženo: ${request.items.map((item) => `${item.qty} × ${item.name}`).join(", ")}.`,
+              ? mailT("Zdravo {ime}, vaš zahtev za povrat za porudžbinu #{broj} je odobren.", { ime: firstName, broj: order.number })
+              : mailT("Zdravo {ime}, vaš zahtev za povrat za porudžbinu #{broj} nažalost nije odobren.", { ime: firstName, broj: order.number }),
+            mailT("Zatraženo: {stavke}.", { stavke: request.items.map((item) => `${item.qty} × ${item.name}`).join(", ") }),
             answer,
           ].filter(Boolean).join("\n\n"),
         }),
@@ -1440,6 +1486,8 @@ export async function saveStoreAction(formData: FormData) {
 
   const email = emailAddress(formData, "email", "Email prodavnice");
   await updateContent((content) => {
+    const languageBefore = content.settings.store.language;
+    const mainLanguage = langCode(formData.get("language")) ?? languageBefore;
     content.settings.store = {
       name,
       phone: text(formData, "phone"),
@@ -1448,7 +1496,8 @@ export async function saveStoreAction(formData: FormData) {
       legal: content.settings.store.legal,
       currency,
       currencyDecimals: text(formData, "currencyDecimals") === "2" ? 2 : 0,
-      language: isLang(formData.get("language")) ? (formData.get("language") as Lang) : content.settings.store.language,
+      language: mainLanguage,
+      languages: storeLanguages(text(formData, "languages"), mainLanguage),
       panelLanguage: isLang(formData.get("panelLanguage")) ? (formData.get("panelLanguage") as Lang) : content.settings.store.panelLanguage,
       locale,
       timeZone,
@@ -1460,6 +1509,8 @@ export async function saveStoreAction(formData: FormData) {
       storefrontUrl,
       allowedOrigins: origins,
     };
+    // Novi jezik sajta: početni sadržaj koji vlasnik nije menjao i adrese početnih stranica prelaze na taj jezik.
+    translateContent(content, languageBefore, content.settings.store.language);
   });
   refresh();
   await audit("Sačuvani podaci prodavnice", formData);

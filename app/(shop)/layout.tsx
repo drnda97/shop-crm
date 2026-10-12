@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { CSSProperties, ReactNode } from "react";
-import { htmlLang, ogLocale } from "@/lib/i18n";
+import { notFound } from "next/navigation";
+import { ogLocale } from "@/lib/i18n";
+import { getShopCustomDict, getShopLang, getShopPrefix, unknownShopLang } from "@/lib/i18n/server";
 import { getShopConfig, getShopProducts } from "@/lib/storefront/catalog";
 import { getShopSettings, siteUrl } from "@/lib/storefront/pages";
 import { themeVars } from "@/lib/theme";
@@ -21,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: name, template: `${name} — %s` },
     ...(settings.site.tagline ? { description: settings.site.tagline } : {}),
     ...(settings.favicon ? { icons: { icon: settings.favicon } } : {}),
-    openGraph: { siteName: name, type: "website", locale: ogLocale[settings.store.language] },
+    openGraph: { siteName: name, type: "website", locale: ogLocale(await getShopLang()) },
   };
 }
 
@@ -31,19 +33,23 @@ export async function generateMetadata(): Promise<Metadata> {
  * Izgled je u temi (themes/default); ovde su samo podaci i ono što svaka tema dobija.
  */
 export default async function ShopLayout({ children }: { children: ReactNode }) {
-  const [products, config, settings] = await Promise.all([
+  // Adresa sa jezikom koji prodavnica nema (/xx/…) ne postoji.
+  if (await unknownShopLang()) notFound();
+  const [products, config, settings, lang, prefix, custom] = await Promise.all([
     getShopProducts(),
     getShopConfig(),
     getShopSettings(),
+    getShopLang(),
+    getShopPrefix(),
+    getShopCustomDict(),
   ]);
   const { announcement, announcementHref } = settings.site;
-  const lang = settings.store.language;
 
   return (
     // Boje i fontovi iz panela (Izgled sajta → Tema) stižu kao CSS promenljive teme.
-    <html lang={htmlLang[lang]} className={fontVariables} style={themeVars(settings.colors, settings.fonts) as CSSProperties}>
+    <html lang={lang} className={fontVariables} style={themeVars(settings.colors, settings.fonts) as CSSProperties}>
       <body>
-        <Shell lang={lang} announcement={announcement} announcementHref={announcementHref} products={products} config={config}>
+        <Shell lang={lang} prefix={prefix} custom={custom} announcement={announcement} announcementHref={announcementHref} products={products} config={config}>
           {children}
         </Shell>
       </body>

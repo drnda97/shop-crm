@@ -67,13 +67,12 @@ export function VariantsEditor({ options: saved, variants: existing, images, cur
           name="options"
           value={text}
           onChange={(event) => setText(event.target.value)}
-          placeholder={"Veličina: S, M, L\nBoja: Pesak #B9AB98, Grafit #3C4346"}
+          placeholder={t("Veličina: S, M, L\nBoja: Pesak #B9AB98, Grafit #3C4346")}
           className={`${inputClass} min-h-[100px]`}
         />
       </label>
       <p className="mt-[-8px] text-[14px] text-muted">
-        Šifra boje (#rrggbb) iza vrednosti prikazuje je kao kružić u toj boji. Svaka kombinacija vrednosti je
-        jedna varijanta, sa svojom cenom, šifrom i stanjem.
+        {t("Šifra boje (#rrggbb) iza vrednosti prikazuje je kao kružić u toj boji. Svaka kombinacija vrednosti je jedna varijanta, sa svojom cenom, šifrom i stanjem.")}
       </p>
       <input
         type="hidden"
@@ -83,8 +82,7 @@ export function VariantsEditor({ options: saved, variants: existing, images, cur
 
       {count > MAX_VARIANTS && (
         <p role="alert" className="rounded-[16px] bg-band px-[16px] py-[12px] text-[14.5px] font-medium">
-          Ove opcije daju {count} kombinacija, a proizvod može imati najviše {MAX_VARIANTS} varijanti. Smanjite
-          broj vrednosti ili podelite proizvod na više proizvoda.
+          {t("Ove opcije daju")} {count} {t("kombinacija, a proizvod može imati najviše")} {MAX_VARIANTS} {t("varijanti. Smanjite broj vrednosti ili podelite proizvod na više proizvoda.")}
         </p>
       )}
 
@@ -94,7 +92,7 @@ export function VariantsEditor({ options: saved, variants: existing, images, cur
             <thead>
               <tr className="font-display text-[13px] font-semibold text-muted">
                 <th className="pr-[10px] font-semibold">{t("Varijanta")}</th>
-                <th className="pr-[8px] font-semibold">Cena ({currency.code})</th>
+                <th className="pr-[8px] font-semibold">{t("Cena (")}{currency.code})</th>
                 <th className="pr-[8px] font-semibold">{t("Na akciji")}</th>
                 <th className="pr-[8px] font-semibold">{t("Šifra")}</th>
                 <th className="pr-[8px] font-semibold">{t("Komada")}</th>
@@ -145,7 +143,7 @@ export function VariantsEditor({ options: saved, variants: existing, images, cur
                     <td className="pr-[8px]">
                       <input
                         maxLength={64}
-                        aria-label={`${label}: šifra`}
+                        aria-label={t("{a}: šifra", { a: label })}
                         value={current.sku}
                         onChange={(event) => change(variant.id, { sku: event.target.value })}
                         className={cellInput}
@@ -191,9 +189,7 @@ export function VariantsEditor({ options: saved, variants: existing, images, cur
       )}
       {variants.length > 0 && (
         <p className="mt-[-4px] text-[14px] text-muted">
-          Prazna cena znači cenu proizvoda (i njegovu akciju). Prazan broj komada znači da se stanje varijante
-          ne vodi i da važi ručno stanje proizvoda; broj komada upisan uz proizvod se tada ne koristi. Varijanta
-          bez kvačice se ne nudi kupcu. Slika varijante se bira među sačuvanim slikama proizvoda.
+          {t("Prazna cena znači cenu proizvoda (i njegovu akciju). Prazan broj komada znači da se stanje varijante ne vodi i da važi ručno stanje proizvoda; broj komada upisan uz proizvod se tada ne koristi. Varijanta bez kvačice se ne nudi kupcu. Slika varijante se bira među sačuvanim slikama proizvoda.")}
         </p>
       )}
     </>

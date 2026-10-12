@@ -1,5 +1,6 @@
 "use client";
 
+import { usePath } from "@/lib/i18n/client";
 import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
 import { type CSSProperties, type FormEvent, useEffect, useState, useTransition } from "react";
@@ -45,6 +46,7 @@ type Fields = Record<CheckoutField, string>;
 type Totals = { subtotal: number; discount: number; discountText: string; deliveryMethod: string; delivery: number; total: number };
 
 export function CheckoutView({ user }: { user: User | null }) {
+  const to = usePath();
   const t = useT();
   const { config, items, count, subtotal, weight, clear } = useCart();
   const texts = config.texts.checkout;
@@ -189,11 +191,11 @@ export function CheckoutView({ user }: { user: User | null }) {
           )}
           {user ? (
             <p className="muted" style={hint}>
-              {t("Prijavljeni ste kao {ime}. Porudžbina će biti u vašem", { ime: `${user.firstName} ${user.lastName}` })} <Link href="/nalog">{t("nalogu")}</Link>.
+              {t("Prijavljeni ste kao {ime}. Porudžbina će biti u vašem", { ime: `${user.firstName} ${user.lastName}` })} <Link href={to("/nalog")}>{t("nalogu")}</Link>.
             </p>
           ) : (
             <p className="muted" style={hint}>
-              {t("Već imate nalog?")} <Link href="/nalog">{t("Prijavite se")}</Link> {t("za bržu kupovinu.")}
+              {t("Već imate nalog?")} <Link href={to("/nalog")}>{t("Prijavite se")}</Link> {t("za bržu kupovinu.")}
             </p>
           )}
         </fieldset>
@@ -261,7 +263,7 @@ export function CheckoutView({ user }: { user: User | null }) {
             {t("Potvrdi porudžbinu, {iznos}", { iznos: formatPrice(total) })}
           </button>
           <p className="muted" style={{ fontSize: "14px", textAlign: "center" }}>
-            {t("Potvrdom prihvatate")} <Link href={texts.termsHref || "/"}>{t("uslove kupovine")}</Link>. {texts.termsNote}
+            {t("Potvrdom prihvatate")} <Link href={to(texts.termsHref || "/")}>{t("uslove kupovine")}</Link>. {texts.termsNote}
           </p>
         </div>
       </form>
@@ -275,7 +277,7 @@ export function CheckoutView({ user }: { user: User | null }) {
         {count === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "14px", alignItems: "flex-start" }}>
             <p className="muted">{t("Korpa je prazna.")}</p>
-            <Link className="btn ghost" href="/kolekcija">{t("Pogledajte kolekciju")}</Link>
+            <Link className="btn ghost" href={to("/kolekcija")}>{t("Pogledajte kolekciju")}</Link>
           </div>
         ) : (
           <Lines items={items} />
@@ -391,6 +393,7 @@ function TotalRows({ subtotal, discount, discountText, deliveryMethod, delivery,
 
 /** Potvrda posle porudžbine, sa obračunom iz CRM-a. U dizajnu ne postoji, pa je složena od postojećih elemenata. */
 function Confirmation({ order, lines }: { order: PlacedOrder; lines: CartItem[] }) {
+  const to = usePath();
   const t = useT();
   return (
     <div className="wrap" style={wrapStyle}>
@@ -413,8 +416,8 @@ function Confirmation({ order, lines }: { order: PlacedOrder; lines: CartItem[] 
           </div>
         )}
         <div className="a2" style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-          <Link className="btn" href="/kolekcija">{t("Nastavite kupovinu")}</Link>
-          <Link className="btn ghost" href="/nalog">{t("Moj nalog")}</Link>
+          <Link className="btn" href={to("/kolekcija")}>{t("Nastavite kupovinu")}</Link>
+          <Link className="btn ghost" href={to("/nalog")}>{t("Moj nalog")}</Link>
         </div>
       </div>
 

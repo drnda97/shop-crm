@@ -55,7 +55,7 @@ export default async function EditCollectionPage({
               <input name="name" required defaultValue={collection.name} className={inputClass} />
             </label>
             <label className={labelClass}>
-              Opis (ispod naslova na stranici kolekcije)
+              {t("Opis (ispod naslova na stranici kolekcije)")}
               <textarea
                 name="description"
                 defaultValue={collection.description}

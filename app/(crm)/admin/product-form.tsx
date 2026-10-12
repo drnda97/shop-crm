@@ -52,8 +52,8 @@ export async function ProductForm({ product, categories, others, currency, error
       </Link>
       <div className="mt-[12px]">
         <PageHeader
-          title={product ? product.name : "Novi proizvod"}
-          hint={product ? `Oznaka za sajt i API: ${product.slug}` : undefined}
+          title={product ? product.name : t("Novi proizvod")}
+          hint={product ? t("Oznaka za sajt i API: {a}", { a: product.slug }) : undefined}
           error={error}
         />
       </div>
@@ -131,7 +131,7 @@ export async function ProductForm({ product, categories, others, currency, error
               )}
 
               <label className={labelClass}>
-                Kratak opis (kartica proizvoda)
+                {t("Kratak opis (kartica proizvoda)")}
                 <input
                   name="summary"
                   maxLength={500}
@@ -152,8 +152,7 @@ export async function ProductForm({ product, categories, others, currency, error
                 />
               </label>
               <label className={labelClass}>
-                Dodatne sekcije — jedan red po sekciji, u obliku {'„Naslov: tekst"'} (npr. Sastav,
-                Dimenzije, Održavanje)
+                {t("Dodatne sekcije — jedan red po sekciji, u obliku")} {'„Naslov: tekst"'} {t("(npr. Sastav, Dimenzije, Održavanje)")}
                 <textarea
                   name="attributes"
                   defaultValue={product?.attributes
@@ -204,8 +203,7 @@ export async function ProductForm({ product, categories, others, currency, error
                     ))}
                   </select>
                   <span className="font-sans text-[14px] font-normal text-muted">
-                    Više njih birate uz Ctrl (na Mac-u Cmd). Bez izbora, ili dok ih nema četiri, stranica
-                    proizvoda nudi proizvode iz iste kategorije.
+                    {t("Više njih birate uz Ctrl (na Mac-u Cmd). Bez izbora, ili dok ih nema četiri, stranica proizvoda nudi proizvode iz iste kategorije.")}
                   </span>
                 </label>
               )}
@@ -234,13 +232,13 @@ export async function ProductForm({ product, categories, others, currency, error
                 />
               </label>
               <label className={labelClass}>
-                Mere i činjenice — jedan red po stavci, u obliku {'„Naziv: vrednost"'}
+                {t("Mere i činjenice — jedan red po stavci, u obliku")} {'„Naziv: vrednost"'}
                 <textarea
                   name="highlightSpecs"
                   defaultValue={(product?.highlight.specs ?? [])
                     .map((spec) => `${spec.label}: ${spec.value}`)
                     .join("\n")}
-                  placeholder={"Širina: 72 cm\nNosivost: 130 kg"}
+                  placeholder={t("Širina: 72 cm\nNosivost: 130 kg")}
                   className={textareaClass}
                 />
               </label>
@@ -270,7 +268,7 @@ export async function ProductForm({ product, categories, others, currency, error
               <h2 className={panelTitleClass}>{t("Cena")}</h2>
               <div className={fieldRowClass}>
                 <label className={labelClass}>
-                  Cena ({currency.code})
+                  {t("Cena (")}{currency.code})
                   <input
                     name="price"
                     type="number"
@@ -281,7 +279,7 @@ export async function ProductForm({ product, categories, others, currency, error
                   />
                 </label>
                 <label className={labelClass}>
-                  Cena na akciji ({currency.code})
+                  {t("Cena na akciji (")}{currency.code})
                   <input
                     name="salePrice"
                     type="number"
@@ -293,7 +291,7 @@ export async function ProductForm({ product, categories, others, currency, error
                   />
                 </label>
                 <label className={labelClass}>
-                  Težina (g)
+                  {t("Težina (g)")}
                   <input
                     name="weight"
                     type="number"
@@ -354,7 +352,7 @@ export async function ProductForm({ product, categories, others, currency, error
                   </select>
                 </label>
                 <label className={labelClass}>
-                  Prag (komada)
+                  {t("Prag (komada)")}
                   <input
                     name="lowStockThreshold"
                     type="number"
@@ -372,9 +370,9 @@ export async function ProductForm({ product, categories, others, currency, error
             <section className={panelClass}>
               <h2 className={panelTitleClass}>{t("Slike")}</h2>
               <div className={labelClass}>
-                Glavna slika ({IMAGE_HINT})
+                {t("Glavna slika (")}{t(IMAGE_HINT)})
                 <div className="flex flex-wrap items-center gap-[16px]">
-                  <Thumb src={product?.image} alt={product?.name ?? "Novi proizvod"} />
+                  <Thumb src={product?.image} alt={product?.name ?? t("Novi proizvod")} />
                   <input
                     type="file"
                     name="image"
@@ -387,7 +385,7 @@ export async function ProductForm({ product, categories, others, currency, error
               </div>
 
               <div className={labelClass}>
-                Dodatne slike (galerija)
+                {t("Dodatne slike (galerija)")}
                 {(product?.gallery ?? []).length > 0 && (
                   <div className="flex flex-wrap gap-[16px]">
                     {(product?.gallery ?? []).map((src) => (
@@ -412,7 +410,7 @@ export async function ProductForm({ product, categories, others, currency, error
                   aria-label={t("Dodatne slike")}
                   className={fileClass}
                 />
-                <span>Možete izabrati više slika odjednom (zajedno do 15 MB).</span>
+                <span>{t("Možete izabrati više slika odjednom (zajedno do 15 MB).")}</span>
               </div>
             </section>
           </div>

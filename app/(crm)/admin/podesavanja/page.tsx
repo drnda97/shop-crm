@@ -1,5 +1,5 @@
 import { getPanelT } from "@/lib/i18n/server";
-import { LANGS } from "@/lib/i18n";
+import { langName, LANGS } from "@/lib/i18n";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
@@ -54,7 +54,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   const { greska, ok } = await searchParams;
   // Lozinka za SMTP se namerno ne šalje u formu.
   const { store, logo, favicon, mail, shipping, payment, tax, analytics } = await getSettings();
-  const providers = PAYMENT_PROVIDERS.map((provider) => ({ id: provider.id, label: provider.label, ready: provider.ready() }));
+  const providers = PAYMENT_PROVIDERS.map((provider) => ({ id: provider.id, label: t(provider.label), ready: provider.ready() }));
   const previewPath = `${ADMIN_PATH}/podesavanja/pregled`;
   const decimals = store.currencyDecimals;
 
@@ -120,12 +120,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                     defaultValue={String(decimals)}
                     className={inputClass}
                   >
-                    <option value="0">Celi iznosi (1.250 RSD)</option>
-                    <option value="2">Sa dve decimale (12,50 €)</option>
+                    <option value="0">{t("Celi iznosi (1.250 RSD)")}</option>
+                    <option value="2">{t("Sa dve decimale (12,50 €)")}</option>
                   </select>
                 </label>
                 <label className={labelClass}>
-                  Pozivni broj zemlje (bez plusa)
+                  {t("Pozivni broj zemlje (bez plusa)")}
                   <input
                     name="phonePrefix"
                     defaultValue={store.phonePrefix}
@@ -144,20 +144,26 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 <label className={labelClass}>
                   {t("Jezik sajta i poruka kupcima")}
                   <select name="language" defaultValue={store.language} className={inputClass}>
-                    {Object.entries(LANGS).map(([id, label]) => (
+                    {[...new Set([...Object.keys(LANGS), store.language, ...store.languages])].map((id) => (
                       <option key={id} value={id}>
-                        {label}
+                        {langName(id)}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label className={labelClass}>
+                  {t("Dodatni jezici sajta")}
+                  <input name="languages" defaultValue={store.languages.join(", ")} placeholder="en, de, fr" className={inputClass} />
+                  <span className="text-[13.5px] font-normal text-muted">
+                    {t("Oznake jezika razdvojene zarezom (en, de, fr, it…). Kupac bira jezik u zaglavlju sajta, a adrese dobijaju početak /en, /de. Tekstove prevodite u delu Prevodi; dok prevoda nema, prikazuje se glavni jezik.")}
+                  </span>
+                </label>
+                <label className={labelClass}>
                   {t("Jezik panela")}
                   <select name="panelLanguage" defaultValue={store.panelLanguage} className={inputClass}>
                     {Object.entries(LANGS).map(([id, label]) => (
-                      // Panel je za sada preveden samo delimično, pa se drugi jezik još ne nudi.
-                      <option key={id} value={id} disabled={id !== "sr"}>
-                        {id === "sr" ? label : `${label} (u pripremi)`}
+                      <option key={id} value={id}>
+                        {label}
                       </option>
                     ))}
                   </select>
@@ -177,7 +183,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
               <h3 className={groupTitle}>{t("Sajt prodavnice")}</h3>
               <label className={labelClass}>
-                Adresa sajta (link „Otvori sajt“ u meniju)
+                {t("Adresa sajta (link „Otvori sajt“ u meniju)")}
                 <input
                   name="storefrontUrl"
                   type="url"
@@ -227,9 +233,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           <section className={sectionClass}>
             <h2 className={sectionTitle}>{t("Dostava")}</h2>
             <p className={sectionHint}>
-              Načini dostave koje kupac bira pri poručivanju. Svaki ima svoju cenu (stalnu ili po
-              težini), prag za besplatnu dostavu i, po želji, zonu u koju se isporučuje. Prvi način
-              dostave na adresu je podrazumevan.
+              {t("Načini dostave koje kupac bira pri poručivanju. Svaki ima svoju cenu (stalnu ili po težini), prag za besplatnu dostavu i, po želji, zonu u koju se isporučuje. Prvi način dostave na adresu je podrazumevan.")}
             </p>
             <ShippingEditor
               currency={store.currency}
@@ -260,8 +264,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 {t("Uplata na račun — kupac dobija podatke za uplatu")}
               </label>
               <label className={labelClass}>
-                Podaci za uplatu (primalac, broj računa, svrha) — kupac ih vidi posle porudžbine i u
-                emailu; broj porudžbine se dodaje kao poziv na broj
+                {t("Podaci za uplatu (primalac, broj računa, svrha) — kupac ih vidi posle porudžbine i u emailu; broj porudžbine se dodaje kao poziv na broj")}
                 <textarea
                   name="bankInstructions"
                   defaultValue={payment.bankInstructions}
@@ -279,15 +282,15 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   <option value="">{t("— nijedan —")}</option>
                   {providers.map((provider) => (
                     <option key={provider.id} value={provider.id} disabled={!provider.ready}>
-                      {provider.label}
-                      {provider.ready ? "" : " (nije povezan)"}
+                      {t(provider.label)}
+                      {provider.ready ? "" : t(" (nije povezan)")}
                     </option>
                   ))}
                 </select>
                 <span className="font-sans text-[14px] font-normal text-muted">
                   {providers.some((provider) => provider.ready)
-                    ? "Kartica se nudi kupcu kada je uključena i procesor izabran."
-                    : "Nijedan procesor nije povezan, pa se kartica ne nudi kupcu ni kada je uključena. Procesor banke se dopisuje u lib/payments.ts."}
+                    ? t("Kartica se nudi kupcu kada je uključena i procesor izabran.")
+                    : t("Nijedan procesor nije povezan, pa se kartica ne nudi kupcu ni kada je uključena. Procesor banke se dopisuje u lib/payments.ts.")}
                 </span>
               </label>
               <div>
@@ -309,7 +312,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 <input name="ga4" defaultValue={analytics.ga4} placeholder={t("G-XXXXXXXXXX")} autoComplete="off" className={inputClass} />
               </label>
               <label className={labelClass}>
-                Meta (Facebook) Pixel ID
+                {t("Meta (Facebook) Pixel ID")}
                 <input name="metaPixel" defaultValue={analytics.metaPixel} placeholder="123456789012345" autoComplete="off" inputMode="numeric" className={inputClass} />
               </label>
               <div>
@@ -327,7 +330,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             </p>
             <form action={saveTaxAction} className="flex flex-col gap-[16px]">
               <label className={labelClass}>
-                Podaci firme (pun naziv, sedište, PIB, matični broj, tekući račun)
+                {t("Podaci firme (pun naziv, sedište, PIB, matični broj, tekući račun)")}
                 <textarea
                   name="legal"
                   defaultValue={store.legal}
@@ -340,7 +343,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 {t("Prodavnica je u sistemu PDV-a — na računu se iskazuju osnovica i PDV")}
               </label>
               <label className={labelClass}>
-                Stopa PDV-a (%)
+                {t("Stopa PDV-a (%)")}
                 <input
                   name="taxPercent"
                   type="number"
@@ -351,7 +354,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   className={inputClass}
                 />
                 <span className="font-sans text-[14px] font-normal text-muted">
-                  Cene u prodavnici već sadrže PDV; stopa služi samo da se on iskaže na računu.
+                  {t("Cene u prodavnici već sadrže PDV; stopa služi samo da se on iskaže na računu.")}
                 </span>
               </label>
               <label className={labelClass}>
@@ -377,7 +380,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           <section className={sectionClass}>
             <h2 className={sectionTitle}>{t("Logo i favicon")}</h2>
             <p className={sectionHint}>
-              Logo se prikazuje u zaglavlju sajta i u emailu o porudžbini. Boje i fontovi su u delu{" "}
+              {t("Logo se prikazuje u zaglavlju sajta i u emailu o porudžbini. Boje i fontovi su u delu")}{" "}
               <Link href={`${ADMIN_PATH}/izgled`} className={textLinkClass}>
                 {t("Izgled sajta")}
               </Link>
@@ -386,7 +389,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <form action={saveAppearanceAction} className="flex flex-col gap-[16px]">
               <div className={twoColumns}>
                 <div className={labelClass}>
-                  Logo (PNG ili WebP providne pozadine)
+                  {t("Logo (PNG ili WebP providne pozadine)")}
                   <div className="flex flex-wrap items-center gap-[12px]">
                     <Thumb src={logo} alt={t("Logo")} contain />
                     <input
@@ -405,7 +408,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   )}
                 </div>
                 <div className={labelClass}>
-                  Favicon (kvadratni PNG, bar 64 × 64 px)
+                  {t("Favicon (kvadratni PNG, bar 64 × 64 px)")}
                   <div className="flex flex-wrap items-center gap-[12px]">
                     <Thumb src={favicon} alt={t("Favicon")} contain />
                     <input
@@ -450,7 +453,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
               <div className={twoColumns}>
                 <label className={labelClass}>
-                  Vaš email (ovde stižu porudžbine)
+                  {t("Vaš email (ovde stižu porudžbine)")}
                   <input
                     name="sellerEmail"
                     type="email"
@@ -459,12 +462,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   />
                 </label>
                 <label className={labelClass}>
-                  Ime pošiljaoca (ako je prazno, naziv prodavnice)
+                  {t("Ime pošiljaoca (ako je prazno, naziv prodavnice)")}
                   <input name="fromName" defaultValue={mail.fromName} className={inputClass} />
                 </label>
               </div>
 
-              <h3 className={groupTitle}>Nalog sa kog se šalje (SMTP)</h3>
+              <h3 className={groupTitle}>{t("Nalog sa kog se šalje (SMTP)")}</h3>
               <p className="mt-[-12px] text-[14px] text-muted">
                 {t("Podatke daje vaš email provajder ili hosting. Za Gmail: server smtp.gmail.com, port 587, korisničko ime je vaša adresa, a lozinka je „lozinka za aplikacije“ iz Google naloga, ne vaša obična lozinka.")}
               </p>
@@ -479,7 +482,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   />
                 </label>
                 <label className={labelClass}>
-                  Port (587, ili 465 za SSL)
+                  {t("Port (587, ili 465 za SSL)")}
                   <input
                     name="smtpPort"
                     type="number"
@@ -505,12 +508,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                     name="smtpPassword"
                     type="password"
                     autoComplete="new-password"
-                    placeholder={mail.smtpPassword ? "sačuvana — upišite samo ako je menjate" : ""}
+                    placeholder={mail.smtpPassword ? t("sačuvana — upišite samo ako je menjate") : ""}
                     className={inputClass}
                   />
                 </label>
                 <label className={labelClass}>
-                  Adresa pošiljaoca (ako je prazno, koristi se korisničko ime)
+                  {t("Adresa pošiljaoca (ako je prazno, koristi se korisničko ime)")}
                   <input
                     name="fromEmail"
                     type="email"
@@ -536,16 +539,16 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           <section className={sectionClass}>
             <h2 className={sectionTitle}>{t("Poruke o statusu")}</h2>
             <p className={sectionHint}>
-Email kupcu kada porudžbina promeni status ili kada upišete povraćaj. U tekstu se{" "}
-              {"{ime}"}, {"{broj}"}, {"{pracenje}"} (broj pošiljke i link, kada su upisani),{" "}
-              {"{iznos}"} (kod povraćaja) i {"{prodavnica}"} menjaju podacima porudžbine. Ispod teksta idu stavke i iznosi, kao u potvrdi porudžbine.
+{t("Email kupcu kada porudžbina promeni status ili kada upišete povraćaj. U tekstu se")}{" "}
+              {"{ime}"}, {"{broj}"}, {"{pracenje}"} {t("(broj pošiljke i link, kada su upisani),")}{" "}
+              {"{iznos}"} {t("(kod povraćaja) i")} {"{prodavnica}"} {t("menjaju podacima porudžbine. Ispod teksta idu stavke i iznosi, kao u potvrdi porudžbine.")}
             </p>
             <form action={saveStatusEmailsAction} className="flex flex-col gap-[18px]">
               {STATUS_EMAILS.map((key) => (
                 <fieldset key={key} className="flex flex-col gap-[10px] border-t border-line pt-[14px] first:border-t-0 first:pt-0">
                   <label className={checkboxLabel}>
                     <Checkbox name={`${key}Enabled`} defaultChecked={mail.statusEmails[key].enabled} />
-                    Šalji {statusEmailLabels[key]}
+                    {t("Šalji")} {t(statusEmailLabels[key])}
                   </label>
                   <label className={labelClass}>
                     {t("Naslov")}
@@ -578,10 +581,8 @@ Email kupcu kada porudžbina promeni status ili kada upišete povraćaj. U tekst
           <section className={sectionClass}>
             <h2 className={sectionTitle}>{t("Šablon emaila")}</h2>
             <p className={sectionHint}>
-              Trenutno se koristi{" "}
-              <strong>{mail.customTemplate ? "vaš šablon" : "naš šablon"}</strong>. Isti šablon ide
-              i vama i kupcu; razlikuju se naslov i uvodna rečenica. Naš šablon prati boje i logo iz
-              dela Izgled.
+              {t("Trenutno se koristi")}{" "}
+              <strong>{mail.customTemplate ? t("vaš šablon") : t("naš šablon")}</strong>{t(". Isti šablon ide i vama i kupcu; razlikuju se naslov i uvodna rečenica. Naš šablon prati boje i logo iz dela Izgled.")}
             </p>
             <div className="flex flex-wrap gap-[12px]">
               <a href={previewPath} target="_blank" className={quietButtonClass}>
@@ -600,7 +601,7 @@ Email kupcu kada porudžbina promeni status ili kada upišete povraćaj. U tekst
               className="mt-[16px] flex flex-wrap items-end gap-[12px] border-t border-line pt-[16px]"
             >
               <label className={`${labelClass} min-w-[220px] grow`}>
-                Vaš šablon (HTML fajl, do 300 KB)
+                {t("Vaš šablon (HTML fajl, do 300 KB)")}
                 <input
                   type="file"
                   name="template"

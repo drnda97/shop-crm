@@ -61,8 +61,8 @@ async function Login({ name, setup }: { name: string; setup: boolean }) {
             </h1>
             <p className="text-muted">
               {setup
-                ? "Prvo pokretanje: napravite nalog vlasnika. Ostale korisnike dodajete kasnije u panelu."
-                : "Prijavite se da biste upravljali prodavnicom."}
+                ? t("Prvo pokretanje: napravite nalog vlasnika. Ostale korisnike dodajete kasnije u panelu.")
+                : t("Prijavite se da biste upravljali prodavnicom.")}
             </p>
           </div>
           {setup ? <SetupForm /> : <LoginForm />}

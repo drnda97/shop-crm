@@ -1,3 +1,5 @@
+import { getShopPath } from "@/lib/i18n/server";
+import { getShopT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { getShopSettings } from "@/lib/storefront/pages";
 import type { CSSProperties } from "react";
@@ -7,6 +9,8 @@ const column: CSSProperties = { display: "flex", flexDirection: "column", gap: "
 
 /** Podnožje: naziv i opis prodavnice, kolone linkova i donji red — sve iz panela (Izgled sajta). */
 export async function Footer() {
+  const to = await getShopPath();
+  const t = await getShopT();
   const { store, site } = await getShopSettings();
   const columns = site.footerColumns.filter((item) => item.links.length > 0);
 
@@ -18,7 +22,7 @@ export async function Footer() {
       <div className="wrap" style={{ paddingTop: "clamp(56px, 6vw, 88px)" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(190px, 100%), 1fr))", gap: "40px 32px" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <Link className="logo" href="/">
+            <Link className="logo" href={to("/")}>
               <b></b>
               {store.name}
             </Link>
@@ -32,7 +36,7 @@ export async function Footer() {
             <nav aria-label={item.title} style={column} key={index}>
               <div className="lab" style={{ marginBottom: "8px" }}>{item.title}</div>
               {item.links.map((link, position) => (
-                <Link className="ul muted" href={link.href} key={position}>{link.label}</Link>
+                <Link className="ul muted" href={to(link.href)} key={position}>{link.label}</Link>
               ))}
             </nav>
           ))}
@@ -45,13 +49,13 @@ export async function Footer() {
 
       <div className="wrap">
         <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 32px", justifyContent: "space-between", padding: "26px 0 30px", fontSize: "14px", color: "var(--soft)" }}>
-          <span>© {new Date().getFullYear()} {store.name}. Sva prava zadržana.</span>
+          <span>© {new Date().getFullYear()} {store.name}{t(". Sva prava zadržana.")}</span>
           {site.footerNote && <span>{site.footerNote}</span>}
           <CookieLink />
           {site.legalLinks.length > 0 && (
             <span style={{ display: "flex", flexWrap: "wrap", gap: "8px 24px" }}>
               {site.legalLinks.map((link, index) => (
-                <Link className="ul" href={link.href} key={index}>{link.label}</Link>
+                <Link className="ul" href={to(link.href)} key={index}>{link.label}</Link>
               ))}
             </span>
           )}

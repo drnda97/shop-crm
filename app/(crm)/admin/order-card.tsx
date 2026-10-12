@@ -89,14 +89,14 @@ export async function OrderCard({ order, currency, date, back, hideCustomer = fa
             {order.customer.postalCode} {order.customer.city}
           </div>
           <div className="text-muted">
-            {paymentLabels[order.paymentMethod]}
-            {order.paidAt ? " · plaćeno" : order.paymentMethod !== "cod" ? " · čeka uplatu" : ""}
-            {order.refunded > 0 && ` · vraćeno ${money(order.refunded)}`}
+            {t(paymentLabels[order.paymentMethod])}
+            {order.paidAt ? t(" · plaćeno") : order.paymentMethod !== "cod" ? t(" · čeka uplatu") : ""}
+            {order.refunded > 0 && t(" · vraćeno {a}", { a: money(order.refunded) })}
           </div>
           {order.deliveryMethod && <div className="text-muted">{order.deliveryMethod}</div>}
           {order.tracking && (
             <div className="text-muted">
-              Pošiljka:{" "}
+              {t("Pošiljka:")}{" "}
               {order.tracking.url ? (
                 <a href={order.tracking.url} target="_blank" rel="noreferrer" className="underline">
                   {order.tracking.number}
@@ -107,7 +107,7 @@ export async function OrderCard({ order, currency, date, back, hideCustomer = fa
             </div>
           )}
           {order.customer.note && (
-            <div className="mt-[6px] text-muted">Napomena kupca: {order.customer.note}</div>
+            <div className="mt-[6px] text-muted">{t("Napomena kupca:")} {order.customer.note}</div>
           )}
         </div>
 
@@ -123,14 +123,14 @@ export async function OrderCard({ order, currency, date, back, hideCustomer = fa
           ))}
           {order.discount && (
             <div className="mt-[6px] flex justify-between gap-[12px] border-t border-line pt-[6px] text-muted">
-              <span>{discountText(order.discount)}</span>
+              <span>{t(discountText(order.discount))}</span>
               <span>−{money(order.discount.amount)}</span>
             </div>
           )}
           <div
             className={`flex justify-between gap-[12px] text-muted ${order.discount ? "" : "mt-[6px] border-t border-line pt-[6px]"}`}
           >
-            <span>{order.deliveryMethod || "Dostava"}</span>
+            <span>{order.deliveryMethod || t("Dostava")}</span>
             <span>{money(order.delivery)}</span>
           </div>
           <div className="flex justify-between gap-[12px] font-medium">
@@ -142,15 +142,15 @@ export async function OrderCard({ order, currency, date, back, hideCustomer = fa
 
       {order.issuedCode && (
         <p className="mt-[12px] text-[14px] text-muted">
-          {t("Kupcu je poslat kod")} <span className="font-mono text-ink">{order.issuedCode.code}</span> za{" "}
-          {order.issuedCode.percent}% popusta pri sledećoj kupovini
+          {t("Kupcu je poslat kod")} <span className="font-mono text-ink">{order.issuedCode.code}</span> {t("za")}{" "}
+          {order.issuedCode.percent}{t("% popusta pri sledećoj kupovini")}
           {order.issuedCode.title && ` (${order.issuedCode.title})`}.
         </p>
       )}
 
       {order.emailError && (
         <p className="mt-[12px] rounded-[14px] bg-band px-[14px] py-[10px] text-[14px]">
-          Email o ovoj porudžbini nije poslat ({order.emailError}). Proverite podešavanja emaila.
+          {t("Email o ovoj porudžbini nije poslat (")}{order.emailError}{t("). Proverite podešavanja emaila.")}
         </p>
       )}
 
@@ -163,7 +163,7 @@ export async function OrderCard({ order, currency, date, back, hideCustomer = fa
             defaultValue={order.adminNote ?? ""}
             maxLength={2000}
             placeholder={t("Vaša beleška (kupac je ne vidi), npr. broj pošiljke")}
-            aria-label={`Beleška uz porudžbinu ${order.number}`}
+            aria-label={t("Beleška uz porudžbinu {a}", { a: order.number })}
             className={inputClass}
           />
         </div>
@@ -184,7 +184,7 @@ export async function OrderCard({ order, currency, date, back, hideCustomer = fa
             <input type="hidden" name="status" value={step.status} />
             <input type="hidden" name="back" value={back} />
             <button type="submit" className={quietButtonClass}>
-              {step.label}
+              {t(step.label)}
             </button>
           </form>
         ))}

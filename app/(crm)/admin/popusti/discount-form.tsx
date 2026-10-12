@@ -46,7 +46,7 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
         {t("← Popusti")}
       </Link>
       <div className="mt-[12px]">
-        <PageHeader title={discount ? discount.name : "Novi popust"} error={error} />
+        <PageHeader title={discount ? discount.name : t("Novi popust")} error={error} />
       </div>
 
       <form action={saveDiscountAction} className="flex flex-col gap-[16px]">
@@ -75,7 +75,7 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
               >
                 {(Object.keys(triggerLabels) as DiscountTrigger[]).map((trigger) => (
                   <option key={trigger} value={trigger}>
-                    {triggerLabels[trigger]}
+                    {t(triggerLabels[trigger])}
                   </option>
                 ))}
               </select>
@@ -98,7 +98,7 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
                 <select name="kind" defaultValue={discount?.kind ?? "percent"} className={inputClass}>
                   {(Object.keys(kindLabels) as DiscountKind[]).map((kind) => (
                     <option key={kind} value={kind}>
-                      {kindLabels[kind]}
+                      {t(kindLabels[kind])}
                     </option>
                   ))}
                 </select>
@@ -106,7 +106,7 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
             </div>
             <div className={fieldRowClass}>
               <label className={labelClass}>
-                Procenat (%)
+                {t("Procenat (%)")}
                 <input
                   name="percent"
                   type="number"
@@ -118,7 +118,7 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
                 />
               </label>
               <label className={labelClass}>
-                Fiksni iznos ({store.currency})
+                {t("Fiksni iznos (")}{store.currency})
                 <input
                   name="amount"
                   type="number"
@@ -130,12 +130,10 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
               </label>
             </div>
             <p className="mt-[-8px] text-[14px] text-muted">
-              Upisuje se polje koje odgovara izboru „Šta popust daje”; besplatna dostava ne traži
-              nijedno. Nagrade su uvek procenat na celu korpu.
+              {t("Upisuje se polje koje odgovara izboru „Šta popust daje”; besplatna dostava ne traži nijedno. Nagrade su uvek procenat na celu korpu.")}
             </p>
             <p className="mt-[-8px] text-[14px] text-muted">
-              Slova bez kvačica, cifre i crtica. Za promo kod je obavezan. Kod nagrade može ostati
-              prazan — tada svaki kupac dobija svoj nasumičan kod (npr. {store.codePrefix || "KOD"}
+              {t("Slova bez kvačica, cifre i crtica. Za promo kod je obavezan. Kod nagrade može ostati prazan — tada svaki kupac dobija svoj nasumičan kod (npr.")} {store.codePrefix || "KOD"}
               -7K3Q9X).
             </p>
 
@@ -155,8 +153,7 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
             <section className={panelClass}>
               <h2 className={panelTitleClass}>{t("Promo kod i automatski popust")}</h2>
               <p className="mt-[-8px] text-[14px] text-muted">
-                Automatski popust važi bez koda čim korpa ispuni uslov. Kada važe i kod kupca i
-                automatski popust, primenjuje se onaj koji kupcu više štedi; popusti se ne sabiraju.
+                {t("Automatski popust važi bez koda čim korpa ispuni uslov. Kada važe i kod kupca i automatski popust, primenjuje se onaj koji kupcu više štedi; popusti se ne sabiraju.")}
               </p>
 
               <div className={fieldRowClass}>
@@ -173,7 +170,7 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
                   />
                 </label>
                 <label className={labelClass}>
-                  Važi do (poslednji dan)
+                  {t("Važi do (poslednji dan)")}
                   <input
                     name="expiresAt"
                     type="date"
@@ -220,15 +217,14 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
                 </label>
               )}
               <p className="mt-[-8px] text-[14px] text-muted">
-                Bez izbora popust važi za celu korpu. Više stavki birate uz Ctrl (na Mac-u Cmd).
-                Kategorija obuhvata i svoje podkategorije.
+                {t("Bez izbora popust važi za celu korpu. Više stavki birate uz Ctrl (na Mac-u Cmd). Kategorija obuhvata i svoje podkategorije.")}
               </p>
             </section>
             <section className={panelClass}>
               <h2 className={panelTitleClass}>{t("Uslov")}</h2>
 
               <label className={labelClass}>
-                Najmanji iznos korpe ({store.currency}); kod nagrada prag: iznos ili težina (g)
+                {t("Najmanji iznos korpe (")}{store.currency}{t("); kod nagrada prag: iznos ili težina (g)")}
                 <input
                   name="threshold"
                   type="number"
@@ -239,10 +235,7 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
                 />
               </label>
               <p className="mt-[-8px] text-[14px] text-muted">
-                Za promo kod i automatski popust: zbir korpe od kog popust važi (prazno: uvek). Za
-                nagradu posle prve porudžbine prag se ne upisuje. Kod nagrada je vrednost porudžbine
-                zbir proizvoda posle popusta, bez dostave, a u težinu ulaze samo proizvodi sa upisanom
-                težinom.
+                {t("Za promo kod i automatski popust: zbir korpe od kog popust važi (prazno: uvek). Za nagradu posle prve porudžbine prag se ne upisuje. Kod nagrada je vrednost porudžbine zbir proizvoda posle popusta, bez dostave, a u težinu ulaze samo proizvodi sa upisanom težinom.")}
               </p>
             </section>
           </div>

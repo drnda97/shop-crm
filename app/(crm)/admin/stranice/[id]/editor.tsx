@@ -158,9 +158,9 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
   function save() {
     startSaving(async () => {
       const result = await savePageAction({ slug: page.slug, ...meta, sections });
-      if (!result.ok) return setMessage({ kind: "error", text: result.error });
+      if (!result.ok) return setMessage({ kind: "error", text: t(result.error) });
       setDirty(false);
-      setMessage({ kind: "ok", text: meta.published || isHome ? "Sačuvano. Izmene su na sajtu." : "Sačuvano kao nacrt." });
+      setMessage({ kind: "ok", text: meta.published || isHome ? t("Sačuvano. Izmene su na sajtu.") : t("Sačuvano kao nacrt.") });
       reloadPreview();
     });
   }
@@ -196,7 +196,7 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
                     className="min-h-[44px] min-w-0 grow cursor-pointer truncate text-left font-display text-[15.5px] font-bold"
                     onClick={() => select(section.id)}
                   >
-                    {definition.label}
+                    {t(definition.label)}
                     {title && <span className="font-sans text-[14.5px] font-normal text-muted"> · {title}</span>}
                   </button>
                   <button type="button" className={smallButton} aria-label={t("Pomeri gore")} disabled={index === 0} onClick={() => move(index, -1)}>
@@ -208,9 +208,9 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
                   <button
                     type="button"
                     className={smallButton}
-                    aria-label={`Ukloni sekciju: ${definition.label}`}
+                    aria-label={t("Ukloni sekciju: {a}", { a: t(definition.label) })}
                     onClick={() => {
-                      if (!window.confirm(`Ukloniti sekciju „${definition.label}”?`)) return;
+                      if (!window.confirm(t("Ukloniti sekciju „{a}”?", { a: t(definition.label) }))) return;
                       change(sections.filter((item) => item.id !== section.id));
                       setSelected(null);
                     }}
@@ -247,8 +247,8 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
                   className="cursor-pointer rounded-[14px] bg-white px-[14px] py-[10px] text-left transition-shadow duration-300 hover:shadow-soft"
                   onClick={() => add(type.type)}
                 >
-                  <span className="block font-display text-[15px] font-bold">{type.label}</span>
-                  <span className="block text-[13.5px] text-muted">{type.hint}</span>
+                  <span className="block font-display text-[15px] font-bold">{t(type.label)}</span>
+                  <span className="block text-[13.5px] text-muted">{t(type.hint)}</span>
                 </button>
               ))}
             </div>
@@ -299,10 +299,10 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
 
         <div className="sticky bottom-[12px] z-10 flex flex-wrap items-center gap-[14px] rounded-full bg-white py-[8px] pr-[20px] pl-[8px] shadow-lift">
           <button type="button" className={buttonClass} disabled={saving || !dirty} onClick={save}>
-            {saving ? "Čuvam…" : "Sačuvaj"}
+            {saving ? t("Čuvam…") : t("Sačuvaj")}
           </button>
           <span role="status" className="text-[14.5px] font-medium">
-            {message ? message.text : dirty ? "Imate nesačuvane izmene." : "Sve je sačuvano."}
+            {message ? message.text : dirty ? t("Imate nesačuvane izmene.") : t("Sve je sačuvano.")}
           </span>
         </div>
       </div>
@@ -310,7 +310,7 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
       <div className="sticky top-[12px] flex h-[calc(100vh-24px)] min-h-[480px] flex-col overflow-hidden rounded-[26px] bg-white shadow-soft max-xl:hidden">
         <div className="flex items-center justify-between gap-[12px] border-b border-line px-[18px] py-[10px]">
           <span className="font-display text-[14px] font-bold">{t("Pregled")}</span>
-          <span className="text-[13.5px] text-muted">{dirty ? "prikazuje nesačuvane izmene" : "kao na sajtu"}</span>
+          <span className="text-[13.5px] text-muted">{dirty ? t("prikazuje nesačuvane izmene") : t("kao na sajtu")}</span>
         </div>
         <iframe ref={frame} src={ready ? previewUrl : undefined} title={t("Pregled stranice")} className="w-full grow border-0" onLoad={onPreviewLoad} />
       </div>

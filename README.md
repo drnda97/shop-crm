@@ -119,7 +119,27 @@ Sajt u bilo kojoj tehnologiji može da prikaže ono što vlasnik uređuje u pane
 
 ### Jezici
 
-Podešavanja → Prodavnica → „Jezik sajta i poruka kupcima": srpski ili engleski. Menja tekstove teme, poruke o grešci i email kupcu; sadržaj koji vlasnik piše u panelu (meni, stranice, tekstovi) ostaje kakav je upisan. Panel je za sada samo na srpskom. Prevod je u `lib/i18n/` (jezgro) i `themes/default/i18n/` (tema): srpski tekst iz koda je ključ, a rečnik jezika ga zamenjuje.
+Podešavanja → Prodavnica: „Jezik sajta i poruka kupcima" i, odvojeno, „Jezik panela" — srpski ili engleski. Pri prvom pokretanju jezik se bira u čarobnjaku.
+
+Jezik sajta menja:
+
+- tekstove teme, poruke o grešci, email kupcu i račun;
+- adrese stranica: `/kolekcija` postaje `/collection`, `/placanje` `/checkout`, `/nalog` `/account` (spisak je u `lib/routes.ts`; srpske adrese rade i dalje);
+- početni sadržaj: meni, podnožje, početne stranice, tekstove stalnih stranica, email poruke i načine dostave — ali samo tekst koji niste menjali. Ono što ste sami napisali ostaje kako je napisano, kao i nazivi i opisi proizvoda.
+
+Adresa svake stranice iz panela se menja u Stranice → stranica → „Adresa stranice na sajtu".
+
+**Više jezika na sajtu.** U „Dodatni jezici sajta" upišite oznake (`en, de, fr`). Kupac tada bira jezik u zaglavlju sajta, a adrese dodatnih jezika počinju sa `/en`, `/de`. Tekstove prevodite u panelu, deo Prevodi:
+
+| Grupa | Šta se prevodi |
+|---|---|
+| Tekstovi teme i poruke kupcu | dugmad, natpisi, poruke o grešci, email; za engleski već postoje, za ostale jezike se nudi engleski kao predlog |
+| Meni, podnožje, stranice, dostava i email | sve što ste upisali u Stranice, Izgled sajta i Podešavanja |
+| Proizvodi, kategorije i kolekcije | nazivi, opisi, opcije |
+
+Dok prevoda nema, prikazuje se tekst na glavnom jeziku. Prevod je vezan za tekst: ako tekst na glavnom jeziku promenite, prevod se upisuje ponovo. Kupac dobija email i račun na jeziku na kom je poručio. Javni API daje sadržaj na drugom jeziku uz `?lang=en`. Panel je na srpskom ili engleskom.
+
+Prevod je u `lib/i18n/` (jezgro, panel, početni sadržaj) i `themes/default/i18n/` (tema): srpski tekst iz koda je ključ, a rečnik jezika ga zamenjuje, pa tekst kog u rečniku nema ostaje na srpskom. Gotov rečnik za nov jezik je nov fajl uz postojeće; adrese na tom jeziku su u `lib/routes.ts`.
 
 ### Spoljni sistemi: API sa ključem i webhook-ovi
 

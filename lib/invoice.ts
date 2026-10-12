@@ -1,3 +1,4 @@
+import { shopT } from "@/lib/i18n/server";
 import path from "node:path";
 import PDFDocument from "pdfkit";
 import { discountText } from "@/lib/discounts";
@@ -17,7 +18,7 @@ export function invoiceFileName(order: Order): string {
   return `racun-${order.number}.pdf`;
 }
 
-export function invoicePdf(order: Order, settings: Settings): Promise<Buffer> {
+export async function invoicePdf(order: Order, settings: Settings): Promise<Buffer> {
   const { store, tax } = settings;
   const currency = currencyOf(settings);
   const money = (value: number) => formatMoney(value, currency);
@@ -28,7 +29,9 @@ export function invoicePdf(order: Order, settings: Settings): Promise<Buffer> {
   const percent = order.taxPercent ?? (tax.enabled ? tax.percent : null);
   const vat = percent === null ? null : includedTax(order.total, percent);
 
-  const doc = new PDFDocument({ size: "A4", margin: 48, info: { Title: `Račun ${order.number}`, Author: store.name } });
+  // Račun je dokument za kupca, pa je na jeziku sajta.
+  const t = await shopT(order.lang ?? store.language);
+  const doc = new PDFDocument({ size: "A4", margin: 48, info: { Title: `${t("Račun")} ${order.number}`, Author: store.name } });
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
   const done = new Promise<Buffer>((resolve, reject) => {
@@ -44,8 +47,8 @@ export function invoicePdf(order: Order, settings: Settings): Promise<Buffer> {
   const gray = "#555555";
 
   // Zaglavlje
-  doc.font("bold").fontSize(20).fillColor("#111111").text(`Račun br. ${order.number}`, left, 48);
-  doc.font("regular").fontSize(10).fillColor(gray).text(`Datum: ${date}`);
+  doc.font("bold").fontSize(20).fillColor("#111111").text(`${t("Račun br.")} ${order.number}`, left, 48);
+  doc.font("regular").fontSize(10).fillColor(gray).text(`${t("Datum:")} ${date}`);
   doc.font("bold").fontSize(13).fillColor("#111111").text(store.name, left, 52, { width, align: "right" });
 
   // Prodavac i kupac
@@ -56,19 +59,19 @@ export function invoicePdf(order: Order, settings: Settings): Promise<Buffer> {
     doc.font("regular").fontSize(10).fillColor("#111111").text(lines.filter(Boolean).join("\n"), x, top + 14, { width: half, lineGap: 2 });
     return doc.y;
   };
-  const sellerEnd = party("Prodavac", store.legal ? store.legal.split("\n") : [store.name, store.address, store.phone, store.email], left);
+  const sellerEnd = party(t("Prodavac"), store.legal ? store.legal.split("\n") : [store.name, store.address, store.phone, store.email], left);
   const { customer } = order;
-  const buyerEnd = party("Kupac", [customer.name, customer.street, `${customer.postalCode} ${customer.city}`, customer.phone, customer.email], left + half + 24);
+  const buyerEnd = party(t("Kupac"), [customer.name, customer.street, `${customer.postalCode} ${customer.city}`, customer.phone, customer.email], left + half + 24);
 
   // Stavke
   const columns = { qty: left + width - 230, price: left + width - 160, total: left + width - 80 };
   let y = Math.max(sellerEnd, buyerEnd) + 28;
   const head = (label: string, x: number, w: number, align: "left" | "right" = "right") =>
     doc.font("regular").fontSize(8).fillColor(gray).text(label.toUpperCase(), x, y, { width: w, align, characterSpacing: 0.8 });
-  head("Stavka", left, columns.qty - left - 8, "left");
-  head("Količina", columns.qty, 60);
-  head("Cena", columns.price, 70);
-  head("Iznos", columns.total, 80);
+  head(t("Stavka"), left, columns.qty - left - 8, "left");
+  head(t("Količina"), columns.qty, 60);
+  head(t("Cena"), columns.price, 70);
+  head(t("Iznos"), columns.total, 80);
   y += 14;
   doc.moveTo(left, y).lineTo(right, y).lineWidth(1.2).strokeColor("#111111").stroke();
   y += 8;
@@ -92,12 +95,12 @@ export function invoicePdf(order: Order, settings: Settings): Promise<Buffer> {
 
   // Zbir
   const sums: [string, string, boolean?][] = [
-    ["Međuzbir", money(order.subtotal)],
-    ...(order.discount ? ([[discountText(order.discount), `−${money(order.discount.amount)}`]] as [string, string][]) : []),
-    [order.deliveryMethod || "Dostava", money(order.delivery)],
-    ...(vat === null ? [] : ([["Osnovica", money(order.total - vat)], [`PDV ${percent}%`, money(vat)]] as [string, string][])),
-    ["Ukupno", money(order.total), true],
-    ...(order.refunded > 0 ? ([["Vraćeno kupcu", `−${money(order.refunded)}`]] as [string, string][]) : []),
+    [t("Međuzbir"), money(order.subtotal)],
+    ...(order.discount ? ([[t(discountText(order.discount)), `−${money(order.discount.amount)}`]] as [string, string][]) : []),
+    [order.deliveryMethod || t("Dostava"), money(order.delivery)],
+    ...(vat === null ? [] : ([[t("Osnovica"), money(order.total - vat)], [`${t("PDV")} ${percent}%`, money(vat)]] as [string, string][])),
+    [t("Ukupno"), money(order.total), true],
+    ...(order.refunded > 0 ? ([[t("Vraćeno kupcu"), `−${money(order.refunded)}`]] as [string, string][]) : []),
   ];
   const sumLeft = right - 330;
   const labelWidth = 220;
@@ -116,8 +119,8 @@ export function invoicePdf(order: Order, settings: Settings): Promise<Buffer> {
   }
 
   doc.font("regular").fontSize(9).fillColor(gray).text(
-    `Način plaćanja: ${paymentLabels[order.paymentMethod].toLowerCase()}${order.paidAt ? " · plaćeno" : ""}. ${
-      vat === null ? "Prodavac nije u sistemu PDV-a." : "Cene sadrže PDV."
+    `${t("Način plaćanja:")} ${t(paymentLabels[order.paymentMethod]).toLowerCase()}${order.paidAt ? ` · ${t("plaćeno")}` : ""}. ${
+      vat === null ? t("Prodavac nije u sistemu PDV-a.") : t("Cene sadrže PDV.")
     }`,
     left,
     y + 18,

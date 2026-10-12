@@ -1,5 +1,6 @@
 "use client";
 
+import { usePath } from "@/lib/i18n/client";
 import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -62,6 +63,7 @@ export function AccountPanel({ account }: { account: Account | null }) {
 }
 
 function LoginForm({ toReg }: { toReg: () => void }) {
+  const to = usePath();
   const t = useT();
   const texts = useCart().config.texts.account;
   const router = useRouter();
@@ -92,12 +94,12 @@ function LoginForm({ toReg }: { toReg: () => void }) {
         <label style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", cursor: "pointer" }}>
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} style={{ ...checkStyle, margin: 0 }} /> {t("Zapamti me")}
         </label>
-        <Link className="ul keep" href="/nalog/lozinka">{t("Zaboravljena lozinka?")}</Link>
+        <Link className="ul keep" href={to("/nalog/lozinka")}>{t("Zaboravljena lozinka?")}</Link>
       </div>
       {error && <p role="alert" style={ERROR_STYLE}>{error}</p>}
       <button className="btn full" type="submit" disabled={pending}>{t("Prijavi se")}</button>
       <p className="muted" style={{ fontSize: "15px", textAlign: "center" }}>
-        Nemate nalog?{" "}
+        {t("Nemate nalog?")}{" "}
         <button className="txt-btn" type="button" onClick={toReg} style={{ color: "var(--ink)", fontSize: "15px" }}>
           {t("Registrujte se")}
         </button>
@@ -107,6 +109,7 @@ function LoginForm({ toReg }: { toReg: () => void }) {
 }
 
 function RegisterForm() {
+  const to = usePath();
   const t = useT();
   const texts = useCart().config.texts.account;
   const router = useRouter();
@@ -146,7 +149,7 @@ function RegisterForm() {
       </label>
       <button className="btn full" type="submit" disabled={pending}>{t("Napravi nalog")}</button>
       <p className="muted" style={{ fontSize: "14px", textAlign: "center" }}>
-        {t("Registracijom prihvatate")} <Link href={texts.termsHref || "/"}>{t("uslove korišćenja")}</Link> {t("i")} <Link href={texts.privacyHref || "/"}>{t("politiku privatnosti")}</Link>.
+        {t("Registracijom prihvatate")} <Link href={to(texts.termsHref || "/")}>{t("uslove korišćenja")}</Link> {t("i")} <Link href={to(texts.privacyHref || "/")}>{t("politiku privatnosti")}</Link>.
       </p>
     </form>
   );
@@ -154,6 +157,7 @@ function RegisterForm() {
 
 /** Pregled naloga posle prijave. U dizajnu ne postoji, pa je složen od postojećih elemenata. */
 function Overview({ account }: { account: Account }) {
+  const to = usePath();
   const t = useT();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -190,8 +194,8 @@ function Overview({ account }: { account: Account }) {
             </div>
             <div className="muted" style={{ fontSize: "14px" }}>{order.names}</div>
             <div style={{ fontSize: "14px", display: "flex", flexWrap: "wrap", gap: "4px 18px" }}>
-              <Link className="ul" href={`/pracenje?broj=${order.number}`}>{t("Praćenje i povrat")}</Link>
-              <a className="ul" href={`/nalog/racun/${order.number}`} target="_blank" rel="noreferrer">Račun (PDF)</a>
+              <Link className="ul" href={to(`/pracenje?broj=${order.number}`)}>{t("Praćenje i povrat")}</Link>
+              <a className="ul" href={to(`/nalog/racun/${order.number}`)} target="_blank" rel="noreferrer">{t("Račun (PDF)")}</a>
             </div>
           </div>
         ))}
@@ -202,7 +206,7 @@ function Overview({ account }: { account: Account }) {
         <AddressForm address={account.address} />
       </div>
 
-      <Link className="btn full" href="/kolekcija">{t("Nastavite kupovinu")}</Link>
+      <Link className="btn full" href={to("/kolekcija")}>{t("Nastavite kupovinu")}</Link>
       <button
         className="btn ghost full"
         type="button"

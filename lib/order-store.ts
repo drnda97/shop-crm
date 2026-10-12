@@ -1,3 +1,4 @@
+import { getShopLang } from "@/lib/i18n/server";
 import { randomInt } from "node:crypto";
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { after } from "next/server";
@@ -103,6 +104,7 @@ function toOrder(row: RowDataPacket, items: RowDataPacket[]): Order {
         }),
     ...(row.email_error === null ? {} : { emailError: row.email_error }),
     ...(row.admin_note ? { adminNote: row.admin_note } : {}),
+    ...(row.lang ? { lang: row.lang } : {}),
   };
 }
 
@@ -584,8 +586,8 @@ async function insertOrder(
       `INSERT INTO orders (received_at, status, customer_key, customer_name, phone, email, street,
         city, postal_code, note, payment_method, subtotal, delivery, total, discount_code,
         discount_percent, discount_amount, delivery_method, pickup, tax_percent, discount_name,
-        discount_id, discount_shipping)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        discount_id, discount_shipping, lang)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         new Date(order.receivedAt),
         order.status,
@@ -611,6 +613,7 @@ async function insertOrder(
         order.discount ? order.discount.label : null,
         usedCode?.discountId ?? null,
         order.discount?.freeShipping ?? false,
+        order.lang ?? null,
       ],
     );
     const number = result.insertId;
@@ -776,6 +779,7 @@ export async function submitOrder(input: unknown, source = "Porudžbina primljen
     order = await insertOrder(
       {
         receivedAt: new Date().toISOString(),
+        lang: await getShopLang(),
         status: "new",
         customerKey: customerKey(customer, settings.store.phonePrefix),
         customer,

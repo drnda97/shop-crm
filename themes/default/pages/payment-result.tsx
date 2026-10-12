@@ -1,3 +1,4 @@
+import { getShopPath } from "@/lib/i18n/server";
 import { getShopT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { Footer } from "../components/footer";
@@ -6,6 +7,7 @@ import { CheckIcon, DS_STYLE } from "../components/ui";
 
 /** Stranica na koju se kupac vraća posle plaćanja karticom: /placanje/uplata. `number` je prazan kada broj nije poznat. */
 export async function PaymentResultPage({ number, paid }: { number: string; paid: boolean }) {
+  const to = await getShopPath();
   const t = await getShopT();
   return (
     <div className="ds" style={DS_STYLE}>
@@ -30,8 +32,8 @@ export async function PaymentResultPage({ number, paid }: { number: string; paid
                 : t("Porudžbina je sačuvana, ali nije plaćena. Javite nam se da je platite drugim načinom, ili poručite ponovo.")}
           </p>
           <div className="a2" style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-            <Link className="btn" href="/kolekcija">{t("Nastavite kupovinu")}</Link>
-            {!paid && <Link className="btn ghost" href="/kontakt">{t("Kontakt")}</Link>}
+            <Link className="btn" href={to("/kolekcija")}>{t("Nastavite kupovinu")}</Link>
+            {!paid && <Link className="btn ghost" href={to("/kontakt")}>{t("Kontakt")}</Link>}
           </div>
         </div>
       </section>

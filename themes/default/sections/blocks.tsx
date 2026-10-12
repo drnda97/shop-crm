@@ -1,3 +1,4 @@
+import { getShopPath } from "@/lib/i18n/server";
 import { getShopT } from "@/lib/i18n/server";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
@@ -60,7 +61,8 @@ function Lines({ text }: { text: string }) {
 
 type HeroData = { title: string; text: string; image: ImageValue; buttonLabel: string; buttonHref: string; linkLabel: string; linkHref: string; product: string };
 
-export function Hero({ data, id, bottom, withHeader, products }: BlockProps<HeroData> & { withHeader: boolean; products: ShopProduct[] }) {
+export async function Hero({ data, id, bottom, withHeader, products }: BlockProps<HeroData> & { withHeader: boolean; products: ShopProduct[] }) {
+  const to = await getShopPath();
   const product = products.find((candidate) => candidate.slug === data.product);
   return (
     <section
@@ -100,13 +102,13 @@ export function Hero({ data, id, bottom, withHeader, products }: BlockProps<Hero
         )}
         <div className="a2" style={{ display: "flex", flexWrap: "wrap", gap: "14px 22px", alignItems: "center" }}>
           {data.buttonLabel && data.buttonHref && (
-            <Link className="btn gold" href={data.buttonHref}>
+            <Link className="btn gold" href={to(data.buttonHref)}>
               {data.buttonLabel}
               <i><ArrowIcon /></i>
             </Link>
           )}
           {data.linkLabel && data.linkHref && (
-            <Link className="ul keep" href={data.linkHref} style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: "16px" }}>
+            <Link className="ul keep" href={to(data.linkHref)} style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: "16px" }}>
               {data.linkLabel}
             </Link>
           )}
@@ -114,7 +116,7 @@ export function Hero({ data, id, bottom, withHeader, products }: BlockProps<Hero
       </div>
 
       {product && (
-        <Link className="float-card hide-s a3" href={`/proizvod/${product.slug}`} style={{ right: "clamp(24px, 9vw, 150px)", top: "40%", color: "var(--ink)" }}>
+        <Link className="float-card hide-s a3" href={to(`/proizvod/${product.slug}`)} style={{ right: "clamp(24px, 9vw, 150px)", top: "40%", color: "var(--ink)" }}>
           <span className="dot" style={{ position: "relative", margin: 0, background: "var(--ink)" }}></span>
           <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.3 }}>
             <span style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: "16px" }}>{product.name}</span>
@@ -180,21 +182,22 @@ const tileLabel: CSSProperties = {
   color: "var(--ink)",
 };
 
-export function Tiles({ data, id, bottom }: BlockProps<TilesData>) {
+export async function Tiles({ data, id, bottom }: BlockProps<TilesData>) {
+  const to = await getShopPath();
   return (
     <section id={id} style={{ paddingBottom: bottom }}>
       <div className="wrap" style={sectionStack}>
         <div className="rv" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", gap: "16px 40px" }}>
           <h2 className="display h-l">{data.heading}</h2>
           {data.linkLabel && data.linkHref && (
-            <Link className="more" href={data.linkHref}>
+            <Link className="more" href={to(data.linkHref)}>
               {data.linkLabel} <i><ArrowSmallIcon /></i>
             </Link>
           )}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(300px, 100%), 1fr))", gap: "20px" }}>
           {data.items.map((item, index) => (
-            <Link className={`ph zoom rv${delay[index % 3]}`} href={item.href || "/kolekcija"} style={{ aspectRatio: "4 / 5" }} key={index}>
+            <Link className={`ph zoom rv${delay[index % 3]}`} href={to(item.href || "/kolekcija")} style={{ aspectRatio: "4 / 5" }} key={index}>
               <Pic image={item.image} sizes="(max-width: 700px) 100vw, 430px" />
               <span style={tileLabel}>
                 <span>
@@ -274,7 +277,8 @@ function SplitMedia({ images }: { images: ImageValue[] }) {
   );
 }
 
-export function Split({ data, id, bottom }: BlockProps<SplitData>) {
+export async function Split({ data, id, bottom }: BlockProps<SplitData>) {
+  const to = await getShopPath();
   const images = data.images.map((item) => item.image).filter((image) => image.src);
   const media = images.length > 0 ? <SplitMedia images={images} key="media" /> : null;
   const text = (
@@ -283,7 +287,7 @@ export function Split({ data, id, bottom }: BlockProps<SplitData>) {
       <h2 className="display h-l rv t1">{data.heading}</h2>
       {data.text && <p className="lead rv t2">{data.text}</p>}
       {data.linkLabel && data.linkHref && (
-        <Link className="more rv t3" href={data.linkHref}>
+        <Link className="more rv t3" href={to(data.linkHref)}>
           {data.linkLabel} <i><ArrowSmallIcon /></i>
         </Link>
       )}
@@ -300,7 +304,8 @@ export function Split({ data, id, bottom }: BlockProps<SplitData>) {
 
 type BannerData = { image: ImageValue; heading: string; text: string; buttonLabel: string; buttonHref: string; buttonStyle: string };
 
-export function Banner({ data, id, bottom }: BlockProps<BannerData>) {
+export async function Banner({ data, id, bottom }: BlockProps<BannerData>) {
+  const to = await getShopPath();
   return (
     <section id={id} style={{ paddingBottom: bottom }}>
       <div className="wrap">
@@ -328,7 +333,7 @@ export function Banner({ data, id, bottom }: BlockProps<BannerData>) {
               <h2 className="display h-l" style={{ maxWidth: "14ch" }}>{data.heading}</h2>
             )}
             {data.buttonLabel && data.buttonHref && (
-              <Link className={data.buttonStyle === "gold" ? "btn gold" : "btn light"} href={data.buttonHref}>
+              <Link className={data.buttonStyle === "gold" ? "btn gold" : "btn light"} href={to(data.buttonHref)}>
                 {data.buttonLabel}
                 <i><ArrowIcon /></i>
               </Link>
@@ -543,7 +548,8 @@ export function Faq({ data, id, bottom, query }: BlockProps<FaqData> & { query: 
 
 type CtaData = { heading: string; text: string; buttonLabel: string; buttonHref: string };
 
-export function Cta({ data, id, bottom }: BlockProps<CtaData>) {
+export async function Cta({ data, id, bottom }: BlockProps<CtaData>) {
+  const to = await getShopPath();
   return (
     <section id={id} style={{ paddingBottom: bottom }}>
       <div className="wrap">
@@ -564,7 +570,7 @@ export function Cta({ data, id, bottom }: BlockProps<CtaData>) {
             {data.text && <p className="lead">{data.text}</p>}
           </div>
           {data.buttonLabel && data.buttonHref && (
-            <Link className="btn gold" href={data.buttonHref}>
+            <Link className="btn gold" href={to(data.buttonHref)}>
               {data.buttonLabel}
               <i><ArrowIcon /></i>
             </Link>
@@ -577,7 +583,7 @@ export function Cta({ data, id, bottom }: BlockProps<CtaData>) {
 
 /* ---------- Kontakt ---------- */
 
-type ContactData = { hours: { days: string; time: string }[] };
+type ContactData = { image: ImageValue; hours: { days: string; time: string }[] };
 
 // Linkovi „Poručite uzorke" i „Zakažite savet" otvaraju formu sa izabranom temom.
 const TOPIC_LINKS: Record<string, ContactTopic> = {
@@ -603,12 +609,26 @@ function InfoRow({ icon, label, children }: { icon: ReactNode; label: string; ch
 export async function Contact({ data, id, bottom, query, store }: BlockProps<ContactData> & { query: Query; store: StoreSettings }) {
   const t = await getShopT();
   const topic = TOPIC_LINKS[query.tema ?? ""] ?? CONTACT_TOPICS[0];
+  const hasDetails = Boolean(store.email || store.phone || store.address);
+  const hasPhoto = Boolean(data.image?.src);
+  // Bez podataka, fotografije i radnog vremena okvir pored forme se ne prikazuje.
+  const showPanel = hasDetails || hasPhoto || data.hours.length > 0;
   return (
     <section id={id} style={{ paddingBottom: bottom }}>
       <div className="wrap" style={{ display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "stretch" }}>
         <ContactForm initialTopic={topic} key={topic} />
 
-        <div className="panel a3" style={{ flex: "1 1 420px", minWidth: 0, display: "flex", flexDirection: "column", gap: "22px" }}>
+        {showPanel && (
+        <div
+          className="panel a3"
+          // Kada ima samo radno vreme, okvir je visok koliko i sadržaj, a ne koliko forma.
+          style={{ flex: "1 1 420px", minWidth: 0, display: "flex", flexDirection: "column", gap: "22px", alignSelf: hasDetails || hasPhoto ? "stretch" : "flex-start" }}
+        >
+          {hasPhoto && (
+            <div className="ph" style={{ aspectRatio: "4 / 3", borderRadius: "20px" }}>
+              <Pic image={data.image} sizes="(max-width: 900px) 100vw, 420px" />
+            </div>
+          )}
           {store.email && (
             <InfoRow
               label={t("Email")}
@@ -659,6 +679,7 @@ export async function Contact({ data, id, bottom, query, store }: BlockProps<Con
             </div>
           )}
         </div>
+        )}
       </div>
     </section>
   );

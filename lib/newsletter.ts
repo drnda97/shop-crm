@@ -1,3 +1,4 @@
+import { localPath } from "@/lib/routes";
 import { makeT } from "@/lib/i18n";
 import { shopDict } from "@/lib/i18n/shop";
 import { randomBytes } from "node:crypto";
@@ -79,7 +80,7 @@ export async function sendCampaign(id: number, baseUrl: string) {
 
   for (let start = 0; start < recipients.length; start += BATCH) {
     const messages = recipients.slice(start, start + BATCH).map(({ email, token }) => {
-      const stop = `${baseUrl}/novosti/odjava/${token}`;
+      const stop = `${baseUrl}${localPath(settings.store.language, `/novosti/odjava/${token}`)}`;
       return {
         to: email,
         subject: `${rows[0].subject} — ${settings.store.name}`,

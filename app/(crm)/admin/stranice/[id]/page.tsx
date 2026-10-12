@@ -5,9 +5,9 @@ import { ADMIN_PATH, previewToken, requireAdmin } from "@/lib/admin-auth";
 import { HOME_SLUG, pagePath } from "@/lib/catalog";
 import { getCollections, getPages, getProducts, listUploads } from "@/lib/content";
 import { PREVIEW_PARAM } from "@/lib/storefront/preview-names";
-import { deletePageAction } from "../../actions";
+import { deletePageAction, renamePageAction } from "../../actions";
 import { ConfirmButton } from "../../confirm-button";
-import { PageHeader, quietButtonClass, textLinkClass } from "../../ui";
+import { cardClass, inputClass, labelClass, PageHeader, quietButtonClass, textLinkClass } from "../../ui";
 import { PageEditor } from "./editor";
 
 type AdminPagePageProps = { params: Promise<{ id: string }> };
@@ -38,8 +38,8 @@ export default async function AdminPagePage({ params }: AdminPagePageProps) {
           title={page.title}
           hint={
             <>
-              Adresa na sajtu: {path}
-              {!page.published && " · nacrt, još se ne vidi na sajtu"}
+              {t("Adresa na sajtu:")} {path}
+              {!page.published && t(" · nacrt, još se ne vidi na sajtu")}
             </>
           }
           action={
@@ -64,17 +64,33 @@ export default async function AdminPagePage({ params }: AdminPagePageProps) {
           products: products.map((item) => ({ value: item.slug, label: item.name })),
           links: [
             ...pages.map((item) => ({ value: pagePath(item.slug), label: item.title })),
-            { value: "/kolekcija", label: "Kolekcija (svi proizvodi)" },
-            { value: "/nalog", label: "Nalog kupca" },
+            { value: "/kolekcija", label: t("Kolekcija (svi proizvodi)") },
+            { value: "/nalog", label: t("Nalog kupca") },
           ],
           media: media.map((file) => file.src),
         }}
       />
 
       {!isHome && (
+        <form action={renamePageAction} className={`${cardClass} mt-[24px] flex flex-wrap items-end gap-[12px]`}>
+          <input type="hidden" name="slug" value={page.slug} />
+          <label className={`${labelClass} min-w-[240px] grow basis-0`}>
+            {t("Adresa stranice na sajtu")}
+            <input name="newSlug" required maxLength={80} defaultValue={page.slug} className={inputClass} />
+            <span className="text-[13.5px] font-normal text-muted">
+              {t("Mala slova bez kvačica, cifre i crtice. Linkovi ka stranici u meniju, podnožju i sekcijama se ispravljaju sami; linkovi sa drugih sajtova na staru adresu prestaju da rade.")}
+            </span>
+          </label>
+          <button type="submit" className={quietButtonClass}>
+            {t("Promeni adresu")}
+          </button>
+        </form>
+      )}
+
+      {!isHome && (
         <form action={deletePageAction} className="mt-[24px]">
           <input type="hidden" name="slug" value={page.slug} />
-          <ConfirmButton question={`Obrisati stranicu „${page.title}”?`} className={quietButtonClass}>
+          <ConfirmButton question={t("Obrisati stranicu „{a}”?", { a: page.title })} className={quietButtonClass}>
             {t("Obriši stranicu")}
           </ConfirmButton>
         </form>

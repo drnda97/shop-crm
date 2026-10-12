@@ -212,6 +212,9 @@ export function publicStore(settings: Settings, base: string) {
     address: store.address,
     currency: { code: store.currency, decimals: store.currencyDecimals },
     locale: store.locale,
+    /** Glavni jezik i svi jezici prodavnice; sadržaj na drugom jeziku daje ?lang=. */
+    language: store.language,
+    languages: [store.language, ...store.languages],
     colors: settings.colors,
     fonts: settings.fonts,
     menu: settings.site.menu,

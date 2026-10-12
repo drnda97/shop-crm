@@ -47,12 +47,16 @@ export function MailNotice({ configured, settingsPath }: { configured: boolean; 
   if (configured) return null;
   return (
     <p role="status" className="mb-[16px] rounded-[18px] bg-white px-[18px] py-[14px] text-[15px] shadow-[inset_0_0_0_1.5px_var(--color-gold)]">
-      <strong>{t("Email nije povezan,")}</strong> pa kupci ne dobijaju potvrde, poruke o statusu ni podsetnike. Upišite SMTP
-      nalog svog domena u{" "}
+      <strong>{t("Email nije povezan,")}</strong> {t("pa kupci ne dobijaju potvrde, poruke o statusu ni podsetnike. Upišite SMTP nalog svog domena u")}{" "}
       <a href={`${settingsPath}#email`} className="font-display font-bold underline">
         {t("Podešavanja → Email o porudžbini")}
       </a>
       .
     </p>
   );
+}
+
+/** Tekst koji stiže sa servera na srpskom (poruka akcije u adresi, naziv iz jezgra), na jeziku panela. */
+export function Tr({ children }: { children: string }) {
+  return useT()(children);
 }

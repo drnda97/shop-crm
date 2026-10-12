@@ -1,5 +1,5 @@
-import { makeT } from "@/lib/i18n";
-import { shopDict } from "@/lib/i18n/shop";
+import { contentWords, shopT } from "@/lib/i18n/server";
+import { langPrefix, localPath } from "@/lib/routes";
 import { randomBytes } from "node:crypto";
 import nodemailer from "nodemailer";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
@@ -27,6 +27,8 @@ export type AbandonedCart = {
   updatedAt: string;
   remindedAt?: string;
   unsubscribed: boolean;
+  /** Jezik sajta na kom je kupac punio korpu; na njemu stiže podsetnik. */
+  lang?: string;
 };
 
 /** Koliko dana se korpa čuva; starija se briše. */
@@ -44,6 +46,7 @@ function toCart(row: RowDataPacket): AbandonedCart {
     updatedAt: (row.updated_at as Date).toISOString(),
     ...(row.reminded_at ? { remindedAt: (row.reminded_at as Date).toISOString() } : {}),
     unsubscribed: row.unsubscribed === 1,
+    ...(row.lang ? { lang: row.lang } : {}),
   };
 }
 
@@ -51,7 +54,7 @@ function toCart(row: RowDataPacket): AbandonedCart {
  * Pamti korpu uz email kupca (jedna korpa po adresi). Poziva se sa stranice plaćanja dok kupac
  * popunjava formu. Odjava od podsetnika ostaje i kada kupac ponovo dođe.
  */
-export async function saveCart(input: { email: string; firstName: string; items: CartItem[]; siteUrl: string }) {
+export async function saveCart(input: { email: string; firstName: string; items: CartItem[]; siteUrl: string; lang?: string }) {
   const lines = toLines(input.items, await getProducts());
   if (lines.length === 0) return;
   const items = lines.map((line) => ({ slug: line.product.slug, qty: line.qty, ...(line.variant ? { variant: line.variant.id } : {}) }));
@@ -60,11 +63,11 @@ export async function saveCart(input: { email: string; firstName: string; items:
   await (
     await getDb()
   ).query(
-    `INSERT INTO abandoned_carts (token, email, first_name, site_url, items, value, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO abandoned_carts (token, email, first_name, site_url, items, value, created_at, updated_at, lang)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE first_name = VALUES(first_name), site_url = VALUES(site_url),
-       items = VALUES(items), value = VALUES(value), updated_at = VALUES(updated_at)`,
-    [randomBytes(24).toString("hex"), input.email, input.firstName.slice(0, 100), input.siteUrl.slice(0, 255), JSON.stringify(items), value, now, now],
+       items = VALUES(items), value = VALUES(value), updated_at = VALUES(updated_at), lang = VALUES(lang)`,
+    [randomBytes(24).toString("hex"), input.email, input.firstName.slice(0, 100), input.siteUrl.slice(0, 255), JSON.stringify(items), value, now, now, input.lang ?? null],
   );
 }
 
@@ -108,11 +111,13 @@ export async function renderReminder(cart: AbandonedCart, settings: Settings, ba
   const lines = toLines(cart.items, await getProducts());
   if (lines.length === 0) return null;
 
-  const t = makeT(store.language, shopDict);
+  const lang = cart.lang ?? store.language;
+  const [t, words] = await Promise.all([shopT(lang), contentWords(lang)]);
+  const local = (path: string) => localPath(lang, path, langPrefix(lang, store.language));
   const fill = (text: string) => text.replace(/\{ime\}/g, cart.firstName || "").replace(/\{prodavnica\}/g, store.name).replace(/ ,/g, ",").trim();
-  const message = fill(abandoned.text);
-  const link = `${baseUrl}/korpa/vrati/${cart.token}`;
-  const stop = `${baseUrl}/korpa/odjava/${cart.token}`;
+  const message = fill(words.get(abandoned.text) ?? abandoned.text);
+  const link = `${baseUrl}${local(`/korpa/vrati/${cart.token}`)}`;
+  const stop = `${baseUrl}${local(`/korpa/odjava/${cart.token}`)}`;
   const rows = lines.map((line) => ({
     name: line.variant ? `${line.product.name} — ${variantLabel(line.variant)}` : line.product.name,
     qty: line.qty,
@@ -141,7 +146,7 @@ ${rows.map((row) => `<tr><td style="padding:8px 0;border-top:1px solid ${colors.
     `${t("Ne želite podsetnike?")} ${stop}`,
   ].join("\n");
 
-  return { subject: `${fill(abandoned.subject)} — ${store.name}`, html, text, stop };
+  return { subject: `${fill(words.get(abandoned.subject) ?? abandoned.subject)} — ${store.name}`, html, text, stop };
 }
 
 /** Javna adresa sajta za linkove u poruci: PUBLIC_URL, adresa sajta iz Podešavanja, ili ona sa koje je korpa stigla. */

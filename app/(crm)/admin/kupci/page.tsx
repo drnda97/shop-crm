@@ -55,7 +55,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
     <>
       <PageHeader
         title={t("Kupci")}
-        hint={`Kupac se prepoznaje po broju telefona, pa se sve njegove porudžbine vide na jednom mestu. Ukupno kupaca: ${all.length}, od toga je ${returning} poručilo više puta.`}
+        hint={t("Kupac se prepoznaje po broju telefona, pa se sve njegove porudžbine vide na jednom mestu. Ukupno kupaca: {a}, od toga je {b} poručilo više puta.", { a: all.length, b: returning })}
         action={
           <a href={`${CUSTOMERS_PATH}/izvoz`} className={quietButtonClass}>
             {t("Preuzmi CSV")}
@@ -82,8 +82,8 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
 
       <div className="mb-[16px] flex flex-wrap gap-[8px] text-[14px]">
         {[
-          { label: "Poslednji poručili", value: "", current: !bySpent },
-          { label: "Najviše potrošili", value: "potrosnja", current: bySpent },
+          { label: t("Poslednji poručili"), value: "", current: !bySpent },
+          { label: t("Najviše potrošili"), value: "potrosnja", current: bySpent },
         ].map((sort) => {
           const query = new URLSearchParams();
           if (q.trim()) query.set("q", q.trim());
@@ -106,8 +106,8 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
         {customers.length === 0 ? (
           <p className="text-[15px] text-muted">
             {all.length === 0
-              ? "Još nema kupaca. Pojavljuju se ovde sa prvom porudžbinom."
-              : "Nema kupaca za ovu pretragu."}
+              ? t("Još nema kupaca. Pojavljuju se ovde sa prvom porudžbinom.")
+              : t("Nema kupaca za ovu pretragu.")}
           </p>
         ) : (
           <table className="w-full min-w-[640px] text-[15px]">
@@ -129,14 +129,14 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                     </Link>
                     <div className="text-[13px] text-muted">
                       {customer.city}
-                      {noted.has(customer.key) && " · ima belešku"}
+                      {noted.has(customer.key) && t(" · ima belešku")}
                     </div>
                   </td>
                   <td className="py-[10px] pr-[12px]">
                     <div>{customer.phone}</div>
                     <div className="text-[13px] text-muted">{customer.email}</div>
                   </td>
-                  <td className="py-[10px] pr-[12px]">{formatOrderCount(customer.orderCount)}</td>
+                  <td className="py-[10px] pr-[12px]">{t(formatOrderCount(customer.orderCount))}</td>
                   <td className="py-[10px] pr-[12px] text-right whitespace-nowrap">
                     {formatMoney(customer.spent, currency)}
                   </td>
@@ -151,8 +151,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
       </div>
       {customers.length > SHOWN && (
         <p className="mt-[12px] text-[14px] text-muted">
-          Prikazano je prvih {SHOWN} od {customers.length}. Suzite spisak pretragom, ili preuzmite
-          CSV sa svim kupcima.
+          {t("Prikazano je prvih")} {SHOWN} {t("od")} {customers.length}{t(". Suzite spisak pretragom, ili preuzmite CSV sa svim kupcima.")}
         </p>
       )}
     </>

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePath } from "@/lib/i18n/client";
 import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
 import { useCart } from "./cart";
@@ -49,6 +50,7 @@ export function WishButton({ slug, name, floating = false }: { slug: string; nam
 
 /** Stranica /lista-zelja: sačuvani proizvodi koji su još u ponudi. */
 export function WishlistGrid() {
+  const to = usePath();
   const t = useT();
   const { products } = useCart();
   const { slugs } = useWishlist();
@@ -57,7 +59,7 @@ export function WishlistGrid() {
     return (
       <>
         <p className="lead">{t("Još niste sačuvali nijedan proizvod. Srce na kartici proizvoda ga dodaje ovde.")}</p>
-        <Link className="btn" href="/kolekcija">{t("Pogledajte kolekciju")}</Link>
+        <Link className="btn" href={to("/kolekcija")}>{t("Pogledajte kolekciju")}</Link>
       </>
     );
   }

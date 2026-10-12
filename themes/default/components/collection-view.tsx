@@ -1,8 +1,9 @@
+import { getShopPath } from "@/lib/i18n/server";
 import { getShopT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { Fragment } from "react";
 import { categoryPath, type Category } from "@/lib/catalog";
-import { getCategories } from "@/lib/content";
+import { getShopCategories } from "@/lib/storefront/catalog";
 import { getShopSettings } from "@/lib/storefront/pages";
 import { CollectionGrid } from "./collection-grid";
 import { Footer } from "./footer";
@@ -21,8 +22,9 @@ type CollectionViewProps = {
  * mreže su iz panela (Izgled sajta → Kolekcija); na stranici kategorije naslov i tekst su njeni.
  */
 export async function CollectionView({ category, search }: CollectionViewProps) {
+  const to = await getShopPath();
   const t = await getShopT();
-  const [settings, categories] = await Promise.all([getShopSettings(), getCategories()]);
+  const [settings, categories] = await Promise.all([getShopSettings(), getShopCategories()]);
   const texts = settings.templates.collection;
   const path = category ? categoryPath(categories, category.id) : [];
   const intro = category ? category.description : texts.text;
@@ -53,12 +55,12 @@ export async function CollectionView({ category, search }: CollectionViewProps) 
             >
               <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                 <nav className="crumbs a1" aria-label={t("Putanja")} style={{ color: "var(--on-dark-soft)" }}>
-                  <Link href="/">{t("Početna")}</Link>
+                  <Link href={to("/")}>{t("Početna")}</Link>
                   <span>/</span>
                   {path.length === 0 ? (
                     <span style={{ color: "#FFFFFF" }}>{t("Kolekcija")}</span>
                   ) : (
-                    <Link href="/kolekcija">{t("Kolekcija")}</Link>
+                    <Link href={to("/kolekcija")}>{t("Kolekcija")}</Link>
                   )}
                   {path.map((item, index) => (
                     <Fragment key={item.id}>
@@ -66,7 +68,7 @@ export async function CollectionView({ category, search }: CollectionViewProps) 
                       {index === path.length - 1 ? (
                         <span style={{ color: "#FFFFFF" }}>{item.label}</span>
                       ) : (
-                        <Link href={`/kolekcija/${item.id}`}>{item.label}</Link>
+                        <Link href={to(`/kolekcija/${item.id}`)}>{item.label}</Link>
                       )}
                     </Fragment>
                   ))}
@@ -99,7 +101,7 @@ export async function CollectionView({ category, search }: CollectionViewProps) 
                 <h2 className="display h-l">{texts.promoHeading}</h2>
                 {texts.promoText && <p className="lead">{texts.promoText}</p>}
                 {texts.promoButtonLabel && texts.promoButtonHref && (
-                  <Link className="btn" href={texts.promoButtonHref}>
+                  <Link className="btn" href={to(texts.promoButtonHref)}>
                     {texts.promoButtonLabel}
                     <i><ArrowIcon /></i>
                   </Link>

@@ -72,6 +72,10 @@ export type ShopVariant = {
 
 /** Podešavanja iz CRM-a koja prodavnici trebaju u pregledaču. */
 export type ShopConfig = {
+  /** Jezik stranice, glavni jezik prodavnice i svi jezici za izbor na sajtu (prazno kada je samo jedan). */
+  lang: string;
+  mainLang: string;
+  languages: { code: string; name: string }[];
   storeName: string;
   /** Putanja do logoa (/media/…), ili null: tada se ispisuje naziv prodavnice. */
   logo: string | null;

@@ -322,8 +322,9 @@ const sections: SectionType[] = [
   {
     type: "contact",
     label: "Kontakt",
-    hint: "Kontakt forma i podaci prodavnice. Email, telefon i adresa se čitaju iz Podešavanja.",
+    hint: "Kontakt forma i podaci prodavnice. Email, telefon i adresa se čitaju iz Podešavanja → Prodavnica; red bez podatka se ne prikazuje.",
     fields: [
+      { ...image, hint: "Po želji: fotografija salona ili radnje, iznad podataka." },
       {
         key: "hours",
         label: "Radno vreme",

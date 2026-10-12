@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/client";
 import { useState } from "react";
 import { labelClass } from "./ui";
 
@@ -13,6 +14,7 @@ type ColorFieldProps = { name: string; label: string; defaultValue: string };
  * i kada je u polju ostala nedovršena.
  */
 export function ColorField({ name, label, defaultValue }: ColorFieldProps) {
+  const t = useT();
   const [value, setValue] = useState(defaultValue);
   // Dok šifra nije potpuna, krug ostaje u poslednjoj ispravnoj boji.
   const [swatch, setSwatch] = useState(defaultValue);
@@ -48,7 +50,7 @@ export function ColorField({ name, label, defaultValue }: ColorFieldProps) {
           maxLength={7}
           spellCheck={false}
           autoComplete="off"
-          aria-label={`${label}: šifra boje`}
+          aria-label={t("{a}: šifra boje", { a: label })}
           className="w-full min-w-0 bg-transparent font-sans text-[16px] font-medium tracking-[0.04em] text-ink uppercase outline-0"
         />
       </span>

@@ -1,4 +1,6 @@
+import { localPath } from "@/lib/routes";
 import { getOrder, setOrderPaid, addOrderEvent } from "@/lib/order-store";
+import { getSettings } from "@/lib/content";
 import { getDb } from "@/lib/db";
 import { findProvider } from "@/lib/payments";
 import { siteUrl } from "@/lib/storefront/pages";
@@ -24,9 +26,10 @@ async function handle(request: Request, { params }: Context) {
     await addOrderEvent(await getDb(), order.number, `Plaćanje karticom nije uspelo (${provider.label})`);
   }
 
-  const result = new URL("/placanje/uplata", await siteUrl());
-  result.searchParams.set("porudzbina", order.number);
-  result.searchParams.set("ishod", confirmation.paid || order.paidAt ? "uspeh" : "odbijeno");
+  // Kupac se vraća na stranicu ishoda, na adresi na jeziku sajta.
+  const outcome = confirmation.paid || order.paidAt ? "uspeh" : "odbijeno";
+  const lang = (await getSettings()).store.language;
+  const result = new URL(localPath(lang, `/placanje/uplata?porudzbina=${order.number}&ishod=${outcome}`), await siteUrl());
   return Response.redirect(result, 303);
 }
 

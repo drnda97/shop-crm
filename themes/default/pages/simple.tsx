@@ -1,3 +1,4 @@
+import { getShopPath } from "@/lib/i18n/server";
 import { getShopT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { formatPrice } from "@/lib/storefront/products";
@@ -63,6 +64,7 @@ export async function NewsletterUnsubscribePage({ token }: { token: string }) {
 
 /** /korpa/vrati/{token}: vraća sačuvanu korpu i vodi na plaćanje; bez stavki korpa više nije sačuvana. */
 export async function RestoreCartPage({ items }: { items: { slug: string; variantId?: string; qty: number }[] }) {
+  const to = await getShopPath();
   const t = await getShopT();
   return (
     <SimplePage title={t("Vaša korpa")}>
@@ -71,7 +73,7 @@ export async function RestoreCartPage({ items }: { items: { slug: string; varian
       ) : (
         <>
           <p className="lead">{t("Ova korpa više nije sačuvana. Proizvode možete ponovo dodati iz kolekcije.")}</p>
-          <Link className="btn" href="/kolekcija">{t("Pogledajte kolekciju")}</Link>
+          <Link className="btn" href={to("/kolekcija")}>{t("Pogledajte kolekciju")}</Link>
         </>
       )}
     </SimplePage>
@@ -90,6 +92,7 @@ export async function CartUnsubscribePage({ token }: { token: string }) {
 
 /** /placanje/proba-kartice: stranica probnog procesora kartica, umesto stranice banke. */
 export async function TestCardPage({ orderNumber, amount, payUrl, declineUrl }: { orderNumber: string; amount: number; payUrl: string; declineUrl: string }) {
+  const to = await getShopPath();
   const t = await getShopT();
   return (
     <div className="ds" style={DS_STYLE}>
@@ -102,8 +105,8 @@ export async function TestCardPage({ orderNumber, amount, payUrl, declineUrl }: 
               {t("Iznos:")} <strong style={{ color: "var(--ink)" }}>{formatPrice(amount)}</strong>{t(". Ovo je proba: ništa se ne naplaćuje.")}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-              <a className="btn gold" href={payUrl}>{t("Uplati")}</a>
-              <a className="btn ghost" href={declineUrl}>{t("Odbij uplatu")}</a>
+              <a className="btn gold" href={to(payUrl)}>{t("Uplati")}</a>
+              <a className="btn ghost" href={to(declineUrl)}>{t("Odbij uplatu")}</a>
             </div>
           </div>
         </div>

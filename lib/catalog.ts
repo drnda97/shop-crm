@@ -3,6 +3,7 @@
  * koja ne zavise od baze, pa ih koriste i panel i API.
  */
 
+import { ROUTE_SLUGS } from "@/lib/routes";
 import type { Section } from "@/lib/sections";
 
 export type LowStockMode = "off" | "always" | "auto";
@@ -216,23 +217,7 @@ export type Page = {
 export const HOME_SLUG = "pocetna";
 
 /** Adrese koje već pripadaju prodavnici i panelu, pa stranica ne može da ih zauzme. */
-export const RESERVED_SLUGS = [
-  "admin",
-  "api",
-  "kolekcija",
-  "korpa",
-  "lista-zelja",
-  "media",
-  "nalog",
-  "nova",
-  "novosti",
-  "pracenje",
-  "placanje",
-  "proizvod",
-  "robots.txt",
-  "shop",
-  "sitemap.xml",
-];
+export const RESERVED_SLUGS = ["admin", "api", "media", "nova", "robots.txt", "shop", "sitemap.xml", ...ROUTE_SLUGS];
 
 /** Adresa stranice na sajtu. */
 export function pagePath(slug: string): string {

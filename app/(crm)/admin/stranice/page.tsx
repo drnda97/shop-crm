@@ -38,7 +38,7 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
                 )}
               </div>
               <div className="text-[14px] text-muted">
-                {pagePath(page.slug)} · sekcija: {page.sections.length}
+                {pagePath(page.slug)} {t("· sekcija:")} {page.sections.length}
               </div>
             </div>
             <Link href={`${ADMIN_PATH}/stranice/${page.slug}`} className={quietButtonClass}>

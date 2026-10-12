@@ -1,5 +1,6 @@
 "use client";
 
+import { usePath } from "@/lib/i18n/client";
 import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
 import { useState } from "react";
@@ -44,6 +45,7 @@ type CollectionGridProps = {
 
 /** Mreža proizvoda sa kategorijama, pretragom, sortiranjem i filterima po ceni i opcijama. */
 export function CollectionGrid({ initialCategory: cat, search }: CollectionGridProps) {
+  const to = usePath();
   const t = useT();
   const { products, config } = useCart();
   const [sort, setSort] = useState<Sort>("rec");
@@ -62,8 +64,8 @@ export function CollectionGrid({ initialCategory: cat, search }: CollectionGridP
 
   const q = query.trim().toLowerCase();
   const from = Number(min) || 0;
-  const to = Number(max) || Infinity;
-  let list = inCategory.filter((p) => p.price >= from && p.price <= to);
+  const upTo = Number(max) || Infinity;
+  let list = inCategory.filter((p) => p.price >= from && p.price <= upTo);
   for (const [name, values] of Object.entries(picked)) {
     if (values.length === 0) continue;
     list = list.filter((p) =>
@@ -115,16 +117,16 @@ export function CollectionGrid({ initialCategory: cat, search }: CollectionGridP
         {/* Kategorije su linkovi: svaka ima svoju stranicu, pa adresa može da se podeli. */}
         <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start" }}>
           {rows.map((row, level) => (
-            <nav className="seg" aria-label={level === 0 ? "Kategorije" : "Podkategorije"} key={row.parent}>
+            <nav className="seg" aria-label={level === 0 ? t("Kategorije") : t("Podkategorije")} key={row.parent}>
               {level === 0 && (
-                <Link className={cat === "" ? "chip on" : "chip"} href="/kolekcija" scroll={false}>
+                <Link className={cat === "" ? "chip on" : "chip"} href={to("/kolekcija")} scroll={false}>
                   {t("Sve")}
                 </Link>
               )}
               {row.items.map((c) => (
                 <Link
                   className={c.id === cat || path.includes(c.id) ? "chip on" : "chip"}
-                  href={`/kolekcija/${c.id}`}
+                  href={to(`/kolekcija/${c.id}`)}
                   scroll={false}
                   aria-current={c.id === cat ? "page" : undefined}
                   key={c.id}
@@ -160,7 +162,7 @@ export function CollectionGrid({ initialCategory: cat, search }: CollectionGridP
       {filtersOpen && (
         <div className="panel" style={{ display: "flex", flexWrap: "wrap", gap: "22px 40px", alignItems: "flex-start", padding: "22px 26px" }}>
           <div className="f" style={{ gap: "8px" }}>
-            <span className="lab">Cena (RSD)</span>
+            <span className="lab">{t("Cena (RSD)")}</span>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <input
                 type="number"

@@ -31,7 +31,7 @@ export default async function MediaPage({ searchParams }: MediaPageProps) {
         <button type="submit" className={buttonClass}>
           {t("Ubaci slike")}
         </button>
-        <span className="text-[14px] text-muted">{IMAGE_HINT} po slici; više slika odjednom do 16 MB ukupno.</span>
+        <span className="text-[14px] text-muted">{t(IMAGE_HINT)} {t("po slici; više slika odjednom do 16 MB ukupno.")}</span>
       </form>
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-[16px]">

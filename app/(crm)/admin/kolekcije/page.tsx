@@ -36,7 +36,7 @@ export default async function CollectionsPage({ searchParams }: CollectionsPageP
             <div className="min-w-[180px] grow">
               <div className="text-[17px]">{collection.name}</div>
               <div className="text-[14px] text-muted">
-                {formatProductCount(collection.productSlugs.length)} · oznaka za API:{" "}
+                {t(formatProductCount(collection.productSlugs.length))} {t("· oznaka za API:")}{" "}
                 {collection.id}
               </div>
             </div>
@@ -46,7 +46,7 @@ export default async function CollectionsPage({ searchParams }: CollectionsPageP
             <form action={deleteCollectionAction}>
               <input type="hidden" name="id" value={collection.id} />
               <ConfirmButton
-                question={`Obrisati kolekciju „${collection.name}"? Proizvodi ostaju.`}
+                question={t("Obrisati kolekciju „{a}\"? Proizvodi ostaju.", { a: collection.name })}
                 className={quietButtonClass}
               >
                 {t("Obriši")}

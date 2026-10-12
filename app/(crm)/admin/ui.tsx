@@ -73,7 +73,7 @@ export function PageHeader({ title, hint, action, error, notice }: PageHeaderPro
           <span className="flex size-[28px] shrink-0 items-center justify-center rounded-full bg-gold text-[14px] font-bold">
             ✓
           </span>
-          {notice}
+          <Tr>{notice}</Tr>
         </p>
       )}
     </>
@@ -127,10 +127,12 @@ export function ErrorNote({ message }: { message?: string }) {
       role="alert"
       className="mb-[24px] rounded-[18px] bg-white px-[18px] py-[14px] text-[15px] font-medium shadow-[inset_0_0_0_1.5px_var(--color-ink)]"
     >
-      {message}
+      <Tr>{message}</Tr>
     </p>
   );
 }
 
 // Delovi sa sopstvenim tekstom su u ui-text.tsx, da prevod radi i u pregledaču.
-export { MailNotice, Thumb } from "./ui-text";
+import { Tr } from "./ui-text";
+
+export { MailNotice, Thumb, Tr } from "./ui-text";

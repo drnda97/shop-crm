@@ -60,7 +60,7 @@ export function LoginForm() {
         </label>
       )}
       <button type="submit" disabled={pending} className={`${buttonClass} mt-[6px] min-h-[58px] w-full`}>
-        {pending ? "Prijavljivanje…" : state.needCode ? "Potvrdi" : "Prijavi se"}
+        {pending ? "Prijavljivanje…" : state.needCode ? t("Potvrdi") : t("Prijavi se")}
       </button>
     </form>
   );

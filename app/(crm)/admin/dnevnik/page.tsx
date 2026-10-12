@@ -37,8 +37,8 @@ export default async function AuditPage() {
                   <tr key={index} className="border-t border-line align-top">
                     <td className="py-[8px] pr-[16px] whitespace-nowrap text-muted">{orderDate(entry.at)}</td>
                     <td className="py-[8px] pr-[16px] font-display font-bold whitespace-nowrap">{entry.userName}</td>
-                    <td className="py-[8px] pr-[16px]">{entry.action}</td>
-                    <td className="py-[8px] text-muted">{entry.detail}</td>
+                    <td className="py-[8px] pr-[16px]">{t(entry.action)}</td>
+                    <td className="py-[8px] text-muted">{t(entry.detail)}</td>
                   </tr>
                 ))}
               </tbody>

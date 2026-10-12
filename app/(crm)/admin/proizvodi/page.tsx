@@ -102,7 +102,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 form="bulk"
                 name="slugs"
                 value={product.slug}
-                aria-label={`Označi: ${product.name}`}
+                aria-label={t("Označi: {a}", { a: product.name })}
                 className="size-[20px] shrink-0 cursor-pointer accent-ink"
               />
               {/* Redosled se menja samo u punom spisku; u pretrazi bi „gore" i „dole" zbunjivalo. */}
@@ -114,7 +114,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                     name="direction"
                     value="up"
                     disabled={position === 0}
-                    aria-label={`Pomeri gore: ${product.name}`}
+                    aria-label={t("Pomeri gore: {a}", { a: product.name })}
                     className={moveButton}
                   >
                     ↑
@@ -124,7 +124,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                     name="direction"
                     value="down"
                     disabled={position === all.length - 1}
-                    aria-label={`Pomeri dole: ${product.name}`}
+                    aria-label={t("Pomeri dole: {a}", { a: product.name })}
                     className={moveButton}
                   >
                     ↓
@@ -136,12 +136,12 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 <div className="font-display text-[17px] font-bold">{product.name}</div>
                 <div className="text-[14px] text-muted">
                   {categories.find((category) => category.id === product.category)?.label ??
-                    "bez kategorije"}
+                    t("bez kategorije")}
                   {product.sku && ` · ${product.sku}`} ·{" "}
                   {!hasPrice(product)
-                    ? "bez cene"
+                    ? t("bez cene")
                     : priceRange(product).varies
-                      ? `od ${formatMoney(priceRange(product).from, currency)}`
+                      ? t("od {a}", { a: formatMoney(priceRange(product).from, currency) })
                       : product.price === null
                         ? formatMoney(priceRange(product).from, currency)
                         : formatMoney(product.price, currency)}
@@ -159,17 +159,17 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                       isSoldOut(product) ? "bg-ink text-paper" : "bg-band text-ink"
                     }`}
                   >
-                    {isSoldOut(product) ? "Nema na stanju" : "Na stanju"}
+                    {isSoldOut(product) ? t("Nema na stanju") : t("Na stanju")}
                   </span>
                   {lowStockLabel(product) && (
                     <span className={`${badge} bg-gold text-ink`}>
-                      Kupac vidi: {lowStockLabel(product)}
+                      {t("Kupac vidi:")} {lowStockLabel(product)}
                     </span>
                   )}
                   {/* Kod varijanti: koje su rasprodate i na kojima kupac vidi oznaku „pri kraju". */}
                   {soldOutVariants(product).map((unit) => (
                     <span key={unit.variant?.id} className={`${badge} bg-ink text-paper`}>
-                      {unit.variant && variantLabel(unit.variant)}: nema
+                      {unit.variant && variantLabel(unit.variant)}{t(": nema")}
                     </span>
                   ))}
                   {product.variants
@@ -189,7 +189,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                     ? `ukupno ${product.variants
                         .filter((variant) => variant.enabled)
                         .reduce((sum, variant) => sum + (variant.stockQty ?? 0), 0)} kom. po varijantama`
-                    : "stanje po varijantama se ne vodi"}
+                    : t("stanje po varijantama se ne vodi")}
                 </span>
               ) : product.stockQty !== null ? (
                 <form action={setStockAction} className="flex items-center gap-[6px]">
@@ -202,7 +202,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                       step="1"
                       required
                       defaultValue={product.stockQty}
-                      aria-label={`Broj komada na stanju: ${product.name}`}
+                      aria-label={t("Broj komada na stanju: {a}", { a: product.name })}
                       className={inputClass}
                     />
                   </div>
@@ -214,7 +214,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 <form action={setStockAction}>
                   <input type="hidden" name="slug" value={product.slug} />
                   <button type="submit" className={quietButtonClass}>
-                    {hasStock(product) ? "Označi da nema" : "Vrati na stanje"}
+                    {hasStock(product) ? t("Označi da nema") : t("Vrati na stanje")}
                   </button>
                 </form>
               )}
@@ -224,7 +224,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               <form action={deleteProductAction}>
                 <input type="hidden" name="slug" value={product.slug} />
                 <ConfirmButton
-                  question={`Obrisati proizvod „${product.name}"?`}
+                  question={t("Obrisati proizvod „{a}\"?", { a: product.name })}
                   className={quietButtonClass}
                 >
                   {t("Obriši")}
@@ -235,7 +235,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         })}
         {products.length === 0 && (
           <p className="text-[15px] text-muted">
-            {all.length === 0 ? "Još nema proizvoda." : "Nema proizvoda za ovu pretragu."}
+            {all.length === 0 ? t("Još nema proizvoda.") : t("Nema proizvoda za ovu pretragu.")}
           </p>
         )}
       </div>

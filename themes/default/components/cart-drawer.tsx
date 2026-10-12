@@ -1,5 +1,6 @@
 "use client";
 
+import { usePath } from "@/lib/i18n/client";
 import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
 import { countLabel, formatPrice } from "@/lib/storefront/products";
@@ -7,6 +8,7 @@ import { cartKey, defaultMethod, shippingFor, useCart } from "./cart";
 import { CheckIcon, Photo } from "./ui";
 
 export function CartDrawer() {
+  const to = usePath();
   const t = useT();
   const { products, config, items, count, subtotal, weight, closeCart, add, setQty } = useCart();
   // Korpa računa dostavu podrazumevanim načinom; kupac ga menja na stranici plaćanja.
@@ -58,7 +60,7 @@ export function CartDrawer() {
             {texts.emptyText && (
               <p className="muted" style={{ fontSize: "15.5px", maxWidth: "28ch" }}>{texts.emptyText}</p>
             )}
-            <Link className="btn ghost" href="/kolekcija" onClick={closeCart} style={{ marginTop: "8px" }}>
+            <Link className="btn ghost" href={to("/kolekcija")} onClick={closeCart} style={{ marginTop: "8px" }}>
               {t("Pogledajte kolekciju")}
             </Link>
           </div>
@@ -72,7 +74,7 @@ export function CartDrawer() {
               </div>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
-                  <Link className="card-name" href={`/proizvod/${it.slug}`} style={{ fontSize: "17px" }}>
+                  <Link className="card-name" href={to(`/proizvod/${it.slug}`)} style={{ fontSize: "17px" }}>
                     {it.name}
                   </Link>
                   <span style={{ fontFamily: "var(--display)", fontSize: "16px", fontWeight: 700, whiteSpace: "nowrap" }}>
@@ -122,7 +124,7 @@ export function CartDrawer() {
             <span className="lab">{t("Ukupno")}</span>
             <span className="display" style={{ fontSize: "28px" }}>{formatPrice(subtotal + shipping)}</span>
           </div>
-          <Link className="btn gold full" href="/placanje">{t("Nastavi na plaćanje")}</Link>
+          <Link className="btn gold full" href={to("/placanje")}>{t("Nastavi na plaćanje")}</Link>
           {texts.footNote && <div className="muted" style={{ fontSize: "13.5px", textAlign: "center" }}>{texts.footNote}</div>}
         </div>
       )}

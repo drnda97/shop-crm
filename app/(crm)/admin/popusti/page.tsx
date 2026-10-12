@@ -1,3 +1,4 @@
+import type { T } from "@/lib/i18n";
 import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
@@ -13,13 +14,13 @@ import { buttonClass, cardClass, PageHeader, quietButtonClass, rowClass } from "
 type DiscountsPageProps = { searchParams: Promise<{ greska?: string }> };
 
 /** Uslov pravila rečima, npr. „posle porudžbine od 3.000 RSD". */
-function describeTrigger(discount: Discount, currency: Currency): string {
-  if (discount.trigger === "public") return "promo kod za sve kupce";
-  if (discount.trigger === "auto") return "automatski, bez koda";
-  if (discount.trigger === "first") return "nagrada posle prve porudžbine kupca";
+function describeTrigger(t: T, discount: Discount, currency: Currency): string {
+  if (discount.trigger === "public") return t("promo kod za sve kupce");
+  if (discount.trigger === "auto") return t("automatski, bez koda");
+  if (discount.trigger === "first") return t("nagrada posle prve porudžbine kupca");
   return discount.trigger === "amount"
-    ? `nagrada posle porudžbine od ${formatMoney(discount.threshold, currency)}`
-    : `nagrada posle porudžbine od ${formatWeight(discount.threshold)}`;
+    ? t("nagrada posle porudžbine od {a}", { a: formatMoney(discount.threshold, currency) })
+    : t("nagrada posle porudžbine od {a}", { a: formatWeight(discount.threshold) });
 }
 
 export default async function DiscountsPage({ searchParams }: DiscountsPageProps) {
@@ -53,10 +54,10 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
           const count = counts[discount.id] ?? { sent: 0, used: 0 };
           const usage =
             discount.trigger === "auto"
-              ? `${discount.maxUses === null ? "bez ograničenja" : `najviše ${discount.maxUses} porudžbina`}${discount.expiresAt ? ` · važi do ${discount.expiresAt}` : ""}`
+              ? `${discount.maxUses === null ? t("bez ograničenja") : t("najviše {a} porudžbina", { a: discount.maxUses })}${discount.expiresAt ? t(" · važi do {a}", { a: discount.expiresAt }) : ""}`
               : discount.trigger === "public"
-              ? `iskorišćeno: ${uses[discount.code] ?? 0}${discount.maxUses === null ? "" : ` od ${discount.maxUses}`}${discount.expiresAt ? ` · važi do ${discount.expiresAt}` : ""}`
-              : `poslato kodova: ${count.sent} · iskorišćeno: ${count.used}`;
+              ? t("iskorišćeno: {a}{b}{c}", { a: uses[discount.code] ?? 0, b: discount.maxUses === null ? "" : ` od ${discount.maxUses}`, c: discount.expiresAt ? ` · važi do ${discount.expiresAt}` : "" })
+              : t("poslato kodova: {a} · iskorišćeno: {b}", { a: count.sent, b: count.used });
           return (
             <div key={discount.id} className={rowClass}>
               <div className="w-[72px] shrink-0 font-display text-[28px] leading-none font-bold tracking-[-0.03em]">
@@ -74,18 +75,18 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
                       active && !expired ? "bg-gold text-ink" : "bg-band text-muted"
                     }`}
                   >
-                    {expired ? "Istekao" : active ? "Aktivan" : "Nacrt"}
+                    {expired ? t("Istekao") : active ? t("Aktivan") : t("Nacrt")}
                   </span>
                 </div>
                 <div className="text-[14px] text-muted">
-                  Kod: {discount.code || "nasumičan za svakog kupca"} ·{" "}
-                  {describeTrigger(discount, currency)} · {usage}
+                  {t("Kod:")} {discount.code || t("nasumičan za svakog kupca")} ·{" "}
+                  {describeTrigger(t, discount, currency)} · {usage}
                 </div>
               </div>
               <form action={toggleDiscountAction}>
                 <input type="hidden" name="id" value={discount.id} />
                 <button type="submit" className={quietButtonClass}>
-                  {active ? "Vrati u nacrt" : "Aktiviraj"}
+                  {active ? t("Vrati u nacrt") : t("Aktiviraj")}
                 </button>
               </form>
               <Link href={`${ADMIN_PATH}/popusti/${discount.id}`} className={quietButtonClass}>
@@ -94,7 +95,7 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
               <form action={deleteDiscountAction}>
                 <input type="hidden" name="id" value={discount.id} />
                 <ConfirmButton
-                  question={`Obrisati popust „${discount.name}"? Kodovi koji su već poslati kupcima ostaju da važe.`}
+                  question={t("Obrisati popust „{a}\"? Kodovi koji su već poslati kupcima ostaju da važe.", { a: discount.name })}
                   className={quietButtonClass}
                 >
                   {t("Obriši")}

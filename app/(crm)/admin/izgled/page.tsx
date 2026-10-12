@@ -19,12 +19,11 @@ export default async function ThemePage() {
         title={t("Izgled sajta")}
         hint={
           <>
-            Boje, fontovi, meni, podnožje i tekstovi na stranicama prodavnice. Stranice od sekcija (početna,
-            o nama…) su u delu{" "}
+            {t("Boje, fontovi, meni, podnožje i tekstovi na stranicama prodavnice. Stranice od sekcija (početna, o nama…) su u delu")}{" "}
             <Link href={`${ADMIN_PATH}/stranice`} className={textLinkClass}>
               {t("Stranice")}
             </Link>
-            , a naziv prodavnice i logo u{" "}
+            {t(", a naziv prodavnice i logo u")}{" "}
             <Link href={`${ADMIN_PATH}/podesavanja`} className={textLinkClass}>
               {t("Podešavanjima")}
             </Link>

@@ -1,3 +1,4 @@
+import { getShopPath } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductReviews, ratingSummary } from "@/lib/reviews";
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: product.seoTitle || product.name,
     ...(description ? { description } : {}),
-    alternates: { canonical: `/proizvod/${product.slug}` },
+    alternates: { canonical: (await getShopPath())(`/proizvod/${product.slug}`) },
     openGraph: { title: product.name, ...(product.image ? { images: [product.image] } : {}) },
   };
 }
@@ -56,7 +57,7 @@ export default async function ProductRoute({ params }: Props) {
     ...(rating ? { aggregateRating: { "@type": "AggregateRating", ratingValue: rating.average, reviewCount: rating.count } } : {}),
     offers: {
       "@type": "Offer",
-      url: `${base}/proizvod/${product.slug}`,
+      url: `${base}${(await getShopPath())(`/proizvod/${product.slug}`)}`,
       price: (product.price / 10 ** settings.store.currencyDecimals).toFixed(settings.store.currencyDecimals),
       priceCurrency: settings.store.currency,
       availability: "https://schema.org/InStock",

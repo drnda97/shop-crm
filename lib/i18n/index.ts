@@ -6,12 +6,31 @@
  * Ovaj fajl radi i na serveru i u pregledaču.
  */
 
-export type Lang = "sr" | "en";
+/** Oznaka jezika: "sr", "en", "de", "pt-br"… Prodavnica može imati koliko god jezika. */
+export type Lang = string;
 
-export const LANGS: Record<Lang, string> = { sr: "Srpski", en: "English" };
+/** Jezici za koje rečnik postoji u kodu. Panel radi samo na njima; prodavnica i na jezicima koje vlasnik prevede. */
+export const LANGS: Record<string, string> = { sr: "Srpski", en: "English" };
 
 export function isLang(value: unknown): value is Lang {
   return typeof value === "string" && value in LANGS;
+}
+
+/** Oznaka jezika u obliku koji se koristi u adresi: dva slova, po želji sa oznakom zemlje ("pt-br"). */
+export function langCode(value: unknown): Lang | null {
+  const code = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return /^[a-z]{2}(-[a-z]{2,4})?$/.test(code) ? code : null;
+}
+
+/** Naziv jezika na tom jeziku ("Deutsch", "Français"), za izbor jezika na sajtu. */
+export function langName(code: Lang): string {
+  if (LANGS[code]) return LANGS[code];
+  try {
+    const name = new Intl.DisplayNames([code], { type: "language" }).of(code);
+    return name && name !== code ? name.charAt(0).toUpperCase() + name.slice(1) : code.toUpperCase();
+  } catch {
+    return code.toUpperCase();
+  }
 }
 
 /** Rečnik jednog jezika: srpski tekst → prevod. */
@@ -38,7 +57,8 @@ function patterns(dict: Dict): Pattern[] {
           const name = /^\{(\w+)\}$/.exec(part)?.[1];
           if (!name) return part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
           names.push(name);
-          return "(.+?)";
+          // {n} hvata samo broj, da „{n} proizvoda" ne zahvati naslov koji se tako završava.
+          return name === "n" ? "(\\d[\\d.,]*)" : "(.+?)";
         })
         .join("");
       return { test: new RegExp(`^${source}$`, "s"), names, out };
@@ -50,7 +70,10 @@ function patterns(dict: Dict): Pattern[] {
  * Tekst koji stigne sa već upisanim vrednostima (poruka sa servera) prevodi se po obrascu.
  */
 export function makeT(lang: Lang, ...dicts: (Partial<Record<Lang, Dict>> | undefined)[]): T {
-  const active = dicts.map((dict) => dict?.[lang]).filter((dict): dict is Dict => dict !== undefined);
+  // Jezik bez rečnika u kodu (npr. nemački) dok ga vlasnik ne prevede pada na engleski, ne na srpski.
+  const active = dicts
+    .map((dict) => dict?.[lang] ?? (lang === "sr" ? undefined : dict?.en))
+    .filter((dict): dict is Dict => dict !== undefined);
   if (active.length === 0) return fill;
   const byPattern = active.flatMap(patterns);
   const seen = new Map<string, string>();
@@ -74,6 +97,9 @@ export function makeT(lang: Lang, ...dicts: (Partial<Record<Lang, Dict>> | undef
   };
 }
 
-/** Oznaka jezika za atribut `lang` i Open Graph. */
-export const htmlLang: Record<Lang, string> = { sr: "sr", en: "en" };
-export const ogLocale: Record<Lang, string> = { sr: "sr_RS", en: "en_US" };
+/** Oznaka jezika za Open Graph: "sr" → "sr_RS", "pt-br" → "pt_BR". */
+export function ogLocale(lang: Lang): string {
+  const known: Record<string, string> = { sr: "sr_RS", en: "en_US" };
+  const [language, region] = lang.split("-");
+  return known[lang] ?? (region ? `${language}_${region.toUpperCase()}` : `${language}_${language.toUpperCase()}`);
+}

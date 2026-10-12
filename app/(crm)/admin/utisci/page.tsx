@@ -26,7 +26,7 @@ export default async function ReviewsPage() {
       />
       <div className={cardClass}>
         <p className="mb-[8px] text-[15px] text-muted">
-          {waiting > 0 ? `Čeka odobrenje: ${waiting}.` : "Nijedan utisak ne čeka odobrenje."}
+          {waiting > 0 ? t("Čeka odobrenje: {a}.", { a: waiting }) : t("Nijedan utisak ne čeka odobrenje.")}
         </p>
         {reviews.map((review) => {
           const product = products.find((candidate) => candidate.slug === review.productSlug);
@@ -37,7 +37,7 @@ export default async function ReviewsPage() {
                   <span className="font-display font-bold">{"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}</span>
                   <span className="font-medium">{review.name}</span>
                   <span className={`${badge} ${review.status === "pending" ? "bg-gold text-ink" : review.status === "approved" ? "bg-band text-ink" : "bg-band text-muted line-through"}`}>
-                    {statusLabels[review.status]}
+                    {t(statusLabels[review.status])}
                   </span>
                   {review.verified && <span className="text-[13px] text-muted">{t("kupio/la proizvod")}</span>}
                 </div>
@@ -68,7 +68,7 @@ export default async function ReviewsPage() {
                     <input type="hidden" name="id" value={review.id} />
                     <input type="hidden" name="status" value="rejected" />
                     <button type="submit" className={quietButtonClass}>
-                      {review.status === "approved" ? "Skloni" : "Odbij"}
+                      {review.status === "approved" ? t("Skloni") : t("Odbij")}
                     </button>
                   </form>
                 )}

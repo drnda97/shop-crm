@@ -20,8 +20,7 @@ export function TotpForm() {
           ))}
         </ul>
         <p className="text-[14px] text-muted">
-          Svaki važi za jednu prijavu, kada telefon nije pri ruci. Posle zatvaranja ove stranice više se ne
-          mogu videti; ako ih izgubite, isključite pa ponovo uključite prijavu u dva koraka.
+          {t("Svaki važi za jednu prijavu, kada telefon nije pri ruci. Posle zatvaranja ove stranice više se ne mogu videti; ako ih izgubite, isključite pa ponovo uključite prijavu u dva koraka.")}
         </p>
       </div>
     );

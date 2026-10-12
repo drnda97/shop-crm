@@ -44,7 +44,7 @@ export function ManualOrderForm({ ordersPath, products, methods, payments }: Man
     const items = rows
       .filter((row) => row.slug)
       .map((row) => ({ slug: row.slug, qty: Math.max(1, Math.round(Number(row.qty) || 1)), ...(row.variant ? { variant: row.variant } : {}) }));
-    if (items.length === 0) return setError("Dodajte bar jedan proizvod.");
+    if (items.length === 0) return setError(t("Dodajte bar jedan proizvod."));
     setError("");
     startTransition(async () => {
       const result = await createManualOrderAction({ customer, items, discountCode, paymentMethod, deliveryMethod });
@@ -96,7 +96,7 @@ export function ManualOrderForm({ ordersPath, products, methods, payments }: Man
                 <input type="number" min="1" step="1" value={row.qty} onChange={(event) => setRow(index, { qty: event.target.value })} className={inputClass} />
               </label>
               {rows.length > 1 && (
-                <button type="button" className={quietButtonClass} aria-label={`Ukloni stavku ${index + 1}`} onClick={() => setRows(rows.filter((_, position) => position !== index))}>
+                <button type="button" className={quietButtonClass} aria-label={t("Ukloni stavku {a}", { a: index + 1 })} onClick={() => setRows(rows.filter((_, position) => position !== index))}>
                   ✕
                 </button>
               )}
@@ -131,7 +131,7 @@ export function ManualOrderForm({ ordersPath, products, methods, payments }: Man
           </label>
         </div>
         <label className={labelClass}>
-          Kod za popust (neobavezno)
+          {t("Kod za popust (neobavezno)")}
           <input value={discountCode} onChange={(event) => setDiscountCode(event.target.value)} className={inputClass} />
         </label>
       </section>
@@ -177,7 +177,7 @@ export function ManualOrderForm({ ordersPath, products, methods, payments }: Man
         )}
         <div>
           <button type="button" className={buttonClass} disabled={pending} onClick={submit}>
-            {pending ? "Upisujem…" : "Upiši porudžbinu"}
+            {pending ? "Upisujem…" : t("Upiši porudžbinu")}
           </button>
         </div>
         <p className="text-[14px] text-muted">

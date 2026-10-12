@@ -105,14 +105,14 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
               <form action={deleteCategoryAction}>
                 <input type="hidden" name="id" value={category.id} />
                 <ConfirmButton
-                  question={`Obrisati kategoriju „${category.label}"?`}
+                  question={t("Obrisati kategoriju „{a}\"?", { a: category.label })}
                   className={quietButtonClass}
                 >
                   {t("Obriši")}
                 </ConfirmButton>
               </form>
               <div className="w-full text-[13px] text-muted">
-                {formatProductCount(count)} · na sajtu: /kolekcija/{category.id}
+                {t(formatProductCount(count))} {t("· na sajtu: /kolekcija/")}{category.id}
               </div>
             </div>
           );

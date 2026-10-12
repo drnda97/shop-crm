@@ -1,4 +1,4 @@
-import { isLang, type Lang } from "@/lib/i18n";
+import { isLang, langCode, type Lang } from "@/lib/i18n";
 import type { Currency } from "@/lib/format";
 import { legacyMethods, normalizeMethods, type ShippingMethod } from "@/lib/shipping";
 import { defaultSite, mergeSite, type SiteSettings } from "@/lib/site";
@@ -30,6 +30,8 @@ export type StoreSettings = {
   currencyDecimals: 0 | 2;
   /** Jezik sajta i poruka kupcima, i jezik panela (lib/i18n). */
   language: Lang;
+  /** Ostali jezici sajta, koje kupac bira na sajtu (adresa dobija /en, /de…). Prevodi su u panelu, deo Prevodi. */
+  languages: Lang[];
   panelLanguage: Lang;
   /** Jezik i zemlja za zapis datuma, npr. "sr-Latn-RS". */
   locale: string;
@@ -206,6 +208,7 @@ export const defaultSettings: Settings = {
     currency: "RSD",
     currencyDecimals: 0,
     language: "sr",
+    languages: [],
     panelLanguage: "sr",
     locale: "sr-Latn-RS",
     timeZone: "Europe/Belgrade",
@@ -260,6 +263,13 @@ function mergeShipping(saved: Partial<Settings>): ShippingMethod[] {
   return methods.length > 0 ? methods : legacyMethods({});
 }
 
+/** Dodatni jezici sajta: ispravne oznake, bez ponavljanja i bez glavnog jezika; najviše 30. */
+export function storeLanguages(value: unknown, main: Lang): Lang[] {
+  const list = Array.isArray(value) ? value : typeof value === "string" ? value.split(/[\s,;]+/) : [];
+  const codes = list.map(langCode).filter((code): code is Lang => code !== null && code !== main);
+  return [...new Set(codes)].slice(0, 30);
+}
+
 /** Spajanje sa početnim vrednostima, da podešavanje dodato kasnije ne fali u starom zapisu. */
 export function mergeSettings(saved: Partial<Settings>): Settings {
   return {
@@ -268,7 +278,8 @@ export function mergeSettings(saved: Partial<Settings>): Settings {
     store: {
       ...defaultSettings.store,
       ...saved.store,
-      language: isLang(saved.store?.language) ? saved.store.language : "sr",
+      language: langCode(saved.store?.language) ?? "sr",
+      languages: storeLanguages(saved.store?.languages, langCode(saved.store?.language) ?? "sr"),
       panelLanguage: isLang(saved.store?.panelLanguage) ? saved.store.panelLanguage : "sr",
     },
     colors: mergeColors(saved.colors),

@@ -150,6 +150,29 @@ const en: Dict = {
   "Zdravo {ime}, tražili ste novu lozinku za svoj nalog. Link važi jedan sat.\n\nAko to niste bili vi, ne morate ništa da radite: lozinka ostaje ista.":
     "Hello {ime}, you asked for a new password for your account. The link is valid for one hour.\n\nIf that wasn't you, you don't need to do anything: your password stays the same.",
   "Postavite novu lozinku": "Set a new password",
+  // račun
+  "Račun": "Invoice",
+  "Račun br.": "Invoice no.",
+  "Datum:": "Date:",
+  "Prodavac": "Seller",
+  "Kupac": "Customer",
+  "Stavka": "Item",
+  "Količina": "Quantity",
+  "Cena": "Price",
+  "Iznos": "Amount",
+  "Osnovica": "Net amount",
+  "PDV": "VAT",
+  "Ukupno": "Total",
+  "Vraćeno kupcu": "Refunded to customer",
+  "Način plaćanja:": "Payment method:",
+  "plaćeno": "paid",
+  "Prodavac nije u sistemu PDV-a.": "The seller is not VAT-registered.",
+  "Cene sadrže PDV.": "Prices include VAT.",
+  // odgovor na zahtev za povrat
+  "Povrat za porudžbinu #{broj}": "Return for order #{broj}",
+  "Zdravo {ime}, vaš zahtev za povrat za porudžbinu #{broj} je odobren.": "Hello {ime}, your return request for order #{broj} has been approved.",
+  "Zdravo {ime}, vaš zahtev za povrat za porudžbinu #{broj} nažalost nije odobren.": "Hello {ime}, unfortunately your return request for order #{broj} has not been approved.",
+  "Zatraženo: {stavke}.": "Requested: {stavke}.",
 };
 
 export const shopDict: Partial<Record<Lang, Dict>> = { en };

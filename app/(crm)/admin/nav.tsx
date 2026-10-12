@@ -176,40 +176,41 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
   const all: { title?: string; items: NavItem[] }[] = [
     {
       items: [
-        { href: base, label: "Pregled", icon: icons.overview, exact: true, area: "orders" },
-        { href: `${base}/porudzbine`, label: "Porudžbine", icon: icons.orders, badge: waiting, area: "orders" },
-        { href: `${base}/kupci`, label: "Kupci", icon: icons.customers, area: "orders" },
-        { href: `${base}/korpe`, label: "Napuštene korpe", icon: icons.carts, area: "orders" },
-        { href: `${base}/poruke`, label: "Poruke", icon: icons.messages, area: "orders" },
-        { href: `${base}/utisci`, label: "Utisci", icon: icons.reviews, area: "orders" },
-        { href: `${base}/izvestaji`, label: "Izveštaji", icon: icons.reports, area: "orders" },
+        { href: base, label: t("Pregled"), icon: icons.overview, exact: true, area: "orders" },
+        { href: `${base}/porudzbine`, label: t("Porudžbine"), icon: icons.orders, badge: waiting, area: "orders" },
+        { href: `${base}/kupci`, label: t("Kupci"), icon: icons.customers, area: "orders" },
+        { href: `${base}/korpe`, label: t("Napuštene korpe"), icon: icons.carts, area: "orders" },
+        { href: `${base}/poruke`, label: t("Poruke"), icon: icons.messages, area: "orders" },
+        { href: `${base}/utisci`, label: t("Utisci"), icon: icons.reviews, area: "orders" },
+        { href: `${base}/izvestaji`, label: t("Izveštaji"), icon: icons.reports, area: "orders" },
       ],
     },
     {
-      title: "Prodavnica",
+      title: t("Prodavnica"),
       items: [
-        { href: `${base}/proizvodi`, label: "Proizvodi", icon: icons.products, area: "catalog" },
-        { href: `${base}/kategorije`, label: "Kategorije", icon: icons.categories, area: "catalog" },
-        { href: `${base}/kolekcije`, label: "Kolekcije", icon: icons.collections, area: "catalog" },
-        { href: `${base}/popusti`, label: "Popusti", icon: icons.discounts, area: "catalog" },
+        { href: `${base}/proizvodi`, label: t("Proizvodi"), icon: icons.products, area: "catalog" },
+        { href: `${base}/kategorije`, label: t("Kategorije"), icon: icons.categories, area: "catalog" },
+        { href: `${base}/kolekcije`, label: t("Kolekcije"), icon: icons.collections, area: "catalog" },
+        { href: `${base}/popusti`, label: t("Popusti"), icon: icons.discounts, area: "catalog" },
       ],
     },
     {
-      title: "Sajt",
+      title: t("Sajt"),
       items: [
-        { href: `${base}/stranice`, label: "Stranice", icon: icons.pages, area: "content" },
-        { href: `${base}/izgled`, label: "Izgled sajta", icon: icons.layout, area: "content" },
-        { href: `${base}/slike`, label: "Slike", icon: icons.images, area: "content" },
+        { href: `${base}/stranice`, label: t("Stranice"), icon: icons.pages, area: "content" },
+        { href: `${base}/izgled`, label: t("Izgled sajta"), icon: icons.layout, area: "content" },
+        { href: `${base}/slike`, label: t("Slike"), icon: icons.images, area: "content" },
+        { href: `${base}/prevodi`, label: t("Prevodi"), icon: icons.messages, area: "content" },
       ],
     },
     {
-      title: "Podešavanja",
+      title: t("Podešavanja"),
       items: [
-        { href: `${base}/podesavanja`, label: "Opšte", icon: icons.settings, area: "settings" },
-        { href: `${base}/integracije`, label: "Integracije", icon: icons.layout, area: "settings" },
-        { href: `${base}/korisnici`, label: "Korisnici", icon: icons.customers, area: "users" },
-        { href: `${base}/dnevnik`, label: "Dnevnik", icon: icons.pages, area: "users" },
-        { href: `${base}/nalog`, label: "Moj nalog", icon: icons.account },
+        { href: `${base}/podesavanja`, label: t("Opšte"), icon: icons.settings, area: "settings" },
+        { href: `${base}/integracije`, label: t("Integracije"), icon: icons.layout, area: "settings" },
+        { href: `${base}/korisnici`, label: t("Korisnici"), icon: icons.customers, area: "users" },
+        { href: `${base}/dnevnik`, label: t("Dnevnik"), icon: icons.pages, area: "users" },
+        { href: `${base}/nalog`, label: t("Moj nalog"), icon: icons.account },
       ],
     },
   ];
@@ -233,8 +234,8 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
           type="button"
           onClick={toggle}
           aria-expanded={!collapsed}
-          aria-label={collapsed ? "Proširi meni" : "Skupi meni"}
-          title={collapsed ? "Proširi meni" : "Skupi meni"}
+          aria-label={collapsed ? t("Proširi meni") : t("Skupi meni")}
+          title={collapsed ? t("Proširi meni") : t("Skupi meni")}
           className="flex size-[44px] shrink-0 cursor-pointer items-center justify-center rounded-full transition-[background-color,rotate] duration-500 ease-shop hover:bg-band max-md:hidden md:group-data-[collapsed=true]/nav:rotate-180"
         >
           {icons.collapse}
@@ -289,7 +290,7 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
           href={siteUrl}
           target="_blank"
           rel="noreferrer"
-          title={collapsed ? "Otvori sajt" : undefined}
+          title={collapsed ? t("Otvori sajt") : undefined}
           className={`${item} ${quiet}`}
         >
           {icons.external}
@@ -298,11 +299,11 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
         <form action={logout}>
           <button
             type="submit"
-            title={collapsed ? "Odjavi se" : undefined}
+            title={collapsed ? t("Odjavi se") : undefined}
             className={`${item} ${quiet} w-full cursor-pointer`}
           >
             {icons.logout}
-            <span className={`truncate whitespace-nowrap ${whenCollapsedHide}`}>Odjavi se · {user}</span>
+            <span className={`truncate whitespace-nowrap ${whenCollapsedHide}`}>{t("Odjavi se ·")} {user}</span>
           </button>
         </form>
       </div>

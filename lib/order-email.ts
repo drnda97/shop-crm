@@ -1,3 +1,4 @@
+import { contentWords, shopT } from "@/lib/i18n/server";
 import { makeT, type T } from "@/lib/i18n";
 import { shopDict } from "@/lib/i18n/shop";
 import { accentText } from "@/lib/theme";
@@ -52,11 +53,13 @@ type RenderInput = {
   settings: Settings;
   /** Poruka o promeni statusa: zamenjuje naslov, tekst i naslov emaila; ostatak (stavke, iznosi) ostaje. */
   notice?: { subject: string; title: string; message: string };
+  /** Prevod za poruku kupcu, sa prevodima iz panela; bez njega se koriste samo rečnici iz koda. */
+  customerT?: T;
   /** Adresa slike logoa: `cid:` prilog pri slanju, javna putanja u pregledu. */
   logoSrc?: string;
 };
 
-export function renderOrderEmail({ template, order, recipient, settings, logoSrc, notice }: RenderInput) {
+export function renderOrderEmail({ template, order, recipient, settings, logoSrc, notice, customerT }: RenderInput) {
   const { customer } = order;
   const { store, colors, payment } = settings;
   const currency = currencyOf(settings);
@@ -71,7 +74,7 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
   }).format(new Date(order.receivedAt));
 
   // Kupcu na jeziku sajta, prodavcu na jeziku panela.
-  const t = makeT(recipient === "seller" ? store.panelLanguage : store.language, shopDict);
+  const t = recipient === "seller" ? makeT(store.panelLanguage, shopDict) : (customerT ?? makeT(order.lang ?? store.language, shopDict));
   const bank = order.paymentMethod === "bank";
   const card = order.paymentMethod === "card";
   const title = notice?.title ?? (recipient === "seller" ? t("Nova porudžbina") : t("Hvala, porudžbina je primljena."));
@@ -306,11 +309,14 @@ async function send(order: Order, settings: Settings, test: boolean): Promise<st
     }
   }
 
+  // Kupac dobija potvrdu na jeziku na kom je poručio (proba ide na jeziku sajta).
+  const customerT = await shopT(order.lang ?? settings.store.language);
   const errors: string[] = [];
   for (const message of messages) {
     const { subject, html, text } = renderOrderEmail({
       template,
       order,
+      customerT,
       recipient: message.recipient,
       settings,
       logoSrc: logoFile ? `cid:${LOGO_CID}` : undefined,
@@ -371,8 +377,10 @@ export async function notifyStatus(
   if (!key || !config?.enabled || !order.customer.email || !isMailConfigured(settings)) return "skipped";
 
   const { mail, store } = settings;
-  const t = makeT(store.language, shopDict);
-  const message = fillStatusText(config.text, order, store.name, extra, t);
+  // Kupac dobija poruku na jeziku na kom je poručio; tekst iz podešavanja se prevodi ako prevod postoji.
+  const lang = order.lang ?? store.language;
+  const [t, words] = await Promise.all([shopT(lang), contentWords(lang)]);
+  const message = fillStatusText(words.get(config.text) ?? config.text, order, store.name, extra, t);
   const logoFile = uploadPath(settings.logo);
   const { subject, html, text } = renderOrderEmail({
     template: await getEmailTemplate(settings),
@@ -380,7 +388,8 @@ export async function notifyStatus(
     recipient: "customer",
     settings,
     logoSrc: logoFile ? `cid:${LOGO_CID}` : undefined,
-    notice: { subject: `${fillStatusText(config.subject, order, store.name, extra)} — ${store.name}`, title: t(orderStatusTitles[key]), message },
+    customerT: t,
+    notice: { subject: `${fillStatusText(words.get(config.subject) ?? config.subject, order, store.name, extra)} — ${store.name}`, title: t(orderStatusTitles[key]), message },
   });
   const transport = createTransport(settings);
   try {

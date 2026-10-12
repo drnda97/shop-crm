@@ -179,14 +179,24 @@ Urađeno 12. 10. 2026:
 - **Licenca**: AGPL-3.0 (`LICENSE`).
 - **Tema odvojena od jezgra** (`themes/default`, `themes/README.md`): izgled prodavnice je jedan folder; rute u `app/(shop)/` samo učitaju podatke i predaju ih stranicama teme. Aktivnu temu bira jedan red u `tsconfig.json`. Šta tema mora da ima piše u `themes/README.md`.
 - **Sadržaj kroz API**: `/api/v1/site` (traka, meni, podnožje, boje, fontovi, tekstovi stalnih stranica) i `/api/v1/sections` (vrste sekcija i polja), uz postojeći `/api/v1/pages/{slug}`. Sajt van ove aplikacije tako koristi uređivač iz panela.
-- **Jezici, prvi deo** (`lib/i18n`): tekstovi u kodu su na srpskom i ujedno ključ prevoda, a rečnik drugog jezika ih zamenjuje; nepreveden tekst ostaje na srpskom. Podešavanja → Prodavnica bira jezik sajta. Na engleskom rade: sve stranice teme, poruke o grešci, nazivi statusa i plaćanja, naslovi stranica, i email kupcu (porudžbina, status, napuštena korpa, novosti, nova lozinka).
+- **Jezici** (`lib/i18n`): tekstovi u kodu su na srpskom i ujedno ključ prevoda, a rečnik drugog jezika ih zamenjuje; nepreveden tekst ostaje na srpskom. Podešavanja → Prodavnica bira jezik sajta i, odvojeno, jezik panela. Na engleskom su: sve stranice teme, poruke o grešci, statusi i načini plaćanja, naslovi stranica, email kupcu (porudžbina, status, napuštena korpa, novosti, nova lozinka), račun u PDF-u i ceo panel (stranice, poruke akcija, dnevnik, nazivi polja i sekcija u uređivaču). Rečnici: `lib/i18n/shop.ts` (jezgro, ono što vidi kupac), `lib/i18n/panel-en-*.ts` (panel) i `themes/default/i18n/en.ts` (tema).
+- **Adrese stranica na jeziku sajta** (`lib/routes.ts`, `proxy.ts`): na engleskom su `/collection`, `/product/…`, `/checkout`, `/account`, `/wishlist`, `/tracking`…, sa prevedenim parametrima (`?search=`, `?order=`). Rute u kodu ostaju jedne; prevedenu adresu u njih vodi proxy, a linkovi na sajtu, u emailu, u mapi sajta i kanonske adrese se ispisuju na jeziku sajta. Srpske adrese ruta rade i dalje.
+- **Početni sadržaj na jeziku sajta** (`lib/i18n/content.ts`): pri promeni jezika sajta (Podešavanja, ili izbor jezika u čarobnjaku za prvo pokretanje) meni, podnožje, početne stranice, tekstovi stalnih stranica, email poruke i načini dostave prelaze na taj jezik, a početne stranice dobijaju adrese na tom jeziku (`/about`, `/faq`, `/contact`…) uz ispravljene linkove. Menja se samo tekst koji je i dalje jednak početnom; ono što je vlasnik prepisao ostaje.
+- **Adresa stranice se menja iz panela** (Stranice → stranica → „Adresa stranice na sajtu"); linkovi ka njoj u meniju, podnožju i sekcijama se ispravljaju sami.
+- **Prodavnica na više jezika uporedo** (`lib/i18n/server.ts`, `lib/translations.ts`, tabela `translations`): uz glavni jezik prodavnica može imati koliko god dodatnih (Podešavanja → Prodavnica → Dodatni jezici sajta: `en, de, fr…`). Kupac bira jezik u zaglavlju sajta; adrese dodatnih jezika počinju sa `/en`, `/de`. Prevodi se upisuju u panelu, deo **Prevodi**, u tri grupe: tekstovi teme i poruke kupcu, sadržaj sajta (meni, podnožje, stranice, dostava, email) i katalog (proizvodi, kategorije, kolekcije). Bez upisanog prevoda važi rečnik iz koda (engleski postoji), pa tekst na glavnom jeziku. Porudžbina i napuštena korpa pamte jezik kupca, pa potvrda, poruke o statusu, podsetnik i račun stižu na njemu. Panel ostaje na srpskom ili engleskom.
+- Javni API prima `?lang=`: sadržaj i poruke o grešci na tom jeziku.
+- Na engleskom panelu su prevedeni i: zaglavlja CSV izvoza (osim izvoza proizvoda, koji se uvozi nazad), popust i dostava na kartici porudžbine, i email kupcu o zahtevu za povrat (ide na jeziku kupca).
+- Stranica Kontakt: okvir pored forme se skuplja kada nema podataka prodavnice, i dobio je polje za fotografiju.
 
 Ostaje:
 
-- **Panel na engleskom**: tekstovi panela su pripremljeni za prevod na oko 500 mesta, ali engleski rečnik panela nije napisan, i ostaje još oko 480 redova sa tekstom (najviše poruke u `actions.ts`). Zato se „Jezik panela" za sada ne može promeniti.
-- **Početni sadržaj na engleskom**: meni, podnožje, tekstovi stalnih stranica, početne stranice i tekstovi email poruka su sadržaj iz panela i na novoj instalaciji počinju na srpskom, i kada je jezik sajta engleski.
-- **Adrese stranica** ostaju srpske i na engleskom sajtu (`/kolekcija`, `/proizvod/…`, `/placanje`, `/nalog`).
-- Račun u PDF-u i poruke javnog API-ja su samo na srpskom.
+- Prevod je vezan za tekst: kada tekst na glavnom jeziku promenite, njegov prevod više ne važi i upisuje se ponovo. Stari prevodi ostaju u bazi neiskorišćeni.
+- Adrese stranica iz panela, kategorija i proizvoda su iste na svim jezicima (`/en/o-nama`, `/en/collection/fotelje`); prevode se samo stalne adrese prodavnice. Jezik bez sopstvenih adresa koristi engleske.
+- Stranice nemaju `hreflang` oznake za pretraživače, a mapa sajta navodi samo glavni jezik.
+- Novosti i poruke iz kontakt forme idu na glavnom jeziku; prijavljeni na novosti nemaju upisan jezik.
+- Za jezike osim engleskog nema gotovog prevoda teme: oko 350 tekstova se prevodi u panelu (do tada su na engleskom).
+- Posle promene adrese stranice stara adresa ne preusmerava na novu.
+- Engleski panela je proveren čitanjem svih stranica; forme nisu redom slate na engleskom, pa neka poruka o grešci može ostati na srpskom.
 - Tema se menja izmenom reda u `tsconfig.json` i novim build-om, ne iz panela.
 - Uputstvo za postavljanje i za doprinos; javna demo adresa.
 - Docker fajlovi nisu pokrenuti (na računaru na kom je ovo rađeno nema Docker-a).
@@ -202,7 +212,7 @@ Ostaje:
 | Plaćanje karticom | Opcija i sloj za procesore postoje (`lib/payments.ts`), isključeno po podrazumevanom; procesor se dopisuje kada neko ima ugovor sa bankom. Stripe ne otvara naloge firmama iz Srbije. |
 | Licenca | AGPL-3.0: ko kod izmeni i nudi ga kao servis mora da objavi izmene. |
 | Dodaci kao u WordPress-u | Ne u prvoj verziji; webhook-ovi i API, a sistem dodataka tek ako ga korisnici traže. (predlog, nije potvrđeno) |
-| Jezici | Srpski i engleski, za sajt i za panel; jezik sajta i jezik panela su odvojena podešavanja. |
+| Jezici | Panel: srpski ili engleski. Prodavnica: glavni jezik i koliko god dodatnih, koje kupac bira na sajtu; prevodi se upisuju u panelu. |
 | Tema | I zamenljiv folder teme u ovoj aplikaciji, i sadržaj kroz API za sajt van nje. |
 | Docker | Ostaje, kao olakšica za druge; nije obavezan. |
 

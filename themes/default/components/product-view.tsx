@@ -69,7 +69,7 @@ export function ProductView({ product }: { product: ShopProduct }) {
         {shots.length > 1 && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px" }}>
             {shots.map((src, i) => (
-              <button className={src === image ? "thumb on" : "thumb"} aria-label={`Slika ${i + 1}`} onClick={() => setShot(i)} key={src}>
+              <button className={src === image ? "thumb on" : "thumb"} aria-label={t("Slika {a}", { a: i + 1 })} onClick={() => setShot(i)} key={src}>
                 <Photo src={src} alt="" sizes="150px" />
               </button>
             ))}

@@ -37,7 +37,7 @@ export function BulkBar({ categories }: BulkBarProps) {
       className={`${cardClass} mt-[16px] flex flex-wrap items-end gap-[12px]`}
       onSubmit={(event) => {
         const count = document.querySelectorAll('input[form="bulk"][name="slugs"]:checked').length;
-        if (operation === "delete" && !window.confirm(`Obrisati označene proizvode (${count})? Ne može da se vrati.`)) {
+        if (operation === "delete" && !window.confirm(t("Obrisati označene proizvode ({a})? Ne može da se vrati.", { a: count }))) {
           event.preventDefault();
         }
       }}
@@ -56,7 +56,7 @@ export function BulkBar({ categories }: BulkBarProps) {
         <select name="operation" value={operation} onChange={(event) => setOperation(event.target.value)} className={inputClass}>
           {OPERATIONS.map((item) => (
             <option key={item.id} value={item.id}>
-              {item.label}
+              {t(item.label)}
             </option>
           ))}
         </select>
@@ -75,7 +75,7 @@ export function BulkBar({ categories }: BulkBarProps) {
       )}
       {operation === "price" && (
         <label className={`${labelClass} min-w-[200px] grow basis-0`}>
-          Procenat (npr. 10 ili -15)
+          {t("Procenat (npr. 10 ili -15)")}
           <input name="percent" type="number" step="0.1" required className={inputClass} />
         </label>
       )}

@@ -1,3 +1,5 @@
+import { langName } from "@/lib/i18n";
+import { getShopLang, translateForShop } from "@/lib/i18n/server";
 import { maxQty } from "@/lib/cart";
 import {
   categoryPath,
@@ -12,6 +14,7 @@ import {
   salePercent,
   variantLabel,
 } from "@/lib/catalog";
+import type { Category } from "@/lib/catalog";
 import { getCategories, getCollections, getDiscounts, getProducts, getSettings } from "@/lib/content";
 import { getShopSettings } from "@/lib/storefront/pages";
 import { isExpired } from "@/lib/discounts";
@@ -32,6 +35,15 @@ const WELCOME_DISCOUNT_ID = "dobrodoslica";
 
 /** Proizvodi koji mogu da se poruče: objavljeni, sa cenom i na stanju. */
 export async function getShopProducts(): Promise<ShopProduct[]> {
+  return translateForShop(await rawShopProducts());
+}
+
+/** Kategorije na jeziku stranice. */
+export async function getShopCategories(): Promise<Category[]> {
+  return translateForShop(await getCategories());
+}
+
+async function rawShopProducts(): Promise<ShopProduct[]> {
   const [products, categories, collections] = await Promise.all([
     getProducts(),
     getCategories(),
@@ -97,8 +109,13 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
 }
 
 export async function getShopConfig(): Promise<ShopConfig> {
-  const [settings, categories] = await Promise.all([getShopSettings(), getCategories()]);
+  const [settings, categories, lang] = await Promise.all([getShopSettings(), getShopCategories(), getShopLang()]);
+  const { language, languages } = settings.store;
   return {
+    lang,
+    mainLang: language,
+    // Izbor jezika na sajtu postoji samo kada prodavnica ima više od jednog.
+    languages: languages.length > 0 ? [language, ...languages].map((code) => ({ code, name: langName(code) })) : [],
     storeName: settings.store.name,
     logo: settings.logo ?? null,
     menu: settings.site.menu,

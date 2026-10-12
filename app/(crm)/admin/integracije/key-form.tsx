@@ -15,7 +15,7 @@ export function KeyForm({ scopes }: { scopes: Record<string, string> }) {
       <ErrorNote message={state.error} />
       {state.key && (
         <div className="flex flex-col gap-[6px] rounded-[18px] bg-band p-[16px]">
-          <p className="text-[15px] font-medium">Ključ je napravljen. Prepišite ga sada; kasnije se ne može videti.</p>
+          <p className="text-[15px] font-medium">{t("Ključ je napravljen. Prepišite ga sada; kasnije se ne može videti.")}</p>
           <code className="font-mono text-[15px] break-all select-all">{state.key}</code>
         </div>
       )}
@@ -29,7 +29,7 @@ export function KeyForm({ scopes }: { scopes: Record<string, string> }) {
           <select name="scope" defaultValue="read" className={inputClass}>
             {Object.entries(scopes).map(([value, label]) => (
               <option key={value} value={value}>
-                {label}
+                {t(label)}
               </option>
             ))}
           </select>

@@ -88,9 +88,9 @@ export function SettingsEditor({ tabs, target, hint, fields, value: saved, previ
   function save() {
     startSaving(async () => {
       const result = await saveSettingsPartAction(part(value));
-      if (!result.ok) return setMessage({ kind: "error", text: result.error });
+      if (!result.ok) return setMessage({ kind: "error", text: t(result.error) });
       setDirty(false);
-      setMessage({ kind: "ok", text: "Sačuvano. Izmene su na sajtu." });
+      setMessage({ kind: "ok", text: t("Sačuvano. Izmene su na sajtu.") });
       reloadPreview();
     });
   }
@@ -105,10 +105,10 @@ export function SettingsEditor({ tabs, target, hint, fields, value: saved, previ
             aria-current={tab.current ? "page" : undefined}
             className={`${chipClass} ${tab.current ? chipOnClass : chipOffClass}`}
             onClick={(event) => {
-              if (dirty && !window.confirm("Imate nesačuvane izmene. Napustiti ovu stranicu?")) event.preventDefault();
+              if (dirty && !window.confirm(t("Imate nesačuvane izmene. Napustiti ovu stranicu?"))) event.preventDefault();
             }}
           >
-            {tab.label}
+            {t(tab.label)}
           </Link>
         ))}
       </nav>
@@ -117,7 +117,7 @@ export function SettingsEditor({ tabs, target, hint, fields, value: saved, previ
         <LinkOptions links={options.links} />
         <div className="flex min-w-0 flex-col gap-[16px]">
           <div className={`${cardClass} flex flex-col gap-[16px]`}>
-            <p className="text-[14.5px] text-muted">{hint}</p>
+            <p className="text-[14.5px] text-muted">{t(hint)}</p>
             <Fields
               fields={fields}
               value={value}
@@ -131,10 +131,10 @@ export function SettingsEditor({ tabs, target, hint, fields, value: saved, previ
           </div>
           <div className="sticky bottom-[12px] z-10 flex flex-wrap items-center gap-[14px] rounded-full bg-white py-[8px] pr-[20px] pl-[8px] shadow-lift">
             <button type="button" className={buttonClass} disabled={saving || !dirty} onClick={save}>
-              {saving ? "Čuvam…" : "Sačuvaj"}
+              {saving ? t("Čuvam…") : t("Sačuvaj")}
             </button>
             <span role="status" className="text-[14.5px] font-medium">
-              {message ? message.text : dirty ? "Imate nesačuvane izmene." : "Sve je sačuvano."}
+              {message ? message.text : dirty ? t("Imate nesačuvane izmene.") : t("Sve je sačuvano.")}
             </span>
           </div>
         </div>
@@ -142,7 +142,7 @@ export function SettingsEditor({ tabs, target, hint, fields, value: saved, previ
         <div className="sticky top-[12px] flex h-[calc(100vh-24px)] min-h-[480px] flex-col overflow-hidden rounded-[26px] bg-white shadow-soft max-xl:hidden">
           <div className="flex items-center justify-between gap-[12px] border-b border-line px-[18px] py-[10px]">
             <span className="font-display text-[14px] font-bold">{t("Pregled")}</span>
-            <span className="text-[13.5px] text-muted">{dirty ? "prikazuje nesačuvane izmene" : "kao na sajtu"}</span>
+            <span className="text-[13.5px] text-muted">{dirty ? t("prikazuje nesačuvane izmene") : t("kao na sajtu")}</span>
           </div>
           <iframe ref={frame} src={ready ? previewUrl : undefined} title={t("Pregled sajta")} className="w-full grow border-0" onLoad={onPreviewLoad} />
         </div>

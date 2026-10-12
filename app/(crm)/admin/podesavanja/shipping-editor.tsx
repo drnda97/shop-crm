@@ -1,5 +1,7 @@
 "use client";
 
+import type { T } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 import { useState, useTransition } from "react";
 import type { Field, SectionData } from "@/lib/sections";
 import { saveShippingAction } from "../actions";
@@ -13,48 +15,49 @@ import { buttonClass } from "../ui";
 
 type ShippingEditorProps = { methods: SectionData[]; currency: string };
 
-function fields(currency: string): Field[] {
+function fields(t: T, currency: string): Field[] {
   return [
     {
       key: "methods",
-      label: "Načini dostave",
+      label: t("Načini dostave"),
       kind: "list",
-      itemLabel: "Način dostave",
+      itemLabel: t("Način dostave"),
       max: 12,
       fields: [
-        { key: "name", label: "Naziv", kind: "text", hint: "Kako ga kupac vidi pri poručivanju, npr. „Kurirska služba”." },
-        { key: "hint", label: "Objašnjenje", kind: "text", hint: "Rok i kurir, npr. „2 do 3 radna dana”." },
+        { key: "name", label: t("Naziv"), kind: "text", hint: t("Kako ga kupac vidi pri poručivanju, npr. „Kurirska služba”.") },
+        { key: "hint", label: t("Objašnjenje"), kind: "text", hint: t("Rok i kurir, npr. „2 do 3 radna dana”.") },
         {
           key: "kind",
-          label: "Vrsta",
+          label: t("Vrsta"),
           kind: "select",
           options: [
-            { value: "delivery", label: "dostava na adresu" },
-            { value: "pickup", label: "lično preuzimanje" },
+            { value: "delivery", label: t("dostava na adresu") },
+            { value: "pickup", label: t("lično preuzimanje") },
           ],
         },
-        { key: "price", label: `Cena (${currency})`, kind: "text", hint: "Važi kada nema cena po težini. Za preuzimanje obično 0." },
-        { key: "freeFrom", label: `Besplatno od iznosa (${currency})`, kind: "text", hint: "Vrednost proizvoda, posle popusta. Prazno: uvek se naplaćuje." },
+        { key: "price", label: t("Cena ({a})", { a: currency }), kind: "text", hint: t("Važi kada nema cena po težini. Za preuzimanje obično 0.") },
+        { key: "freeFrom", label: t("Besplatno od iznosa ({a})", { a: currency }), kind: "text", hint: t("Vrednost proizvoda, posle popusta. Prazno: uvek se naplaćuje.") },
         {
           key: "weightRates",
-          label: "Cena po težini",
+          label: t("Cena po težini"),
           kind: "list",
-          itemLabel: "Red",
+          itemLabel: t("Red"),
           max: 12,
-          hint: "Neobavezno. Važi prvi red čija granica pokriva težinu porudžbine; teža porudžbina plaća poslednji red.",
+          hint: t("Neobavezno. Važi prvi red čija granica pokriva težinu porudžbine; teža porudžbina plaća poslednji red."),
           fields: [
-            { key: "upTo", label: "Do (kg)", kind: "text" },
-            { key: "price", label: `Cena (${currency})`, kind: "text" },
+            { key: "upTo", label: t("Do (kg)"), kind: "text" },
+            { key: "price", label: t("Cena ({a})", { a: currency }), kind: "text" },
           ],
         },
-        { key: "zone", label: "Zona: počeci poštanskih brojeva", kind: "text", hint: "Npr. „11, 21” za Beograd i Novi Sad. Prazno: isporučuje se svuda." },
-        { key: "confirmation", label: "Rečenica posle porudžbine", kind: "textarea", hint: "Npr. „Isporuka za 2 do 3 radna dana, kurir zove pre dolaska.”" },
+        { key: "zone", label: t("Zona: počeci poštanskih brojeva"), kind: "text", hint: t("Npr. „11, 21” za Beograd i Novi Sad. Prazno: isporučuje se svuda.") },
+        { key: "confirmation", label: t("Rečenica posle porudžbine"), kind: "textarea", hint: t("Npr. „Isporuka za 2 do 3 radna dana, kurir zove pre dolaska.”") },
       ],
     },
   ];
 }
 
 export function ShippingEditor({ methods, currency }: ShippingEditorProps) {
+  const t = useT();
   const [value, setValue] = useState<SectionData>({ methods });
   const [message, setMessage] = useState("");
   const [dirty, setDirty] = useState(false);
@@ -63,7 +66,7 @@ export function ShippingEditor({ methods, currency }: ShippingEditorProps) {
   function save() {
     startSaving(async () => {
       const result = await saveShippingAction(value.methods);
-      setMessage(result.ok ? "Dostava je sačuvana." : result.error);
+      setMessage(result.ok ? t("Dostava je sačuvana.") : t(result.error));
       if (result.ok) setDirty(false);
     });
   }
@@ -71,7 +74,7 @@ export function ShippingEditor({ methods, currency }: ShippingEditorProps) {
   return (
     <div className="flex flex-col gap-[16px]">
       <Fields
-        fields={fields(currency)}
+        fields={fields(t, currency)}
         value={value}
         onChange={(next) => {
           setValue(next);
@@ -82,7 +85,7 @@ export function ShippingEditor({ methods, currency }: ShippingEditorProps) {
       />
       <div className="flex flex-wrap items-center gap-[14px]">
         <button type="button" className={buttonClass} disabled={saving || !dirty} onClick={save}>
-          {saving ? "Čuvam…" : "Sačuvaj dostavu"}
+          {saving ? t("Čuvam…") : t("Sačuvaj dostavu")}
         </button>
         {message && <span role="status" className="text-[14.5px] font-medium">{message}</span>}
       </div>

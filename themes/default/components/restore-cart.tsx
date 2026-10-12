@@ -1,5 +1,6 @@
 "use client";
 
+import { usePath } from "@/lib/i18n/client";
 import { useT } from "@/lib/i18n/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -8,12 +9,13 @@ import { useCart } from "./cart";
 
 /** Vraća sačuvanu korpu u pregledač kupca i vodi ga na plaćanje. */
 export function RestoreCart({ items }: { items: { slug: string; variantId?: string; qty: number }[] }) {
+  const to = usePath();
   const t = useT();
   const { restore } = useCart();
   const router = useRouter();
   useEffect(() => {
     restore(items);
-    router.replace("/placanje");
+    router.replace(to("/placanje"));
     // Jednom, pri otvaranju stranice.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -22,7 +22,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
     <>
       <PageHeader
         title={t("Moj nalog")}
-        hint={`${user.name} · ${user.username} · ${roleLabels[user.role]}: ${roleHints[user.role]}.`}
+        hint={`${user.name} · ${user.username} · ${t(roleLabels[user.role])}: ${t(roleHints[user.role])}.`}
         error={greska}
         notice={ok}
       />
@@ -34,7 +34,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
             <input name="current" type="password" autoComplete="current-password" required className={inputClass} />
           </label>
           <label className={labelClass}>
-            Nova lozinka (najmanje {PASSWORD_MIN} znakova)
+            {t("Nova lozinka (najmanje")} {PASSWORD_MIN} {t("znakova)")}
             <input name="password" type="password" autoComplete="new-password" required minLength={PASSWORD_MIN} className={inputClass} />
           </label>
           <div>
@@ -66,8 +66,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
           ) : secret && qr ? (
             <>
               <p className="mt-[-8px] text-[15px]">
-                Skenirajte kod aplikacijom za jednokratne kodove (Google Authenticator, Aegis, 1Password…), pa
-                upišite šest cifara koje prikaže.
+                {t("Skenirajte kod aplikacijom za jednokratne kodove (Google Authenticator, Aegis, 1Password…), pa upišite šest cifara koje prikaže.")}
               </p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={qr} alt={t("QR kod za aplikaciju")} width={220} height={220} className="rounded-[16px]" />

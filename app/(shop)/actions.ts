@@ -1,7 +1,6 @@
 "use server";
 
-import { makeT } from "@/lib/i18n";
-import { shopDict } from "@/lib/i18n/shop";
+import { getShopLang, getShopPath, getShopT } from "@/lib/i18n/server";
 import { headers } from "next/headers";
 import { toLines } from "@/lib/cart";
 import { getProducts } from "@/lib/content";
@@ -122,8 +121,8 @@ export async function requestResetAction(input: string): Promise<{ ok: true } | 
   if (!isMailReady(settings)) return { ok: false, error: MAIL_OFF };
   const reset = await createPasswordReset(email);
   if (reset) {
-    const url = `${await siteUrl()}/nalog/lozinka/${reset.token}`;
-    const t = makeT(settings.store.language, shopDict);
+    const url = `${await siteUrl()}${(await getShopPath())(`/nalog/lozinka/${reset.token}`)}`;
+    const t = await getShopT();
     const { errors } = await sendMails(settings, [
       {
         to: reset.user.email,
@@ -390,7 +389,7 @@ export async function saveCartAction(input: {
     if (typeof item?.slug !== "string" || !Number.isInteger(qty) || qty < 1) return [];
     return [{ slug: item.slug, qty, ...(typeof item.variantId === "string" ? { variant: item.variantId } : {}) }];
   });
-  await saveCart({ email, firstName: asText(input.firstName, 100), items, siteUrl: await siteUrl() });
+  await saveCart({ email, firstName: asText(input.firstName, 100), items, siteUrl: await siteUrl(), lang: await getShopLang() });
 }
 
 /** Odjava od podsetnika za korpu, sa linka u emailu. */

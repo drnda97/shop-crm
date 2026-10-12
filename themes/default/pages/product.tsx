@@ -1,3 +1,4 @@
+import { getShopPath } from "@/lib/i18n/server";
 import { getShopT } from "@/lib/i18n/server";
 import Link from "next/link";
 import type { ComponentProps } from "react";
@@ -27,6 +28,7 @@ const specLabel = { color: "var(--on-dark-mute)", fontSize: "14.5px" };
 
 /** Stranica proizvoda: /proizvod/{slug}. */
 export async function ProductPage({ product, related, reviews, rating, loggedIn, texts, structured }: ProductPageProps) {
+  const to = await getShopPath();
   const t = await getShopT();
   const { highlight } = product;
 
@@ -42,11 +44,11 @@ export async function ProductPage({ product, related, reviews, rating, loggedIn,
       <section style={{ padding: "28px 0 clamp(64px, 8vw, 120px)" }}>
         <div className="wrap" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           <nav className="crumbs" aria-label={t("Putanja")}>
-            <Link href="/">{t("Početna")}</Link>
+            <Link href={to("/")}>{t("Početna")}</Link>
             <span>/</span>
             {product.categoryId && (
               <>
-                <Link href={`/kolekcija/${product.categoryId}`}>{product.category}</Link>
+                <Link href={to(`/kolekcija/${product.categoryId}`)}>{product.category}</Link>
                 <span>/</span>
               </>
             )}
@@ -111,7 +113,7 @@ export async function ProductPage({ product, related, reviews, rating, loggedIn,
             <div className="rv" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", gap: "16px 40px" }}>
               <h2 className="display h-l">{texts.relatedHeading}</h2>
               {texts.relatedLinkLabel && (
-                <Link className="more" href="/kolekcija">
+                <Link className="more" href={to("/kolekcija")}>
                   {texts.relatedLinkLabel} <i><ArrowSmallIcon /></i>
                 </Link>
               )}

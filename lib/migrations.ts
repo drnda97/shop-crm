@@ -449,6 +449,24 @@ export const MIGRATIONS: Migration[] = [
       );
     },
   },
+  {
+    id: 17,
+    name: "jezici prodavnice: prevodi iz panela, jezik porudžbine i napuštene korpe",
+    up: async (connection) => {
+      const tail = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS translations (
+          lang VARCHAR(10) NOT NULL,
+          source_hash CHAR(40) NOT NULL,
+          source MEDIUMTEXT NOT NULL,
+          value MEDIUMTEXT NOT NULL,
+          PRIMARY KEY (lang, source_hash)
+        ) ${tail}`,
+      );
+      await connection.query("ALTER TABLE orders ADD COLUMN lang VARCHAR(10) NULL");
+      await connection.query("ALTER TABLE abandoned_carts ADD COLUMN lang VARCHAR(10) NULL");
+    },
+  },
 ];
 
 // GET_LOCK važi za ceo MySQL server, pa ime sadrži i bazu (najviše 64 znaka).

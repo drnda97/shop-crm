@@ -229,6 +229,7 @@ const drafts: Draft[] = [
       {
         type: "contact",
         data: {
+          image: img("ds-room.jpg", "Dnevna soba sa velikim prozorima"),
           hours: [
             { days: "Ponedeljak do petka", time: "[OD] do [DO]" },
             { days: "Subota", time: "[OD] do [DO]" },

@@ -53,7 +53,7 @@ export default async function SitePartPage({ params }: SitePartPageProps) {
         key={template.id}
         tabs={tabs(template.slug)}
         target={{ part: "template", id: template.id }}
-        hint={template.hint}
+        hint={t(template.hint)}
         fields={template.fields}
         value={settings.templates[template.id]}
         previewUrl={await previewUrl(paths[template.id])}
