@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ADMIN_PATH, getCurrentAdmin, roleCan } from "@/lib/admin-auth";
@@ -53,6 +54,7 @@ function StatTile({
 }
 
 export default async function DashboardPage() {
+  const t = await getPanelT();
   // Prijavu ovde rešava layout (prikazuje formu), pa se neprijavljenom samo ne daje sadržaj.
   const user = await getCurrentAdmin();
   if (!user) return null;
@@ -143,13 +145,13 @@ export default async function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Pregled"
-        hint="Prodaja je vrednost poručenih proizvoda posle popusta, bez dostave. Otkazane porudžbine se ne računaju."
+        title={t("Pregled")}
+        hint={t("Prodaja je vrednost poručenih proizvoda posle popusta, bez dostave. Otkazane porudžbine se ne računaju.")}
       />
 
       {attention.length > 0 && (
         <div className={`${cardClass} mb-[16px]`}>
-          <h2 className={sectionTitle}>Za pažnju</h2>
+          <h2 className={sectionTitle}>{t("Za pažnju")}</h2>
           <ul className="flex flex-col text-[15px]">
             {attention.map((item) => (
               <li key={item.text} className="border-t border-line first:border-t-0">
@@ -172,7 +174,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(176px,100%),1fr))] gap-[16px]">
         <StatTile
           dark
-          label="Prodaja · poslednjih 30 dana"
+          label={t("Prodaja · poslednjih 30 dana")}
           value={money(stats.last30.sales)}
           notes={[
             change(stats.last30.sales, stats.previous30.sales),
@@ -180,7 +182,7 @@ export default async function DashboardPage() {
           ]}
         />
         <StatTile
-          label="Porudžbine · poslednjih 30 dana"
+          label={t("Porudžbine · poslednjih 30 dana")}
           value={String(stats.last30.orders)}
           notes={[
             change(stats.last30.orders, stats.previous30.orders),
@@ -188,7 +190,7 @@ export default async function DashboardPage() {
           ]}
         />
         <StatTile
-          label="Prosečna porudžbina"
+          label={t("Prosečna porudžbina")}
           value={money(stats.all.average)}
           notes={[
             stats.all.orders > 0
@@ -197,12 +199,12 @@ export default async function DashboardPage() {
           ]}
         />
         <StatTile
-          label="Prodato komada"
+          label={t("Prodato komada")}
           value={String(stats.all.pieces)}
           notes={[`Poslednjih 30 dana: ${stats.last30.pieces}`]}
         />
         <StatTile
-          label="Kupci"
+          label={t("Kupci")}
           value={String(stats.customers)}
           notes={[
             `Poručili više puta: ${stats.returningCustomers}`,
@@ -212,9 +214,9 @@ export default async function DashboardPage() {
       </div>
 
       <div className={`${cardClass} mt-[16px]`}>
-        <h2 className={sectionTitle}>Porudžbine po danima · poslednjih 30 dana</h2>
+        <h2 className={sectionTitle}>{t("Porudžbine po danima · poslednjih 30 dana")}</h2>
         {stats.last30.orders === 0 ? (
-          <p className="text-[15px] text-muted">U poslednjih 30 dana nema porudžbina.</p>
+          <p className="text-[15px] text-muted">{t("U poslednjih 30 dana nema porudžbina.")}</p>
         ) : (
           <>
             <div className="flex gap-[8px]">
@@ -257,7 +259,7 @@ export default async function DashboardPage() {
             <div className="mt-[6px] flex justify-between pl-[24px] text-[12px] text-muted">
               <span>{shortDay(stats.days[0].date)}</span>
               <span>{shortDay(stats.days[14].date)}</span>
-              <span>danas</span>
+              <span>{t("danas")}</span>
             </div>
           </>
         )}
@@ -265,10 +267,10 @@ export default async function DashboardPage() {
 
       <div className="mt-[16px] grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] items-start gap-[16px]">
         <div className={cardClass}>
-          <h2 className={sectionTitle}>Najprodavaniji proizvodi</h2>
+          <h2 className={sectionTitle}>{t("Najprodavaniji proizvodi")}</h2>
           {topProducts.length === 0 ? (
             <p className="text-[15px] text-muted">
-              Još nema porudžbina. Kada stignu, ovde se vidi šta se najviše prodaje.
+              {t("Još nema porudžbina. Kada stignu, ovde se vidi šta se najviše prodaje.")}
             </p>
           ) : (
             <ol className="flex flex-col gap-[14px]">
@@ -300,13 +302,13 @@ export default async function DashboardPage() {
         <div className="flex flex-col gap-[16px]">
           <div className={cardClass}>
             <div className="flex items-baseline justify-between gap-[12px]">
-              <h2 className={sectionTitle}>Poslednje porudžbine</h2>
+              <h2 className={sectionTitle}>{t("Poslednje porudžbine")}</h2>
               <Link href={`${ADMIN_PATH}/porudzbine`} className={textLinkClass}>
-                Sve porudžbine
+                {t("Sve porudžbine")}
               </Link>
             </div>
             {recent.length === 0 ? (
-              <p className="text-[15px] text-muted">Još nema porudžbina.</p>
+              <p className="text-[15px] text-muted">{t("Još nema porudžbina.")}</p>
             ) : (
               <div className="flex flex-col">
                 {recent.map((order) => (
@@ -333,9 +335,9 @@ export default async function DashboardPage() {
           </div>
 
           <div className={cardClass}>
-            <h2 className={sectionTitle}>Gde šaljemo najviše</h2>
+            <h2 className={sectionTitle}>{t("Gde šaljemo najviše")}</h2>
             {stats.topCities.length === 0 ? (
-              <p className="text-[15px] text-muted">Još nema porudžbina.</p>
+              <p className="text-[15px] text-muted">{t("Još nema porudžbina.")}</p>
             ) : (
               <table className="w-full text-[15px]">
                 <tbody>

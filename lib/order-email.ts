@@ -1,3 +1,5 @@
+import { makeT, type T } from "@/lib/i18n";
+import { shopDict } from "@/lib/i18n/shop";
 import { accentText } from "@/lib/theme";
 import path from "node:path";
 import nodemailer from "nodemailer";
@@ -68,19 +70,21 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
     timeZone: store.timeZone,
   }).format(new Date(order.receivedAt));
 
+  // Kupcu na jeziku sajta, prodavcu na jeziku panela.
+  const t = makeT(recipient === "seller" ? store.panelLanguage : store.language, shopDict);
   const bank = order.paymentMethod === "bank";
   const card = order.paymentMethod === "card";
-  const title = notice?.title ?? (recipient === "seller" ? "Nova porudžbina" : "Hvala, porudžbina je primljena.");
+  const title = notice?.title ?? (recipient === "seller" ? t("Nova porudžbina") : t("Hvala, porudžbina je primljena."));
   const message =
     notice?.message ??
     (recipient === "seller"
-      ? `Stigla je nova porudžbina. Plaćanje: ${card ? "karticom" : bank ? "uplata na račun" : "pouzećem"}. Dostava: ${order.deliveryMethod}.`
+      ? t("Stigla je nova porudžbina. Plaćanje: {placanje}. Dostava: {dostava}.", { placanje: t(card ? "karticom" : bank ? "uplata na račun" : "pouzećem"), dostava: order.deliveryMethod })
       : card
-        ? "Porudžbinu šaljemo kada uplata karticom bude potvrđena."
+        ? t("Porudžbinu šaljemo kada uplata karticom bude potvrđena.")
         : bank
-          ? "Porudžbinu šaljemo kada uplata stigne. Podaci za uplatu su ispod."
-          : "Javićemo vam se da potvrdimo porudžbinu i dan slanja. Ništa ne plaćate sada — iznos plaćate pri preuzimanju.");
-  const totalLabel = order.paidAt ? "Plaćeno" : card ? "Za plaćanje karticom" : bank ? "Za uplatu" : "Za naplatu, pouzećem";
+          ? t("Porudžbinu šaljemo kada uplata stigne. Podaci za uplatu su ispod.")
+          : t("Javićemo vam se da potvrdimo porudžbinu i dan slanja. Ništa ne plaćate sada — iznos plaćate pri preuzimanju."));
+  const totalLabel = t(order.paidAt ? "Plaćeno" : card ? "Za plaćanje karticom" : bank ? "Za uplatu" : "Za naplatu, pouzećem");
   const contact = [store.phone, store.email || settings.mail.sellerEmail]
     .filter(Boolean)
     .join(" · ");
@@ -89,19 +93,19 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
   // Podaci za uplatu idu samo kupcu, i samo kada je izabrao uplatu na račun.
   const showBank = bank && !order.paidAt && recipient === "customer" && payment.bankInstructions !== "";
   const paymentBlock = showBank
-    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:${colors.surface};"><tr><td style="padding:18px 20px;font-size:15px;color:${colors.text};"><div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:${accentText(colors)};padding-bottom:6px;">Podaci za uplatu</div>${escapeHtml(payment.bankInstructions).replace(/\n/g, "<br>")}<div style="padding-top:8px;">Iznos: <strong>${amount(order.total)}</strong> · poziv na broj: <strong>${escapeHtml(order.number)}</strong></div></td></tr></table>`
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:${colors.surface};"><tr><td style="padding:18px 20px;font-size:15px;color:${colors.text};"><div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:${accentText(colors)};padding-bottom:6px;">${t("Podaci za uplatu")}</div>${escapeHtml(payment.bankInstructions).replace(/\n/g, "<br>")}<div style="padding-top:8px;">${t("Iznos:")} <strong>${amount(order.total)}</strong> · ${t("poziv na broj:")} <strong>${escapeHtml(order.number)}</strong></div></td></tr></table>`
     : "";
 
   // Kod za sledeću kupovinu: kupcu istaknut okvir, prodavcu samo napomena da je poslat.
   const issued = order.issuedCode;
   let discountBlock = "";
   if (issued && recipient === "customer") {
-    discountBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border:2px dashed ${colors.accent};"><tr><td align="center" style="padding:18px 20px;font-size:15px;color:${colors.text};"><div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:${accentText(colors)};">Poklon za sledeću kupovinu</div><div style="padding:6px 0 0;font-size:24px;line-height:1.2;">${escapeHtml(issued.title)}</div><div style="padding:2px 0;font-size:17px;">${issued.percent}% popusta</div><div style="padding:6px 0;"><span style="display:inline-block;padding:8px 16px;background:${colors.text};color:${colors.background};font-family:'Courier New',monospace;font-size:20px;letter-spacing:3px;">${escapeHtml(issued.code)}</span></div><div>Upišite kod pri sledećoj porudžbini. Važi za jednu kupovinu, uz isti email ili telefon.</div></td></tr></table>`;
+    discountBlock = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border:2px dashed ${colors.accent};"><tr><td align="center" style="padding:18px 20px;font-size:15px;color:${colors.text};"><div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:${accentText(colors)};">${t("Poklon za sledeću kupovinu")}</div><div style="padding:6px 0 0;font-size:24px;line-height:1.2;">${escapeHtml(issued.title)}</div><div style="padding:2px 0;font-size:17px;">${t("{p}% popusta", { p: issued.percent })}</div><div style="padding:6px 0;"><span style="display:inline-block;padding:8px 16px;background:${colors.text};color:${colors.background};font-family:'Courier New',monospace;font-size:20px;letter-spacing:3px;">${escapeHtml(issued.code)}</span></div><div>${t("Upišite kod pri sledećoj porudžbini. Važi za jednu kupovinu, uz isti email ili telefon.")}</div></td></tr></table>`;
   } else if (issued) {
-    discountBlock = `<p style="margin:16px 0 0;font-size:15px;">Kupcu je uz potvrdu poslat kod <strong>${escapeHtml(issued.code)}</strong> za ${issued.percent}% popusta pri sledećoj kupovini.</p>`;
+    discountBlock = `<p style="margin:16px 0 0;font-size:15px;">${t("Kupcu je uz potvrdu poslat kod")} <strong>${escapeHtml(issued.code)}</strong> ${t("za {p}% popusta pri sledećoj kupovini.", { p: issued.percent })}</p>`;
   }
   const discountRow = order.discount
-    ? `<tr><td style="padding:2px 0;">${escapeHtml(discountText(order.discount))}</td><td align="right" style="padding:2px 0;white-space:nowrap;">−${amount(order.discount.amount)}</td></tr>`
+    ? `<tr><td style="padding:2px 0;">${escapeHtml(t(discountText(order.discount)))}</td><td align="right" style="padding:2px 0;white-space:nowrap;">−${amount(order.discount.amount)}</td></tr>`
     : "";
 
   // Sve što dolazi od kupca prolazi kroz escapeHtml; gotov HTML su {{stavke}}, {{logo}},
@@ -142,7 +146,7 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
     boja_teksta: colors.text,
     boja_akcenta: colors.accent,
   };
-  const html = template.replace(
+  const html = localizeTemplate(template, t).replace(
     /\{\{\s*([a-z_]+)\s*\}\}/g,
     (_match, key: string) => values[key] ?? "",
   );
@@ -152,26 +156,26 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
     "",
     message,
     "",
-    `Porudžbina br. ${order.number} · ${date}`,
+    `${t("Porudžbina br.")} ${order.number} · ${date}`,
     "",
     ...order.items.map((item) => `${item.qty} × ${itemName(item)} — ${amount(item.price * item.qty)}`),
-    `Međuzbir: ${amount(order.subtotal)}`,
+    `${t("Međuzbir")}: ${amount(order.subtotal)}`,
     ...(order.discount
       ? [
-          `${discountText(order.discount)}: −${amount(order.discount.amount)}`,
+          `${t(discountText(order.discount))}: −${amount(order.discount.amount)}`,
         ]
       : []),
-    `${order.deliveryMethod || "Dostava"}: ${amount(order.delivery)}`,
+    `${order.deliveryMethod || t("Dostava")}: ${amount(order.delivery)}`,
     `${totalLabel}: ${amount(order.total)}`,
     ...(showBank
-      ? ["", "Podaci za uplatu:", payment.bankInstructions, `Poziv na broj: ${order.number}`]
+      ? ["", `${t("Podaci za uplatu")}:`, payment.bankInstructions, `${t("Poziv na broj:")} ${order.number}`]
       : []),
     ...(issued
       ? [
           "",
           recipient === "customer"
-            ? `Poklon za sledeću kupovinu — ${issued.title}: ${issued.percent}% popusta. Kod: ${issued.code} (važi za jednu kupovinu, uz isti email ili telefon).`
-            : `Kupcu je poslat kod ${issued.code} za ${issued.percent}% popusta pri sledećoj kupovini.`,
+            ? t("Poklon za sledeću kupovinu — {naslov}: {p}% popusta. Kod: {kod} (važi za jednu kupovinu, uz isti email ili telefon).", { naslov: issued.title, p: issued.percent, kod: issued.code })
+            : t("Kupcu je poslat kod {kod} za {p}% popusta pri sledećoj kupovini.", { kod: issued.code, p: issued.percent }),
         ]
       : []),
     "",
@@ -179,7 +183,7 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
     address,
     customer.phone,
     ...(customer.email ? [customer.email] : []),
-    ...(customer.note ? [`Napomena: ${customer.note}`] : []),
+    ...(customer.note ? [`${t("Napomena:")} ${customer.note}`] : []),
     "",
     store.name,
     contact,
@@ -188,10 +192,25 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
   const subject =
     notice?.subject ??
     (recipient === "seller"
-      ? `Nova porudžbina #${order.number} — ${customer.name}`
-      : `Porudžbina #${order.number} je primljena — ${store.name}`);
+      ? `${t("Nova porudžbina #{broj}", { broj: order.number })} — ${customer.name}`
+      : `${t("Porudžbina #{broj} je primljena", { broj: order.number })} — ${store.name}`);
 
   return { subject, html, text };
+}
+
+/**
+ * Stalni natpisi početnog šablona na jeziku poruke. Sopstveni šablon se ne dira: njegove
+ * natpise piše vlasnik.
+ */
+function localizeTemplate(template: string, t: T): string {
+  if (template !== defaultEmailTemplate) return template;
+  return template
+    .replace('<html lang="sr">', `<html lang="${t("sr")}">`)
+    .replace("Porudžbina br. {{broj}}", `${t("Porudžbina br.")} {{broj}}`)
+    .replace(">Međuzbir<", `>${t("Međuzbir")}<`)
+    .replace(">Dostava<", `>${t("Dostava")}<`)
+    .replace(">Dostava na adresu<", `>${t("Dostava na adresu")}<`)
+    .replace("Napomena: {{napomena}}", `${t("Napomena:")} {{napomena}}`);
 }
 
 /** Porudžbina za pregled šablona i probni email. */
@@ -322,9 +341,9 @@ async function send(order: Order, settings: Settings, test: boolean): Promise<st
 }
 
 /** Tekst iz podešavanja sa upisanim podacima porudžbine. */
-export function fillStatusText(text: string, order: Order, storeName: string, extra: Record<string, string> = {}): string {
+export function fillStatusText(text: string, order: Order, storeName: string, extra: Record<string, string> = {}, t: T = makeT("sr")): string {
   const tracking = order.tracking
-    ? `Broj pošiljke: ${order.tracking.number}${order.tracking.url ? ` — praćenje: ${order.tracking.url}` : ""}.`
+    ? `${t("Broj pošiljke:")} ${order.tracking.number}${order.tracking.url ? ` — ${t("praćenje:")} ${order.tracking.url}` : ""}.`
     : "";
   const values: Record<string, string> = {
     broj: order.number,
@@ -352,7 +371,8 @@ export async function notifyStatus(
   if (!key || !config?.enabled || !order.customer.email || !isMailConfigured(settings)) return "skipped";
 
   const { mail, store } = settings;
-  const message = fillStatusText(config.text, order, store.name, extra);
+  const t = makeT(store.language, shopDict);
+  const message = fillStatusText(config.text, order, store.name, extra, t);
   const logoFile = uploadPath(settings.logo);
   const { subject, html, text } = renderOrderEmail({
     template: await getEmailTemplate(settings),
@@ -360,7 +380,7 @@ export async function notifyStatus(
     recipient: "customer",
     settings,
     logoSrc: logoFile ? `cid:${LOGO_CID}` : undefined,
-    notice: { subject: `${fillStatusText(config.subject, order, store.name, extra)} — ${store.name}`, title: orderStatusTitles[key], message },
+    notice: { subject: `${fillStatusText(config.subject, order, store.name, extra)} — ${store.name}`, title: t(orderStatusTitles[key]), message },
   });
   const transport = createTransport(settings);
   try {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/client";
 import { useState } from "react";
 import { countCombinations, MAX_VARIANTS, parseOptions, syncVariants, variantLabel, type Variant } from "@/lib/catalog";
 import { fromMinor, type Currency } from "@/lib/format";
@@ -45,6 +46,7 @@ function toRow(variant: Variant | undefined, decimals: number): VariantRow {
  * U formu idu polja `options` (tekst) i `variants` (JSON po id-u varijante).
  */
 export function VariantsEditor({ options: saved, variants: existing, images, currency }: VariantsEditorProps) {
+  const t = useT();
   const [text, setText] = useState(saved);
   const [rows, setRows] = useState<Record<string, VariantRow>>(
     Object.fromEntries(existing.map((variant) => [variant.id, toRow(variant, currency.decimals)])),
@@ -60,7 +62,7 @@ export function VariantsEditor({ options: saved, variants: existing, images, cur
   return (
     <>
       <label className={labelClass}>
-        Šta kupac bira — jedan red po opciji, vrednosti razdvojene zarezom
+        {t("Šta kupac bira — jedan red po opciji, vrednosti razdvojene zarezom")}
         <textarea
           name="options"
           value={text}
@@ -91,12 +93,12 @@ export function VariantsEditor({ options: saved, variants: existing, images, cur
           <table className="w-full border-separate border-spacing-y-[6px] text-left text-[14px]">
             <thead>
               <tr className="font-display text-[13px] font-semibold text-muted">
-                <th className="pr-[10px] font-semibold">Varijanta</th>
+                <th className="pr-[10px] font-semibold">{t("Varijanta")}</th>
                 <th className="pr-[8px] font-semibold">Cena ({currency.code})</th>
-                <th className="pr-[8px] font-semibold">Na akciji</th>
-                <th className="pr-[8px] font-semibold">Šifra</th>
-                <th className="pr-[8px] font-semibold">Komada</th>
-                {images.length > 0 && <th className="font-semibold">Slika</th>}
+                <th className="pr-[8px] font-semibold">{t("Na akciji")}</th>
+                <th className="pr-[8px] font-semibold">{t("Šifra")}</th>
+                <th className="pr-[8px] font-semibold">{t("Komada")}</th>
+                {images.length > 0 && <th className="font-semibold">{t("Slika")}</th>}
               </tr>
             </thead>
             <tbody>
@@ -122,7 +124,7 @@ export function VariantsEditor({ options: saved, variants: existing, images, cur
                         type="number"
                         min="0"
                         step={step}
-                        placeholder="kao proizvod"
+                        placeholder={t("kao proizvod")}
                         aria-label={`${label}: cena`}
                         value={current.price}
                         onChange={(event) => change(variant.id, { price: event.target.value })}
@@ -154,7 +156,7 @@ export function VariantsEditor({ options: saved, variants: existing, images, cur
                         type="number"
                         min="0"
                         step="1"
-                        placeholder="ne vodi se"
+                        placeholder={t("ne vodi se")}
                         aria-label={`${label}: broj komada`}
                         value={current.stockQty}
                         onChange={(event) => change(variant.id, { stockQty: event.target.value })}

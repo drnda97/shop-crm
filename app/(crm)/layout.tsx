@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Red_Hat_Display, Red_Hat_Text } from "next/font/google";
 import type { ReactNode } from "react";
+import { getPanelLang } from "@/lib/i18n/server";
+import { PanelI18n } from "./admin/i18n";
 import "./globals.css";
 
 // Sve je u bazi i menja se iz panela, pa se stranice prave pri svakoj poseti:
@@ -27,10 +29,14 @@ const sans = Red_Hat_Text({
   display: "swap",
 });
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // Jezik panela je podešavanje; bez baze (prvo pokretanje pre nego što je dostupna) ostaje srpski.
+  const lang = await getPanelLang().catch(() => "sr" as const);
   return (
-    <html lang="sr-Latn" className={`${display.variable} ${sans.variable}`}>
-      <body>{children}</body>
+    <html lang={lang === "sr" ? "sr-Latn" : lang} className={`${display.variable} ${sans.variable}`}>
+      <body>
+        <PanelI18n lang={lang}>{children}</PanelI18n>
+      </body>
     </html>
   );
 }

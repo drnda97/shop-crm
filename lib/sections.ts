@@ -1,7 +1,7 @@
 /**
  * Sekcije: delovi od kojih se slažu stranice prodavnice. Ovde su vrste sekcija i opis
  * njihovih polja — iz tog opisa panel pravi formu, a prodavnica čita sadržaj.
- * Kako sekcija izgleda na sajtu određuje tema (app/(shop)/_sections).
+ * Kako sekcija izgleda na sajtu određuje tema (themes/default/sections).
  *
  * Bez pristupa bazi, pa sme i u "use client" komponente.
  */

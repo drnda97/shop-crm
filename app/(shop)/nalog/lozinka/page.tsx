@@ -1,14 +1,11 @@
+import { getShopT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
-import { ResetRequestForm } from "../../_components/account-extras";
-import { SimplePage } from "../../_components/simple-page";
+import { ForgotPasswordPage } from "@theme/pages/simple";
 
-export const metadata: Metadata = { title: "Zaboravljena lozinka", robots: { index: false, follow: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getShopT())("Zaboravljena lozinka"), robots: { index: false, follow: false } };
+}
 
-export default function ForgotPasswordPage() {
-  return (
-    <SimplePage title="Zaboravljena lozinka">
-      <p className="lead">Upišite email adresu naloga. Poslaćemo vam link na kom postavljate novu lozinku.</p>
-      <ResetRequestForm />
-    </SimplePage>
-  );
+export default function ForgotPasswordRoute() {
+  return <ForgotPasswordPage />;
 }

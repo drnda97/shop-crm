@@ -4,6 +4,8 @@ import {
   publicCollection,
   publicPage,
   publicProduct,
+  publicSectionTypes,
+  publicSite,
   publicVariant,
   publicStore,
 } from "@/lib/api";
@@ -31,6 +33,8 @@ import { availableMethods } from "@/lib/shipping";
  *   GET  /api/v1/categories
  *   GET  /api/v1/collections
  *   GET  /api/v1/collections/{id}      kolekcija sa proizvodima
+ *   GET  /api/v1/site                  traka, meni, podnožje, boje, fontovi, tekstovi stalnih stranica
+ *   GET  /api/v1/sections              vrste sekcija i njihova polja
  *   GET  /api/v1/pages
  *   GET  /api/v1/pages/{slug}
  *   POST /api/v1/cart                  { items, discountCode? } → stavke i obračun
@@ -82,6 +86,9 @@ export async function GET(request: Request, { params }: Context) {
         .map((page) => ({ slug: page.slug, title: page.title })),
     });
   }
+
+  if (resource === "site" && !id) return reply(request, settings, { site: publicSite(settings, base) });
+  if (resource === "sections" && !id) return reply(request, settings, { sections: publicSectionTypes() });
 
   if (resource === "products") {
     // Nacrti se ne vide: za sajt je to isto kao da proizvod ne postoji.

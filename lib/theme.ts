@@ -121,7 +121,7 @@ export function accentText(colors: ThemeColors): string {
 }
 
 /**
- * CSS promenljive teme (app/(shop)/shop.css) za izabrane boje i fontove. Za početnu paletu
+ * CSS promenljive teme (themes/default/shop.css) za izabrane boje i fontove. Za početnu paletu
  * se boje ne ispisuju: važe vrednosti upisane u shop.css, tačno po dizajnu.
  */
 export function themeVars(colors: ThemeColors, fonts: ThemeFonts): Record<string, string> {

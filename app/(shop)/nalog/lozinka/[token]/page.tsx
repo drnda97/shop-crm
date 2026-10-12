@@ -1,15 +1,12 @@
+import { getShopT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
-import { ResetForm } from "../../../_components/account-extras";
-import { SimplePage } from "../../../_components/simple-page";
+import { NewPasswordPage } from "@theme/pages/simple";
 
-export const metadata: Metadata = { title: "Nova lozinka", robots: { index: false, follow: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getShopT())("Nova lozinka"), robots: { index: false, follow: false } };
+}
 
 /** Link iz emaila za novu lozinku; da li žeton važi proverava se pri čuvanju. */
-export default async function NewPasswordPage({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
-  return (
-    <SimplePage title="Nova lozinka">
-      <ResetForm token={token} />
-    </SimplePage>
-  );
+export default async function NewPasswordRoute({ params }: { params: Promise<{ token: string }> }) {
+  return <NewPasswordPage token={(await params).token} />;
 }

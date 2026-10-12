@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createManualOrderAction } from "../../actions";
@@ -21,6 +22,7 @@ const emptyCustomer = { name: "", phone: "", email: "", street: "", city: "", po
 
 /** Porudžbina primljena telefonom ili u radnji. Cene, popust, dostavu i stanje računa server, kao i za sajt. */
 export function ManualOrderForm({ ordersPath, products, methods, payments }: ManualOrderFormProps) {
+  const t = useT();
   const router = useRouter();
   const [customer, setCustomer] = useState(emptyCustomer);
   const [rows, setRows] = useState<Row[]>([{ slug: "", variant: "", qty: "1" }]);
@@ -54,13 +56,13 @@ export function ManualOrderForm({ ordersPath, products, methods, payments }: Man
   return (
     <div className="grid items-start gap-[16px] xl:grid-cols-2">
       <section className={panelClass}>
-        <h2 className={panelTitleClass}>Proizvodi</h2>
+        <h2 className={panelTitleClass}>{t("Proizvodi")}</h2>
         {rows.map((row, index) => {
           const product = products.find((candidate) => candidate.slug === row.slug);
           return (
             <div key={index} className="flex flex-wrap items-end gap-[8px]">
               <label className={`${labelClass} min-w-[200px] grow basis-0`}>
-                Proizvod
+                {t("Proizvod")}
                 <select
                   value={row.slug}
                   onChange={(event) => {
@@ -69,7 +71,7 @@ export function ManualOrderForm({ ordersPath, products, methods, payments }: Man
                   }}
                   className={inputClass}
                 >
-                  <option value="">— izaberite —</option>
+                  <option value="">{t("— izaberite —")}</option>
                   {products.map((option) => (
                     <option key={option.slug} value={option.slug}>
                       {option.name}
@@ -79,7 +81,7 @@ export function ManualOrderForm({ ordersPath, products, methods, payments }: Man
               </label>
               {product && product.variants.length > 0 && (
                 <label className={`${labelClass} min-w-[160px] grow basis-0`}>
-                  Varijanta
+                  {t("Varijanta")}
                   <select value={row.variant} onChange={(event) => setRow(index, { variant: event.target.value })} className={inputClass}>
                     {product.variants.map((variant) => (
                       <option key={variant.id} value={variant.id}>
@@ -90,7 +92,7 @@ export function ManualOrderForm({ ordersPath, products, methods, payments }: Man
                 </label>
               )}
               <label className={`${labelClass} w-[90px]`}>
-                Kom.
+                {t("Kom.")}
                 <input type="number" min="1" step="1" value={row.qty} onChange={(event) => setRow(index, { qty: event.target.value })} className={inputClass} />
               </label>
               {rows.length > 1 && (
@@ -103,12 +105,12 @@ export function ManualOrderForm({ ordersPath, products, methods, payments }: Man
         })}
         <div>
           <button type="button" className={quietButtonClass} onClick={() => setRows([...rows, { slug: "", variant: "", qty: "1" }])}>
-            + Stavka
+            {t("+ Stavka")}
           </button>
         </div>
         <div className={fieldRowClass}>
           <label className={labelClass}>
-            Način dostave
+            {t("Način dostave")}
             <select value={deliveryMethod} onChange={(event) => setDeliveryMethod(event.target.value)} className={inputClass}>
               {methods.map((method) => (
                 <option key={method.id} value={method.id}>
@@ -118,7 +120,7 @@ export function ManualOrderForm({ ordersPath, products, methods, payments }: Man
             </select>
           </label>
           <label className={labelClass}>
-            Način plaćanja
+            {t("Način plaćanja")}
             <select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} className={inputClass}>
               {payments.map((payment) => (
                 <option key={payment.id} value={payment.id}>
@@ -135,37 +137,37 @@ export function ManualOrderForm({ ordersPath, products, methods, payments }: Man
       </section>
 
       <section className={panelClass}>
-        <h2 className={panelTitleClass}>Kupac</h2>
+        <h2 className={panelTitleClass}>{t("Kupac")}</h2>
         <div className={fieldRowClass}>
           <label className={labelClass}>
-            Ime i prezime
+            {t("Ime i prezime")}
             <input autoComplete="off" {...field("name")} />
           </label>
           <label className={labelClass}>
-            Telefon
+            {t("Telefon")}
             <input autoComplete="off" {...field("phone")} />
           </label>
         </div>
         <label className={labelClass}>
-          Email
+          {t("Email")}
           <input type="email" autoComplete="off" {...field("email")} />
         </label>
         <label className={labelClass}>
-          Ulica i broj
+          {t("Ulica i broj")}
           <input autoComplete="off" {...field("street")} />
         </label>
         <div className={fieldRowClass}>
           <label className={labelClass}>
-            Poštanski broj
+            {t("Poštanski broj")}
             <input autoComplete="off" {...field("postalCode")} />
           </label>
           <label className={labelClass}>
-            Mesto
+            {t("Mesto")}
             <input autoComplete="off" {...field("city")} />
           </label>
         </div>
         <label className={labelClass}>
-          Napomena
+          {t("Napomena")}
           <input maxLength={500} {...field("note")} />
         </label>
         {error && (
@@ -179,7 +181,7 @@ export function ManualOrderForm({ ordersPath, products, methods, payments }: Man
           </button>
         </div>
         <p className="text-[14px] text-muted">
-          Kupac dobija istu potvrdu emailom kao da je poručio na sajtu, a komadi se skidaju sa stanja.
+          {t("Kupac dobija istu potvrdu emailom kao da je poručio na sajtu, a komadi se skidaju sa stanja.")}
         </p>
       </section>
     </div>

@@ -1,12 +1,14 @@
+import { getPanelT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { ADMIN_PATH, getCurrentAdmin, isAdminConfigured, roleCan } from "@/lib/admin-auth";
+import { ADMIN_PATH, getCurrentAdmin, needsSetup, roleCan } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { countNewOrders } from "@/lib/order-store";
 import { logout } from "./actions";
 import { LoginForm } from "./login-form";
+import { SetupForm } from "./setup-form";
 import { Sidebar } from "./nav";
 import { NAV_COOKIE } from "./nav-cookie";
 
@@ -25,7 +27,8 @@ function Brand({ name }: { name: string }) {
   );
 }
 
-function Login({ name, configured }: { name: string; configured: boolean }) {
+async function Login({ name, setup }: { name: string; setup: boolean }) {
+  const t = await getPanelT();
   return (
     <main className="grid min-h-screen grid-cols-[repeat(auto-fit,minmax(min(400px,100%),1fr))] gap-[clamp(24px,4vw,72px)] bg-paper p-[16px]">
       <div className="relative min-h-[clamp(240px,40vw,400px)] overflow-hidden rounded-[36px] bg-ink text-paper md:min-h-0">
@@ -40,10 +43,10 @@ function Login({ name, configured }: { name: string; configured: boolean }) {
         <div className="absolute inset-0 bg-[rgba(8,22,28,.3)]" />
         <div className="absolute inset-x-[clamp(22px,3vw,44px)] bottom-[clamp(22px,3vw,44px)] flex flex-col gap-[12px]">
           <div className="max-w-[15ch] animate-fade font-display text-[clamp(26px,2.8vw,40px)] leading-[1.04] font-bold tracking-[-0.03em] [animation-delay:.3s]">
-            Proizvodi, porudžbine i kupci na jednom mestu
+            {t("Proizvodi, porudžbine i kupci na jednom mestu")}
           </div>
           <p className="max-w-[38ch] animate-fade text-[#DDE5E6] [animation-delay:.42s]">
-            Panel iz kog vodite prodavnicu: katalog, popuste, poruke i podešavanja.
+            {t("Panel iz kog vodite prodavnicu: katalog, popuste, poruke i podešavanja.")}
           </p>
         </div>
       </div>
@@ -53,19 +56,16 @@ function Login({ name, configured }: { name: string; configured: boolean }) {
           <div className="flex flex-col gap-[8px]">
             <h1 className="text-[clamp(34px,4.2vw,56px)] leading-[1.04] tracking-[-0.03em]">
               <span className="rise">
-                <span>Admin panel</span>
+                <span>{t("Admin panel")}</span>
               </span>
             </h1>
-            <p className="text-muted">Prijavite se da biste upravljali prodavnicom.</p>
-          </div>
-          {configured ? (
-            <LoginForm />
-          ) : (
             <p className="text-muted">
-              Prijava nije podešena. Upišite ADMIN_USERNAME i ADMIN_PASSWORD u .env.local i ponovo
-              pokrenite server: od njih pri prvoj prijavi nastaje nalog vlasnika.
+              {setup
+                ? "Prvo pokretanje: napravite nalog vlasnika. Ostale korisnike dodajete kasnije u panelu."
+                : "Prijavite se da biste upravljali prodavnicom."}
             </p>
-          )}
+          </div>
+          {setup ? <SetupForm /> : <LoginForm />}
         </div>
       </div>
     </main>
@@ -76,7 +76,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // Bez prijave se umesto bilo koje stranice panela prikazuje samo forma za prijavu.
   // Svaka stranica i akcija uz to sama proverava prijavu (requireAdmin).
   const user = await getCurrentAdmin();
-  if (!user) return <Login name={(await getSettings()).store.name} configured={await isAdminConfigured()} />;
+  if (!user) return <Login name={(await getSettings()).store.name} setup={await needsSetup()} />;
 
   const [settings, waiting] = await Promise.all([getSettings(), countNewOrders()]);
   const { name, storefrontUrl } = settings.store;

@@ -109,9 +109,25 @@ async function countUsers(): Promise<number> {
   return Number(rows[0].total);
 }
 
-/** Da li iko može da se prijavi: postoji korisnik u bazi, ili su upisani podaci prvog vlasnika. */
-export async function isAdminConfigured(): Promise<boolean> {
-  return envOwner() !== null || (await countUsers()) > 0;
+/** Prvo pokretanje: nema nijednog korisnika ni podataka u okruženju, pa panel nudi pravljenje vlasnika. */
+export async function needsSetup(): Promise<boolean> {
+  return envOwner() === null && (await countUsers()) === 0;
+}
+
+/**
+ * Pravi prvog vlasnika. Upis uspeva samo dok je tabela prazna, i kada dva zahteva stignu
+ * odjednom; null kada vlasnik već postoji.
+ */
+export async function createFirstOwner(input: { username: string; name: string; password: string }): Promise<AdminUser | null> {
+  const db = await getDb();
+  const [result] = await db.query<ResultSetHeader>(
+    `INSERT INTO admin_users (username, name, pass_hash, role, created_at)
+     SELECT ?, ?, ?, 'owner', ? FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM admin_users)`,
+    [input.username, input.name, hashPassword(input.password), new Date()],
+  );
+  if (result.affectedRows === 0) return null;
+  const [rows] = await db.query<RowDataPacket[]>("SELECT * FROM admin_users WHERE id = ?", [result.insertId]);
+  return toUser(rows[0]);
 }
 
 export type LoginResult =

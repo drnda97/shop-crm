@@ -1,13 +1,11 @@
+import { getShopT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
-import { SimplePage } from "../_components/simple-page";
-import { WishlistGrid } from "../_components/wishlist";
+import { WishlistPage } from "@theme/pages/simple";
 
-export const metadata: Metadata = { title: "Lista želja", robots: { index: false, follow: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getShopT())("Lista želja"), robots: { index: false, follow: false } };
+}
 
-export default function WishlistPage() {
-  return (
-    <SimplePage title="Lista želja">
-      <WishlistGrid />
-    </SimplePage>
-  );
+export default function WishlistRoute() {
+  return <WishlistPage />;
 }

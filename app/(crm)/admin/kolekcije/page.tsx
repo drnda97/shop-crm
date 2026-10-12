@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getCollections } from "@/lib/content";
@@ -17,6 +18,7 @@ import {
 type CollectionsPageProps = { searchParams: Promise<{ greska?: string }> };
 
 export default async function CollectionsPage({ searchParams }: CollectionsPageProps) {
+  const t = await getPanelT();
   await requireAdmin("catalog");
   const { greska } = await searchParams;
   const collections = await getCollections();
@@ -24,8 +26,8 @@ export default async function CollectionsPage({ searchParams }: CollectionsPageP
   return (
     <>
       <PageHeader
-        title="Kolekcije"
-        hint="Kolekcija je ručno složena grupa proizvoda, npr. „Izdvojeno“ za početnu stranu ili „Za poklon“. Proizvod može biti u više kolekcija."
+        title={t("Kolekcije")}
+        hint={t("Kolekcija je ručno složena grupa proizvoda, npr. „Izdvojeno“ za početnu stranu ili „Za poklon“. Proizvod može biti u više kolekcija.")}
         error={greska}
       />
       <div className={cardClass}>
@@ -39,7 +41,7 @@ export default async function CollectionsPage({ searchParams }: CollectionsPageP
               </div>
             </div>
             <Link href={`${ADMIN_PATH}/kolekcije/${collection.id}`} className={quietButtonClass}>
-              Izmeni
+              {t("Izmeni")}
             </Link>
             <form action={deleteCollectionAction}>
               <input type="hidden" name="id" value={collection.id} />
@@ -47,12 +49,12 @@ export default async function CollectionsPage({ searchParams }: CollectionsPageP
                 question={`Obrisati kolekciju „${collection.name}"? Proizvodi ostaju.`}
                 className={quietButtonClass}
               >
-                Obriši
+                {t("Obriši")}
               </ConfirmButton>
             </form>
           </div>
         ))}
-        {collections.length === 0 && <p className="text-[15px] text-muted">Još nema kolekcija.</p>}
+        {collections.length === 0 && <p className="text-[15px] text-muted">{t("Još nema kolekcija.")}</p>}
       </div>
 
       <form
@@ -60,11 +62,11 @@ export default async function CollectionsPage({ searchParams }: CollectionsPageP
         className={`${cardClass} mt-[16px] flex flex-wrap items-end gap-[12px]`}
       >
         <label className={`${labelClass} min-w-[220px] grow`}>
-          Nova kolekcija
-          <input name="name" required placeholder="npr. Izdvojeno" className={inputClass} />
+          {t("Nova kolekcija")}
+          <input name="name" required placeholder={t("npr. Izdvojeno")} className={inputClass} />
         </label>
         <button type="submit" className={buttonClass}>
-          Dodaj kolekciju
+          {t("Dodaj kolekciju")}
         </button>
       </form>
     </>

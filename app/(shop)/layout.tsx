@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import type { CSSProperties, ReactNode } from "react";
-import Link from "next/link";
+import { htmlLang, ogLocale } from "@/lib/i18n";
 import { getShopConfig, getShopProducts } from "@/lib/storefront/catalog";
 import { getShopSettings, siteUrl } from "@/lib/storefront/pages";
 import { themeVars } from "@/lib/theme";
-import { Analytics } from "./_components/analytics";
-import { CartProvider } from "./_components/cart";
-import { fontVariables } from "./fonts";
-import { Reveal } from "./_components/reveal";
-import "./shop.css";
-import "./shop-fonts.css";
+import { fontVariables } from "@theme/fonts";
+import { Shell } from "@theme/pages/shell";
+import "@theme/shop.css";
+import "@theme/shop-fonts.css";
 
 // Proizvodi i podešavanja su u bazi i menjaju se iz panela, pa se stranice prave pri svakoj
 // poseti: izmena se vidi odmah, a build ne zavisi od toga da li je baza dostupna.
@@ -23,13 +21,14 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: name, template: `${name} — %s` },
     ...(settings.site.tagline ? { description: settings.site.tagline } : {}),
     ...(settings.favicon ? { icons: { icon: settings.favicon } } : {}),
-    openGraph: { siteName: name, type: "website", locale: "sr_RS" },
+    openGraph: { siteName: name, type: "website", locale: ogLocale[settings.store.language] },
   };
 }
 
 /**
  * Prodavnica ima sopstveni root layout, odvojen od panela: stilovi panela
- * (Tailwind, globals.css) se ovde ne učitavaju, a shop.css se ne učitava u panelu.
+ * (Tailwind, globals.css) se ovde ne učitavaju, a stilovi teme se ne učitavaju u panelu.
+ * Izgled je u temi (themes/default); ovde su samo podaci i ono što svaka tema dobija.
  */
 export default async function ShopLayout({ children }: { children: ReactNode }) {
   const [products, config, settings] = await Promise.all([
@@ -38,21 +37,15 @@ export default async function ShopLayout({ children }: { children: ReactNode }) 
     getShopSettings(),
   ]);
   const { announcement, announcementHref } = settings.site;
+  const lang = settings.store.language;
 
   return (
     // Boje i fontovi iz panela (Izgled sajta → Tema) stižu kao CSS promenljive teme.
-    <html lang="sr" className={fontVariables} style={themeVars(settings.colors, settings.fonts) as CSSProperties}>
+    <html lang={htmlLang[lang]} className={fontVariables} style={themeVars(settings.colors, settings.fonts) as CSSProperties}>
       <body>
-        {announcement && (
-          <div className="announce">
-            {announcementHref ? <Link href={announcementHref}>{announcement}</Link> : announcement}
-          </div>
-        )}
-        <CartProvider products={products} config={config}>
+        <Shell lang={lang} announcement={announcement} announcementHref={announcementHref} products={products} config={config}>
           {children}
-          <Analytics />
-        </CartProvider>
-        <Reveal />
+        </Shell>
       </body>
     </html>
   );

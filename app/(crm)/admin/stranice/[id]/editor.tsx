@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/client";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { newSection, sectionType, SECTION_TYPES, type Section } from "@/lib/sections";
 import { savePageAction, savePreviewAction } from "../../actions";
@@ -42,6 +43,7 @@ function summary(section: Section): string {
  * izmene dok se kuca; kupci ih vide tek posle „Sačuvaj".
  */
 export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProps) {
+  const t = useT();
   const [sections, setSections] = useState(page.sections);
   const [meta, setMeta] = useState({
     title: page.title,
@@ -175,9 +177,9 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
 
       <div className="flex min-w-0 flex-col gap-[16px]">
         <div className={`${cardClass} flex flex-col gap-[8px]`}>
-          <h2 className={panelTitleClass}>Sekcije</h2>
+          <h2 className={panelTitleClass}>{t("Sekcije")}</h2>
           <p className="mb-[4px] text-[14px] text-muted">
-            Na sajtu idu ovim redom. Kliknite na sekciju da izmenite njen sadržaj.
+            {t("Na sajtu idu ovim redom. Kliknite na sekciju da izmenite njen sadržaj.")}
           </p>
 
           {sections.map((section, index) => {
@@ -197,10 +199,10 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
                     {definition.label}
                     {title && <span className="font-sans text-[14.5px] font-normal text-muted"> · {title}</span>}
                   </button>
-                  <button type="button" className={smallButton} aria-label="Pomeri gore" disabled={index === 0} onClick={() => move(index, -1)}>
+                  <button type="button" className={smallButton} aria-label={t("Pomeri gore")} disabled={index === 0} onClick={() => move(index, -1)}>
                     ↑
                   </button>
-                  <button type="button" className={smallButton} aria-label="Pomeri dole" disabled={index === sections.length - 1} onClick={() => move(index, 1)}>
+                  <button type="button" className={smallButton} aria-label={t("Pomeri dole")} disabled={index === sections.length - 1} onClick={() => move(index, 1)}>
                     ↓
                   </button>
                   <button
@@ -229,11 +231,11 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
               </div>
             );
           })}
-          {sections.length === 0 && <p className="py-[8px] text-[15px] text-muted">Stranica još nema sekcija.</p>}
+          {sections.length === 0 && <p className="py-[8px] text-[15px] text-muted">{t("Stranica još nema sekcija.")}</p>}
 
           <div className="mt-[6px]">
             <button type="button" className={quietButtonClass} aria-expanded={adding} onClick={() => setAdding(!adding)}>
-              + Dodaj sekciju
+              {t("+ Dodaj sekciju")}
             </button>
           </div>
           {adding && (
@@ -254,13 +256,13 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
         </div>
 
         <div className={`${cardClass} flex flex-col gap-[16px]`}>
-          <h2 className={panelTitleClass}>Stranica</h2>
+          <h2 className={panelTitleClass}>{t("Stranica")}</h2>
           <label className={labelClass}>
-            Naziv stranice *
+            {t("Naziv stranice *")}
             <input className={inputClass} value={meta.title} onChange={(event) => changeMeta({ title: event.target.value })} />
           </label>
           <label className={labelClass}>
-            Naslov za pretraživače
+            {t("Naslov za pretraživače")}
             <input
               className={inputClass}
               placeholder={meta.title}
@@ -268,11 +270,11 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
               onChange={(event) => changeMeta({ seoTitle: event.target.value })}
             />
             <span className="font-sans text-[13.5px] font-normal text-muted">
-              Vidi se u kartici pregledača i u rezultatima pretrage. Prazno: naziv stranice.
+              {t("Vidi se u kartici pregledača i u rezultatima pretrage. Prazno: naziv stranice.")}
             </span>
           </label>
           <label className={labelClass}>
-            Opis za pretraživače
+            {t("Opis za pretraživače")}
             <textarea
               className={`${inputClass} min-h-[90px]`}
               maxLength={500}
@@ -280,18 +282,18 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
               onChange={(event) => changeMeta({ seoDescription: event.target.value })}
             />
             <span className="font-sans text-[13.5px] font-normal text-muted">
-              Jedna do dve rečenice, do oko 160 znakova. Prazno: opis prodavnice iz Izgleda sajta.
+              {t("Jedna do dve rečenice, do oko 160 znakova. Prazno: opis prodavnice iz Izgleda sajta.")}
             </span>
           </label>
           {!isHome && (
             <label className="flex cursor-pointer items-center gap-[10px] text-[15px]">
               <input type="checkbox" className="size-[20px] accent-ink" checked={meta.published} onChange={(event) => changeMeta({ published: event.target.checked })} />
-              Objavljena — vidi se na sajtu
+              {t("Objavljena — vidi se na sajtu")}
             </label>
           )}
           <label className="flex cursor-pointer items-center gap-[10px] text-[15px]">
             <input type="checkbox" className="size-[20px] accent-ink" checked={meta.showInFooter} onChange={(event) => changeMeta({ showInFooter: event.target.checked })} />
-            API je vraća u spisku „footerPages”
+            {t("API je vraća u spisku „footerPages”")}
           </label>
         </div>
 
@@ -307,10 +309,10 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
 
       <div className="sticky top-[12px] flex h-[calc(100vh-24px)] min-h-[480px] flex-col overflow-hidden rounded-[26px] bg-white shadow-soft max-xl:hidden">
         <div className="flex items-center justify-between gap-[12px] border-b border-line px-[18px] py-[10px]">
-          <span className="font-display text-[14px] font-bold">Pregled</span>
+          <span className="font-display text-[14px] font-bold">{t("Pregled")}</span>
           <span className="text-[13.5px] text-muted">{dirty ? "prikazuje nesačuvane izmene" : "kao na sajtu"}</span>
         </div>
-        <iframe ref={frame} src={ready ? previewUrl : undefined} title="Pregled stranice" className="w-full grow border-0" onLoad={onPreviewLoad} />
+        <iframe ref={frame} src={ready ? previewUrl : undefined} title={t("Pregled stranice")} className="w-full grow border-0" onLoad={onPreviewLoad} />
       </div>
     </div>
   );

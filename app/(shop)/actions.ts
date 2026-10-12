@@ -1,5 +1,7 @@
 "use server";
 
+import { makeT } from "@/lib/i18n";
+import { shopDict } from "@/lib/i18n/shop";
 import { headers } from "next/headers";
 import { toLines } from "@/lib/cart";
 import { getProducts } from "@/lib/content";
@@ -32,7 +34,7 @@ import { clearCart, saveCart, unsubscribeCart } from "@/lib/abandoned";
 import { getShopProducts, getWelcomeCode } from "@/lib/storefront/catalog";
 import { getShopSettings, siteUrl } from "@/lib/storefront/pages";
 import { addMessage, addSubscriber } from "@/lib/storefront/inbox";
-import { CONTACT_TOPICS } from "./_components/topics";
+import { CONTACT_TOPICS } from "@/lib/storefront/topics";
 
 /**
  * Akcije javne prodavnice. Poziva ih pregledač kupca, pa se ničemu što stigne
@@ -121,13 +123,14 @@ export async function requestResetAction(input: string): Promise<{ ok: true } | 
   const reset = await createPasswordReset(email);
   if (reset) {
     const url = `${await siteUrl()}/nalog/lozinka/${reset.token}`;
+    const t = makeT(settings.store.language, shopDict);
     const { errors } = await sendMails(settings, [
       {
         to: reset.user.email,
-        subject: `Nova lozinka — ${settings.store.name}`,
+        subject: `${t("Nova lozinka")} — ${settings.store.name}`,
         ...simpleEmail(settings, {
-          message: `Zdravo ${reset.user.firstName}, tražili ste novu lozinku za svoj nalog. Link važi jedan sat.\n\nAko to niste bili vi, ne morate ništa da radite: lozinka ostaje ista.`,
-          button: { label: "Postavite novu lozinku", url },
+          message: t("Zdravo {ime}, tražili ste novu lozinku za svoj nalog. Link važi jedan sat.\n\nAko to niste bili vi, ne morate ništa da radite: lozinka ostaje ista.", { ime: reset.user.firstName }),
+          button: { label: t("Postavite novu lozinku"), url },
         }),
       },
     ]);

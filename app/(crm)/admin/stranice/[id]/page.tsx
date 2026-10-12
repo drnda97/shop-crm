@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ADMIN_PATH, previewToken, requireAdmin } from "@/lib/admin-auth";
@@ -12,6 +13,7 @@ import { PageEditor } from "./editor";
 type AdminPagePageProps = { params: Promise<{ id: string }> };
 
 export default async function AdminPagePage({ params }: AdminPagePageProps) {
+  const t = await getPanelT();
   await requireAdmin("content");
   const { id } = await params;
 
@@ -29,7 +31,7 @@ export default async function AdminPagePage({ params }: AdminPagePageProps) {
   return (
     <>
       <Link href={`${ADMIN_PATH}/stranice`} className={textLinkClass}>
-        ← Stranice
+        {t("← Stranice")}
       </Link>
       <div className="mt-[12px]">
         <PageHeader
@@ -43,7 +45,7 @@ export default async function AdminPagePage({ params }: AdminPagePageProps) {
           action={
             page.published && (
               <a href={path} target="_blank" rel="noreferrer" className={quietButtonClass}>
-                Otvori na sajtu
+                {t("Otvori na sajtu")}
               </a>
             )
           }
@@ -73,7 +75,7 @@ export default async function AdminPagePage({ params }: AdminPagePageProps) {
         <form action={deletePageAction} className="mt-[24px]">
           <input type="hidden" name="slug" value={page.slug} />
           <ConfirmButton question={`Obrisati stranicu „${page.title}”?`} className={quietButtonClass}>
-            Obriši stranicu
+            {t("Obriši stranicu")}
           </ConfirmButton>
         </form>
       )}

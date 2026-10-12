@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin-auth";
 import { findVariant, variantLabel } from "@/lib/catalog";
@@ -13,6 +14,7 @@ type EditProductPageProps = {
 };
 
 export default async function EditProductPage({ params, searchParams }: EditProductPageProps) {
+  const t = await getPanelT();
   await requireAdmin("catalog");
   const [{ slug }, { greska }] = await Promise.all([params, searchParams]);
   const [product, products, categories, settings, log] = await Promise.all([
@@ -39,21 +41,21 @@ export default async function EditProductPage({ params, searchParams }: EditProd
       error={greska}
     >
       <section className={`${cardClass} mt-[16px]`}>
-        <h2 className={panelTitleClass}>Istorija stanja</h2>
+        <h2 className={panelTitleClass}>{t("Istorija stanja")}</h2>
         {log.length === 0 ? (
           <p className="mt-[8px] text-[15px] text-muted">
-            Još nema promena. Beleže se od trenutka kada se uz proizvod ili varijantu upiše broj komada.
+            {t("Još nema promena. Beleže se od trenutka kada se uz proizvod ili varijantu upiše broj komada.")}
           </p>
         ) : (
           <div className="mt-[10px] overflow-x-auto">
             <table className="w-full text-left text-[14.5px]">
               <thead>
                 <tr className="font-display text-[13px] text-muted">
-                  <th className="py-[6px] pr-[16px] font-semibold">Kada</th>
-                  {product.variants.length > 0 && <th className="py-[6px] pr-[16px] font-semibold">Varijanta</th>}
-                  <th className="py-[6px] pr-[16px] font-semibold">Promena</th>
-                  <th className="py-[6px] pr-[16px] font-semibold">Stanje posle</th>
-                  <th className="py-[6px] font-semibold">Razlog</th>
+                  <th className="py-[6px] pr-[16px] font-semibold">{t("Kada")}</th>
+                  {product.variants.length > 0 && <th className="py-[6px] pr-[16px] font-semibold">{t("Varijanta")}</th>}
+                  <th className="py-[6px] pr-[16px] font-semibold">{t("Promena")}</th>
+                  <th className="py-[6px] pr-[16px] font-semibold">{t("Stanje posle")}</th>
+                  <th className="py-[6px] font-semibold">{t("Razlog")}</th>
                 </tr>
               </thead>
               <tbody>

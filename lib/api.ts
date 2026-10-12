@@ -16,13 +16,14 @@ import {
 } from "@/lib/catalog";
 import { imageSizes } from "@/lib/media";
 import { cardProvider } from "@/lib/payments";
-import { collectImages, sectionType } from "@/lib/sections";
+import { collectImages, SECTION_TYPES, sectionType } from "@/lib/sections";
 import {
   allowedOrigins,
   enabledPayments,
   paymentLabels,
   type Settings,
 } from "@/lib/settings";
+import { fontStack, themeVars } from "@/lib/theme";
 
 /**
  * Pomoćne funkcije javnog API-ja (app/api/v1): CORS, odgovori i oblik podataka
@@ -139,17 +140,49 @@ export function publicCollection(collection: Collection) {
   };
 }
 
-export function publicPage(page: Page, base: string) {
-  const withUrl = (value: unknown): unknown => {
-    if (Array.isArray(value)) return value.map(withUrl);
-    if (typeof value !== "object" || value === null) return value;
-    const entries = Object.entries(value).map(([key, item]) => [
-      key,
-      // Slike dobijaju punu adresu, da ih sajt na drugoj adresi može prikazati.
-      key === "src" && typeof item === "string" && item ? `${base}${item}` : withUrl(item),
-    ]);
-    return Object.fromEntries(entries);
+/** Slike u sadržaju (ključ `src`) dobijaju punu adresu, da ih sajt na drugoj adresi može prikazati. */
+function withImageUrls(value: unknown, base: string): unknown {
+  if (Array.isArray(value)) return value.map((item) => withImageUrls(item, base));
+  if (typeof value !== "object" || value === null) return value;
+  const entries = Object.entries(value).map(([key, item]) => [
+    key,
+    key === "src" && typeof item === "string" && item.startsWith("/") ? `${base}${item}` : withImageUrls(item, base),
+  ]);
+  return Object.fromEntries(entries);
+}
+
+/**
+ * Sve što se u panelu uređuje u „Izgled sajta": traka, meni, podnožje, boje, fontovi i
+ * tekstovi stranica sa stalnim rasporedom. Sajt van ove aplikacije od ovoga i od
+ * /pages/{slug} slaže isti sadržaj koji vlasnik vidi u uređivaču.
+ */
+export function publicSite(settings: Settings, base: string) {
+  const { site, colors, fonts } = settings;
+  return {
+    announcement: { text: site.announcement, href: site.announcementHref },
+    menu: site.menu,
+    footer: { tagline: site.tagline, columns: site.footerColumns, note: site.footerNote, legalLinks: site.legalLinks },
+    colors,
+    fonts: {
+      display: { id: fonts.display, stack: fontStack(fonts.display) },
+      body: { id: fonts.body, stack: fontStack(fonts.body) },
+    },
+    /** Iste CSS promenljive koje koristi ugrađena prodavnica (boje sa izvedenim nijansama, fontovi). */
+    cssVars: themeVars(colors, fonts),
+    logo: mediaUrl(settings.logo, base),
+    favicon: mediaUrl(settings.favicon, base),
+    /** Tekstovi i fotografije stranica kolekcije, proizvoda, naloga, plaćanja i korpe. */
+    templates: withImageUrls(settings.templates, base),
   };
+}
+
+/** Vrste sekcija i njihova polja: šta sajt može da dobije u `sections` stranice. */
+export function publicSectionTypes() {
+  return SECTION_TYPES.map(({ type, label, fields }) => ({ type, label, fields }));
+}
+
+export function publicPage(page: Page, base: string) {
+  const withUrl = (value: unknown) => withImageUrls(value, base);
   const images = page.sections.flatMap((section) =>
     collectImages(sectionType(section.type)?.fields ?? [], section.data),
   );

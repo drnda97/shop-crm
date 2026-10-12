@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import { listAdmins, PASSWORD_MIN, requireAdmin, roleHints, roleLabels, type Role } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { ConfirmButton } from "../confirm-button";
@@ -27,6 +28,7 @@ type UsersPageProps = { searchParams: Promise<{ greska?: string; ok?: string }> 
 const roles = Object.keys(roleLabels) as Role[];
 
 export default async function UsersPage({ searchParams }: UsersPageProps) {
+  const t = await getPanelT();
   const current = await requireAdmin("users");
   const [{ greska, ok }, users, settings] = await Promise.all([searchParams, listAdmins(), getSettings()]);
   const { orderDate } = dateFormats(settings.store);
@@ -44,8 +46,8 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   return (
     <>
       <PageHeader
-        title="Korisnici"
-        hint="Ko sme u panel i šta sme da radi. Vlasnik vidi sve; ostale uloge ne vide Podešavanja, Korisnike i Dnevnik."
+        title={t("Korisnici")}
+        hint={t("Ko sme u panel i šta sme da radi. Vlasnik vidi sve; ostale uloge ne vide Podešavanja, Korisnike i Dnevnik.")}
         error={greska}
         notice={ok}
       />
@@ -56,7 +58,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
             <div className="flex flex-wrap items-baseline justify-between gap-[8px]">
               <h2 className="text-[19px]">
                 {user.name} <span className="font-sans text-[15px] font-normal text-muted">· {user.username}</span>
-                {user.id === current.id && <span className="font-sans text-[15px] font-normal text-muted"> · vi</span>}
+                {user.id === current.id && <span className="font-sans text-[15px] font-normal text-muted"> {t("· vi")}</span>}
               </h2>
               <span className="text-[14px] text-muted">
                 {user.disabled ? "isključen · " : ""}
@@ -67,7 +69,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
             <form action={updateUserAction} className="flex flex-wrap items-end gap-[12px]">
               <input type="hidden" name="id" value={user.id} />
               <label className={`${labelClass} min-w-[180px] grow basis-0`}>
-                Ime
+                {t("Ime")}
                 <input name="name" required maxLength={100} defaultValue={user.name} className={inputClass} />
               </label>
               <label className={`${labelClass} min-w-[240px] grow-[2] basis-0`}>
@@ -76,14 +78,14 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
               </label>
               <label className="flex min-h-[50px] cursor-pointer items-center gap-[10px] text-[15px]">
                 <Checkbox name="disabled" defaultChecked={user.disabled} />
-                Isključen
+                {t("Isključen")}
               </label>
               <button type="submit" className={quietButtonClass}>
-                Sačuvaj
+                {t("Sačuvaj")}
               </button>
             </form>
             <details>
-              <summary className="cursor-pointer font-display text-[14px] font-bold">Lozinka, prijava u dva koraka, brisanje</summary>
+              <summary className="cursor-pointer font-display text-[14px] font-bold">{t("Lozinka, prijava u dva koraka, brisanje")}</summary>
               <div className="mt-[12px] flex flex-wrap items-end gap-[12px]">
                 <form action={resetUserPasswordAction} className="flex grow flex-wrap items-end gap-[12px]">
                   <input type="hidden" name="id" value={user.id} />
@@ -93,7 +95,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                     <input name="password" type="password" autoComplete="new-password" required minLength={PASSWORD_MIN} className={inputClass} />
                   </label>
                   <button type="submit" className={quietButtonClass}>
-                    Postavi lozinku
+                    {t("Postavi lozinku")}
                   </button>
                 </form>
                 {user.totpEnabled && (
@@ -101,7 +103,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                     <input type="hidden" name="id" value={user.id} />
                     <input type="hidden" name="username" value={user.username} />
                     <ConfirmButton question={`Isključiti prijavu u dva koraka za ${user.username}?`} className={quietButtonClass}>
-                      Isključi dva koraka
+                      {t("Isključi dva koraka")}
                     </ConfirmButton>
                   </form>
                 )}
@@ -110,7 +112,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                     <input type="hidden" name="id" value={user.id} />
                     <input type="hidden" name="username" value={user.username} />
                     <ConfirmButton question={`Obrisati korisnika ${user.username}?`} className={quietButtonClass}>
-                      Obriši
+                      {t("Obriši")}
                     </ConfirmButton>
                   </form>
                 )}
@@ -120,14 +122,14 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         ))}
 
         <form action={createUserAction} className={panelClass}>
-          <h2 className={panelTitleClass}>Novi korisnik</h2>
+          <h2 className={panelTitleClass}>{t("Novi korisnik")}</h2>
           <div className={fieldRowClass}>
             <label className={labelClass}>
-              Ime
+              {t("Ime")}
               <input name="name" required maxLength={100} className={inputClass} />
             </label>
             <label className={labelClass}>
-              Korisničko ime ili email
+              {t("Korisničko ime ili email")}
               <input name="username" required maxLength={100} autoComplete="off" className={inputClass} />
             </label>
           </div>
@@ -143,7 +145,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
           </div>
           <div>
             <button type="submit" className={buttonClass}>
-              Dodaj korisnika
+              {t("Dodaj korisnika")}
             </button>
           </div>
         </form>

@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { categoryTree, inCategory, withDescendants } from "@/lib/catalog";
 import { getCategories, getProducts } from "@/lib/content";
@@ -18,6 +19,7 @@ type CategoriesPageProps = { searchParams: Promise<{ greska?: string }> };
 const fieldClass = `${labelClass} min-w-[180px] grow basis-0`;
 
 export default async function CategoriesPage({ searchParams }: CategoriesPageProps) {
+  const t = await getPanelT();
   await requireAdmin("catalog");
   const { greska } = await searchParams;
   const [categories, products] = await Promise.all([getCategories(), getProducts()]);
@@ -26,8 +28,8 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
   return (
     <>
       <PageHeader
-        title="Kategorije"
-        hint="Kategorije mogu imati podkategorije. Proizvod se u formi svrstava u jednu glavnu i po želji u dodatne kategorije; proizvod iz podkategorije vidi se i u njenoj nadkategoriji. Svaka kategorija ima svoju stranicu na sajtu: /kolekcija/oznaka."
+        title={t("Kategorije")}
+        hint={t("Kategorije mogu imati podkategorije. Proizvod se u formi svrstava u jednu glavnu i po želji u dodatne kategorije; proizvod iz podkategorije vidi se i u njenoj nadkategoriji. Svaka kategorija ima svoju stranicu na sajtu: /kolekcija/oznaka.")}
         error={greska}
       />
       <div className={`${cardClass} flex flex-col`}>
@@ -44,13 +46,13 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
               <form action={saveCategoryAction} className="flex grow flex-wrap items-end gap-[12px]">
                 <input type="hidden" name="id" value={category.id} />
                 <label className={fieldClass}>
-                  Naziv
+                  {t("Naziv")}
                   <input name="label" required defaultValue={category.label} className={inputClass} />
                 </label>
                 <label className={fieldClass}>
-                  Nadkategorija
+                  {t("Nadkategorija")}
                   <select name="parent" defaultValue={category.parent} className={inputClass}>
-                    <option value="">— nema, na vrhu je —</option>
+                    <option value="">{t("— nema, na vrhu je —")}</option>
                     {tree
                       .filter((item) => !blocked.includes(item.category.id))
                       .map((item) => (
@@ -62,15 +64,15 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
                   </select>
                 </label>
                 <button type="submit" className={quietButtonClass}>
-                  Sačuvaj
+                  {t("Sačuvaj")}
                 </button>
                 <details className="w-full">
                   <summary className="cursor-pointer font-display text-[14px] font-bold">
-                    Tekst i podaci za pretraživače
+                    {t("Tekst i podaci za pretraživače")}
                   </summary>
                   <div className="mt-[12px] flex flex-col gap-[12px]">
                     <label className={labelClass}>
-                      Tekst na vrhu stranice kategorije
+                      {t("Tekst na vrhu stranice kategorije")}
                       <textarea
                         name="description"
                         maxLength={2000}
@@ -79,7 +81,7 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
                       />
                     </label>
                     <label className={labelClass}>
-                      Naslov za pretraživače
+                      {t("Naslov za pretraživače")}
                       <input
                         name="seoTitle"
                         maxLength={255}
@@ -89,7 +91,7 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
                       />
                     </label>
                     <label className={labelClass}>
-                      Opis za pretraživače
+                      {t("Opis za pretraživače")}
                       <textarea
                         name="seoDescription"
                         maxLength={500}
@@ -106,7 +108,7 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
                   question={`Obrisati kategoriju „${category.label}"?`}
                   className={quietButtonClass}
                 >
-                  Obriši
+                  {t("Obriši")}
                 </ConfirmButton>
               </form>
               <div className="w-full text-[13px] text-muted">
@@ -115,7 +117,7 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
             </div>
           );
         })}
-        {categories.length === 0 && <p className="text-[15px] text-muted">Još nema kategorija.</p>}
+        {categories.length === 0 && <p className="text-[15px] text-muted">{t("Još nema kategorija.")}</p>}
       </div>
 
       <form
@@ -123,13 +125,13 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
         className={`${cardClass} mt-[16px] flex flex-wrap items-end gap-[12px]`}
       >
         <label className={fieldClass}>
-          Nova kategorija
-          <input name="label" required placeholder="npr. Majice" className={inputClass} />
+          {t("Nova kategorija")}
+          <input name="label" required placeholder={t("npr. Majice")} className={inputClass} />
         </label>
         <label className={fieldClass}>
-          Nadkategorija
+          {t("Nadkategorija")}
           <select name="parent" defaultValue="" className={inputClass}>
-            <option value="">— nema, na vrhu je —</option>
+            <option value="">{t("— nema, na vrhu je —")}</option>
             {tree.map((item) => (
               <option key={item.category.id} value={item.category.id}>
                 {"\u00a0\u00a0".repeat(item.depth)}
@@ -139,7 +141,7 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
           </select>
         </label>
         <button type="submit" className={buttonClass}>
-          Dodaj kategoriju
+          {t("Dodaj kategoriju")}
         </button>
       </form>
     </>

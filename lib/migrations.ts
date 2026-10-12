@@ -417,6 +417,38 @@ export const MIGRATIONS: Migration[] = [
       );
     },
   },
+  {
+    id: 16,
+    name: "veza sa spoljnim sistemima: API ključevi i webhook-ovi",
+    up: async (connection) => {
+      const tail = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS api_keys (
+          id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(100) NOT NULL,
+          key_hash CHAR(64) NOT NULL,
+          prefix VARCHAR(16) NOT NULL,
+          scope VARCHAR(10) NOT NULL,
+          created_at DATETIME(3) NOT NULL,
+          last_used_at DATETIME(3) NULL,
+          UNIQUE KEY api_keys_hash (key_hash)
+        ) ${tail}`,
+      );
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS webhooks (
+          id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          url VARCHAR(500) NOT NULL,
+          secret VARCHAR(64) NOT NULL,
+          events VARCHAR(500) NOT NULL,
+          active TINYINT(1) NOT NULL DEFAULT 1,
+          created_at DATETIME(3) NOT NULL,
+          last_at DATETIME(3) NULL,
+          last_status INT NULL,
+          last_error VARCHAR(255) NULL
+        ) ${tail}`,
+      );
+    },
+  },
 ];
 
 // GET_LOCK važi za ceo MySQL server, pa ime sadrži i bazu (najviše 64 znaka).

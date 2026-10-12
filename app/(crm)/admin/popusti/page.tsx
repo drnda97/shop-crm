@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getDiscounts, getSettings } from "@/lib/content";
@@ -22,6 +23,7 @@ function describeTrigger(discount: Discount, currency: Currency): string {
 }
 
 export default async function DiscountsPage({ searchParams }: DiscountsPageProps) {
+  const t = await getPanelT();
   await requireAdmin("catalog");
   const { greska } = await searchParams;
   const [discounts, counts, uses, settings] = await Promise.all([
@@ -35,12 +37,12 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
   return (
     <>
       <PageHeader
-        title="Popusti"
-        hint="Promo kod važi za svakog kupca koji ga upiše. Nagrada je kod koji kupac dobija u emailu posle porudžbine, za sledeću kupovinu: šalje se najjača aktivna nagrada čiji je uslov ispunjen, i važi jednom, samo za tog kupca."
+        title={t("Popusti")}
+        hint={t("Promo kod važi za svakog kupca koji ga upiše. Nagrada je kod koji kupac dobija u emailu posle porudžbine, za sledeću kupovinu: šalje se najjača aktivna nagrada čiji je uslov ispunjen, i važi jednom, samo za tog kupca.")}
         error={greska}
         action={
           <Link href={`${ADMIN_PATH}/popusti/novi`} className={buttonClass}>
-            + Novi popust
+            {t("+ Novi popust")}
           </Link>
         }
       />
@@ -87,7 +89,7 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
                 </button>
               </form>
               <Link href={`${ADMIN_PATH}/popusti/${discount.id}`} className={quietButtonClass}>
-                Izmeni
+                {t("Izmeni")}
               </Link>
               <form action={deleteDiscountAction}>
                 <input type="hidden" name="id" value={discount.id} />
@@ -95,7 +97,7 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
                   question={`Obrisati popust „${discount.name}"? Kodovi koji su već poslati kupcima ostaju da važe.`}
                   className={quietButtonClass}
                 >
-                  Obriši
+                  {t("Obriši")}
                 </ConfirmButton>
               </form>
             </div>
@@ -103,7 +105,7 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
         })}
         {discounts.length === 0 && (
           <p className="text-[15px] text-muted">
-            Još nema popusta. Dok ga ne napravite i aktivirate, nijedan kod ne važi.
+            {t("Još nema popusta. Dok ga ne napravite i aktivirate, nijedan kod ne važi.")}
           </p>
         )}
       </div>

@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getAuditLog } from "@/lib/audit";
 import { getSettings } from "@/lib/content";
@@ -6,6 +7,7 @@ import { cardClass, PageHeader } from "../ui";
 
 /** Dnevnik izmena: ko je i kada šta uradio u panelu. Samo za vlasnika. */
 export default async function AuditPage() {
+  const t = await getPanelT();
   await requireAdmin("users");
   const [entries, settings] = await Promise.all([getAuditLog(), getSettings()]);
   const { orderDate } = dateFormats(settings.store);
@@ -13,21 +15,21 @@ export default async function AuditPage() {
   return (
     <>
       <PageHeader
-        title="Dnevnik"
-        hint="Izmene napravljene u panelu, najnovije prve. Čuva se šest meseci. Beleške i pomeranje redosleda se ne upisuju."
+        title={t("Dnevnik")}
+        hint={t("Izmene napravljene u panelu, najnovije prve. Čuva se šest meseci. Beleške i pomeranje redosleda se ne upisuju.")}
       />
       <div className={cardClass}>
         {entries.length === 0 ? (
-          <p className="text-[15px] text-muted">Još nema zapisa.</p>
+          <p className="text-[15px] text-muted">{t("Još nema zapisa.")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[14.5px]">
               <thead>
                 <tr className="font-display text-[13px] text-muted">
-                  <th className="py-[6px] pr-[16px] font-semibold">Kada</th>
-                  <th className="py-[6px] pr-[16px] font-semibold">Ko</th>
-                  <th className="py-[6px] pr-[16px] font-semibold">Šta</th>
-                  <th className="py-[6px] font-semibold">Na čemu</th>
+                  <th className="py-[6px] pr-[16px] font-semibold">{t("Kada")}</th>
+                  <th className="py-[6px] pr-[16px] font-semibold">{t("Ko")}</th>
+                  <th className="py-[6px] pr-[16px] font-semibold">{t("Šta")}</th>
+                  <th className="py-[6px] font-semibold">{t("Na čemu")}</th>
                 </tr>
               </thead>
               <tbody>

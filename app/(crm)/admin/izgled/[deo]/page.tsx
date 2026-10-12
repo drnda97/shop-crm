@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
@@ -11,6 +12,7 @@ type SitePartPageProps = { params: Promise<{ deo: string }> };
 
 /** Meni i podnožje, ili tekstovi jedne stranice sa stalnim rasporedom (lib/templates.ts). */
 export default async function SitePartPage({ params }: SitePartPageProps) {
+  const t = await getPanelT();
   await requireAdmin("content");
   const { deo } = await params;
   const [settings, { sampleProduct, ...options }] = await Promise.all([getSettings(), editorOptions()]);
@@ -18,12 +20,12 @@ export default async function SitePartPage({ params }: SitePartPageProps) {
   if (deo === "meni") {
     return (
       <>
-        <PageHeader title="Izgled sajta" />
+        <PageHeader title={t("Izgled sajta")} />
         <SettingsEditor
           key="meni"
           tabs={tabs("meni")}
           target={{ part: "site" }}
-          hint="Delovi koji su isti na svakoj stranici: glavni meni, podnožje i traka sa obaveštenjem."
+          hint={t("Delovi koji su isti na svakoj stranici: glavni meni, podnožje i traka sa obaveštenjem.")}
           fields={SITE_FIELDS}
           value={settings.site}
           previewUrl={await previewUrl(HOME_PREVIEW)}
@@ -46,7 +48,7 @@ export default async function SitePartPage({ params }: SitePartPageProps) {
 
   return (
     <>
-      <PageHeader title="Izgled sajta" />
+      <PageHeader title={t("Izgled sajta")} />
       <SettingsEditor
         key={template.id}
         tabs={tabs(template.slug)}

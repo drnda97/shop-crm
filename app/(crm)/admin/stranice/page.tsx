@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { pagePath } from "@/lib/catalog";
@@ -7,6 +8,7 @@ import { buttonClass, cardClass, PageHeader, quietButtonClass, rowClass } from "
 type PagesPageProps = { searchParams: Promise<{ greska?: string }> };
 
 export default async function PagesPage({ searchParams }: PagesPageProps) {
+  const t = await getPanelT();
   await requireAdmin("content");
   const { greska } = await searchParams;
   const pages = await getPages();
@@ -14,12 +16,12 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
   return (
     <>
       <PageHeader
-        title="Stranice"
-        hint="Stranice sajta: početna, o nama, pitanja, kontakt, uslovi kupovine. Svaka je složena od sekcija koje dodajete, pomerate i menjate. Meni i podnožje su u delu Izgled sajta."
+        title={t("Stranice")}
+        hint={t("Stranice sajta: početna, o nama, pitanja, kontakt, uslovi kupovine. Svaka je složena od sekcija koje dodajete, pomerate i menjate. Meni i podnožje su u delu Izgled sajta.")}
         error={greska}
         action={
           <Link href={`${ADMIN_PATH}/stranice/nova`} className={buttonClass}>
-            + Nova stranica
+            {t("+ Nova stranica")}
           </Link>
         }
       />
@@ -31,7 +33,7 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
                 {page.title}
                 {!page.published && (
                   <span className="rounded-full bg-band px-[10px] py-[2px] font-display text-[12.5px] font-bold">
-                    nacrt
+                    {t("nacrt")}
                   </span>
                 )}
               </div>
@@ -40,11 +42,11 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
               </div>
             </div>
             <Link href={`${ADMIN_PATH}/stranice/${page.slug}`} className={quietButtonClass}>
-              Izmeni
+              {t("Izmeni")}
             </Link>
           </div>
         ))}
-        {pages.length === 0 && <p className="text-[15px] text-muted">Još nema stranica.</p>}
+        {pages.length === 0 && <p className="text-[15px] text-muted">{t("Još nema stranica.")}</p>}
       </div>
     </>
   );

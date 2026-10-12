@@ -1,0 +1,70 @@
+"use client";
+
+import { useT } from "@/lib/i18n/client";
+import { useState, useTransition, type FormEvent } from "react";
+import { subscribeAction } from "@/app/(shop)/actions";
+
+type State = { kind: "idle" } | { kind: "error"; message: string } | { kind: "done"; code: string | null };
+
+export function NewsletterForm() {
+  const t = useT();
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<State>({ kind: "idle" });
+  const [pending, startTransition] = useTransition();
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    startTransition(async () => {
+      const result = await subscribeAction(email);
+      if (!result.ok) return setState({ kind: "error", message: t(result.error) });
+      setEmail("");
+      setState({ kind: "done", code: result.code });
+    });
+  }
+
+  return (
+    <form onSubmit={submit} noValidate style={{ display: "flex", flexDirection: "column", gap: "12px", maxWidth: "480px" }}>
+      <label htmlFor="nl-email" style={{ fontFamily: "var(--display)", fontSize: "15px", fontWeight: 600 }}>
+        {t("Email adresa")}
+      </label>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "6px 6px 6px 24px",
+          borderRadius: "999px",
+          background: "rgba(255, 255, 255, .1)",
+          boxShadow: "inset 0 0 0 1.5px rgba(255, 255, 255, .22)",
+        }}
+      >
+        <input
+          id="nl-email"
+          type="email"
+          placeholder={t("ime@primer.rs")}
+          value={email}
+          onChange={(event) => {
+            setEmail(event.target.value);
+            setState({ kind: "idle" });
+          }}
+          style={{ flex: 1, minWidth: 0, height: "48px", background: "none", border: 0, outline: 0, color: "var(--on-dark)", font: "500 16px var(--sans)" }}
+        />
+        <button className="btn gold" type="submit" disabled={pending} style={{ minHeight: "48px", padding: "0 24px" }}>
+          {t("Prijavi me")}
+        </button>
+      </div>
+      <span role="status" style={{ fontSize: "14px", color: state.kind === "idle" ? "var(--on-dark-mute)" : "var(--gold-l)" }}>
+        {state.kind === "idle" && t("Bez spama. Odjava jednim klikom.")}
+        {state.kind === "error" && state.message}
+        {state.kind === "done" &&
+          (state.code ? (
+            <>
+              {t("Prijavljeni ste. Kod za 10% popusta na prvu porudžbinu:")} <strong>{state.code}</strong>
+            </>
+          ) : (
+            t("Prijavljeni ste.")
+          ))}
+      </span>
+    </form>
+  );
+}

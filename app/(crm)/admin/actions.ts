@@ -1,5 +1,6 @@
 "use server";
 
+import { isLang, type Lang } from "@/lib/i18n";
 import { existsSync } from "node:fs";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
@@ -1447,6 +1448,8 @@ export async function saveStoreAction(formData: FormData) {
       legal: content.settings.store.legal,
       currency,
       currencyDecimals: text(formData, "currencyDecimals") === "2" ? 2 : 0,
+      language: isLang(formData.get("language")) ? (formData.get("language") as Lang) : content.settings.store.language,
+      panelLanguage: isLang(formData.get("panelLanguage")) ? (formData.get("panelLanguage") as Lang) : content.settings.store.panelLanguage,
       locale,
       timeZone,
       phonePrefix: text(formData, "phonePrefix").replace(/\D/g, ""),

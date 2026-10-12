@@ -15,7 +15,7 @@ npm run dev                  # http://localhost:3000/admin
 npm run build && npm run start
 ```
 
-Tabele se prave same pri prvom pokretanju. Prva prijava u panel je podacima iz `.env.local` (`ADMIN_USERNAME`, `ADMIN_PASSWORD`): od njih nastaje nalog vlasnika, a posle se korisnici, uloge i lozinke vode u panelu. Ako ostanete bez pristupa: `npm run admin:user -- <ime> <nova-lozinka>`.
+Tabele se prave same pri prvom pokretanju. Pri prvom otvaranju `/admin` pravite nalog vlasnika; posle se korisnici, uloge i lozinke vode u panelu. (Ako su u `.env.local` upisani `ADMIN_USERNAME` i `ADMIN_PASSWORD`, vlasnik nastaje od njih pri prvoj prijavi.) Ako ostanete bez pristupa: `npm run admin:user -- <ime> <nova-lozinka>`.
 
 Prvo otvorite **Podešavanja**: naziv prodavnice, valuta i zapis iznosa (celi iznosi ili dve decimale), cena dostave, načini plaćanja i email nalog. Zapis iznosa izaberite pre unosa proizvoda.
 
@@ -36,6 +36,7 @@ Prvo otvorite **Podešavanja**: naziv prodavnice, valuta i zapis iznosa (celi iz
 | Stranice | stranice sajta složene od sekcija, sa pregledom pre čuvanja; naslov i opis za pretraživače |
 | Izgled sajta | boje i fontovi; glavni meni, podnožje, traka sa obaveštenjem; tekstovi i fotografije na stranicama kolekcije, proizvoda, naloga, plaćanja i korpe — sve sa pregledom pre čuvanja |
 | Slike | biblioteka ubačenih slika; fotografije se čuvaju kao WebP u više širina |
+| Integracije | API ključevi za spoljne sisteme i webhook-ovi (nova porudžbina, status, uplata, povraćaj) |
 | Korisnici, Dnevnik, Moj nalog | korisnici panela i uloge (vlasnik, prodaja, sadržaj); ko je i kada šta menjao; sopstvena lozinka i prijava u dva koraka kodom iz aplikacije |
 | Podešavanja | prodavnica, načini dostave (cena, težina, zone), plaćanje (pouzeće, uplata na račun, kartica uz povezan procesor), račun i PDV, SMTP, poruke o statusu, šablon emaila |
 
@@ -106,7 +107,50 @@ Ne uvoze se utisci, oznake (tagovi), porezi, dostava, kupci ni porudžbine. Proi
 
 ## Demo prodavnica
 
-Uz panel ide i gotova javna prodavnica (`app/(shop)/`, na adresi `/`). Čita proizvode, kategorije, popuste i podešavanja direktno iz baze i šalje porudžbine istim putem kao API (`submitOrder`). Ima sopstveni izgled (`app/(shop)/shop.css`), odvojen od panela.
+### Sadržaj iz panela za sajt van ove aplikacije
+
+Sajt u bilo kojoj tehnologiji može da prikaže ono što vlasnik uređuje u panelu (Stranice, Izgled sajta):
+
+| Poziv | Šta vraća |
+|---|---|
+| `GET /api/v1/site` | traka sa obaveštenjem, meni, podnožje, boje, fontovi, logo, tekstovi i fotografije stranica kolekcije, proizvoda, naloga, plaćanja i korpe |
+| `GET /api/v1/pages/{slug}` | stranica sa sekcijama redom iz uređivača (`sections[n].type` i `data`) |
+| `GET /api/v1/sections` | vrste sekcija i njihova polja |
+
+### Jezici
+
+Podešavanja → Prodavnica → „Jezik sajta i poruka kupcima": srpski ili engleski. Menja tekstove teme, poruke o grešci i email kupcu; sadržaj koji vlasnik piše u panelu (meni, stranice, tekstovi) ostaje kakav je upisan. Panel je za sada samo na srpskom. Prevod je u `lib/i18n/` (jezgro) i `themes/default/i18n/` (tema): srpski tekst iz koda je ključ, a rečnik jezika ga zamenjuje.
+
+### Spoljni sistemi: API sa ključem i webhook-ovi
+
+Za knjigovodstvo, magacin ili kurirsku službu. Ključ se pravi u panelu (Integracije) i šalje u zaglavlju, sa servera — nikad iz koda sajta koji vidi kupac:
+
+```
+curl -H "Authorization: Bearer sk_…" https://crm.mojsajt.rs/api/v1/admin/orders?status=new
+```
+
+| Poziv | Šta radi |
+|---|---|
+| `GET /api/v1/admin/orders` | porudžbine, najnovije prve; `?status=`, `?since=` (ISO datum), `?limit=` (do 500) |
+| `GET /api/v1/admin/orders/{broj}` | jedna porudžbina |
+| `POST /api/v1/admin/orders/{broj}/status` | `{ "status": "confirmed" \| "shipped" \| "delivered" \| "cancelled" \| "new", "notify": false }` — kupac dobija email kao iz panela, osim uz `notify: false` |
+| `POST /api/v1/admin/orders/{broj}/tracking` | `{ "number": "RS123", "url": "https://…" }` |
+| `GET /api/v1/admin/products` | svi proizvodi, i nacrti, sa brojem komada |
+| `POST /api/v1/admin/products/{slug}/stock` | `{ "qty": 12, "variant": "id-varijante" }`; `qty: null` prestaje da vodi broj |
+
+`POST` pozivi traže ključ „Čitanje i izmene".
+
+Webhook šalje `POST` sa telom `{ "event", "at", "data": { "order": … } }` i zaglavljima `X-ShopCRM-Event` i `X-ShopCRM-Signature: sha256=<HMAC-SHA256 tela tajnom webhook-a>`. Događaji: `order.created`, `order.status`, `order.paid`, `order.refunded` (uz `data.amount`), i `ping` za probu iz panela. Odgovor 2xx znači primljeno; inače se pokušava još dva puta (posle 2 i 10 sekundi).
+
+### Docker
+
+```
+docker compose up -d
+```
+
+pokreće aplikaciju i MariaDB; zatim otvorite `http://localhost:3000/admin` i napravite nalog vlasnika. Lozinke baze i `PUBLIC_URL` se zadaju u fajlu `.env` pored `docker-compose.yml`. Slike i baza su na Docker diskovima (`uploads`, `db`).
+
+Uz panel ide i gotova javna prodavnica (rute u `app/(shop)/`, izgled u `themes/default`, na adresi `/`). Izgled je tema: folder koji se može zameniti drugim, bez diranja panela i jezgra — vidi [themes/README.md](themes/README.md). Čita proizvode, kategorije, popuste i podešavanja direktno iz baze i šalje porudžbine istim putem kao API (`submitOrder`). Ima sopstveni izgled (`app/(shop)/shop.css`), odvojen od panela.
 
 ```bash
 npm run seed:demo   # 11 proizvoda iz dizajna, kategorije, oznake, kod DOBRODOSLI10, dostava i plaćanje
@@ -198,3 +242,7 @@ Plan razvoja je u `PLAN.md`.
 - Račun iz panela (PDF) nije fiskalni račun.
 - Katalog se pri svakoj izmeni upisuje ceo (`updateContent`), što je dovoljno brzo do nekoliko stotina proizvoda.
 - Jedan CRM vodi jednu prodavnicu; za drugu se pokreće još jedan, sa svojom bazom.
+
+## Licenca
+
+[AGPL-3.0](LICENSE). Kod smete da koristite, menjate i delite; ako izmenjenu verziju nudite drugima kao servis, morate da objavite i svoje izmene.

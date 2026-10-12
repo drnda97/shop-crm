@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
@@ -26,6 +27,7 @@ type CustomerPageProps = {
 };
 
 export default async function CustomerPage({ params, searchParams }: CustomerPageProps) {
+  const t = await getPanelT();
   await requireAdmin("orders");
   const [{ key }, { ok }] = await Promise.all([params, searchParams]);
   const [orders, settings, note] = await Promise.all([
@@ -55,7 +57,7 @@ export default async function CustomerPage({ params, searchParams }: CustomerPag
   return (
     <>
       <Link href={`${ADMIN_PATH}/kupci`} className={textLinkClass}>
-        ← Kupci
+        {t("← Kupci")}
       </Link>
       <div className="mt-[12px]">
         <PageHeader title={customer.name} notice={ok} />
@@ -103,7 +105,7 @@ export default async function CustomerPage({ params, searchParams }: CustomerPag
           </label>
           <div>
             <button type="submit" className={buttonClass}>
-              Sačuvaj belešku
+              {t("Sačuvaj belešku")}
             </button>
           </div>
         </form>
@@ -111,24 +113,24 @@ export default async function CustomerPage({ params, searchParams }: CustomerPag
 
       <div className={`${cardClass} mt-[16px] flex flex-wrap items-center gap-[12px]`}>
         <div className="min-w-[240px] grow text-[15px]">
-          <div className="font-display font-bold">Podaci na zahtev kupca</div>
+          <div className="font-display font-bold">{t("Podaci na zahtev kupca")}</div>
           <div className="text-[14px] text-muted">
             Izvoz daje sve što prodavnica čuva o kupcu. Brisanje uklanja nalog, poruke, prijavu na novosti i
             belešku, a iz porudžbina ime, kontakt i adresu; same porudžbine ostaju kao evidencija prodaje.
           </div>
         </div>
         <a href={`${ADMIN_PATH}/kupci/${customer.key}/podaci`} className={quietButtonClass}>
-          Izvezi podatke
+          {t("Izvezi podatke")}
         </a>
         <form action={eraseCustomerAction}>
           <input type="hidden" name="key" value={customer.key} />
           <ConfirmButton question={`Obrisati podatke kupca „${customer.name}"? Ne može da se vrati.`} className={quietButtonClass}>
-            Obriši podatke
+            {t("Obriši podatke")}
           </ConfirmButton>
         </form>
       </div>
 
-      <h2 className="mt-[24px] mb-[12px] text-[20px]">Porudžbine</h2>
+      <h2 className="mt-[24px] mb-[12px] text-[20px]">{t("Porudžbine")}</h2>
       <div className="flex flex-col gap-[12px]">
         {customer.orders.map((order) => (
           <OrderCard

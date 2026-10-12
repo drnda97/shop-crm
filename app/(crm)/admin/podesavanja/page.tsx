@@ -1,3 +1,5 @@
+import { getPanelT } from "@/lib/i18n/server";
+import { LANGS } from "@/lib/i18n";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
@@ -47,6 +49,7 @@ const checkboxLabel = "flex cursor-pointer items-start gap-[10px] text-[15px] le
 const codeClass = "rounded-[14px] bg-band px-[14px] py-[12px] font-mono text-[13px] break-all";
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+  const t = await getPanelT();
   await requireAdmin("settings");
   const { greska, ok } = await searchParams;
   // Lozinka za SMTP se namerno ne šalje u formu.
@@ -63,28 +66,28 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
   return (
     <>
-      <PageHeader title="Opšta podešavanja" error={greska} notice={ok} />
+      <PageHeader title={t("Opšta podešavanja")} error={greska} notice={ok} />
 
       {/* Na širokom ekranu dve kolone; na užem se sekcije ređaju jedna ispod druge. */}
       <div className="grid items-start gap-[16px] xl:grid-cols-2">
         <div className={columnClass}>
           <section className={sectionClass}>
-            <h2 className={sectionTitle}>Prodavnica</h2>
+            <h2 className={sectionTitle}>{t("Prodavnica")}</h2>
             <p className={sectionHint}>
-              Naziv i kontakt idu u email kupcu i preko API-ja na sajt. Valuta važi za sve cene.
+              {t("Naziv i kontakt idu u email kupcu i preko API-ja na sajt. Valuta važi za sve cene.")}
             </p>
             <form action={saveStoreAction} className="flex flex-col gap-[16px]">
               <div className={twoColumns}>
                 <label className={labelClass}>
-                  Naziv prodavnice *
+                  {t("Naziv prodavnice *")}
                   <input name="name" required defaultValue={store.name} className={inputClass} />
                 </label>
                 <label className={labelClass}>
-                  Telefon
+                  {t("Telefon")}
                   <input name="phone" defaultValue={store.phone} className={inputClass} />
                 </label>
                 <label className={labelClass}>
-                  Email prodavnice
+                  {t("Email prodavnice")}
                   <input
                     name="email"
                     type="email"
@@ -93,15 +96,15 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   />
                 </label>
                 <label className={labelClass}>
-                  Adresa
+                  {t("Adresa")}
                   <input name="address" defaultValue={store.address} className={inputClass} />
                 </label>
               </div>
 
-              <h3 className={groupTitle}>Valuta i zemlja</h3>
+              <h3 className={groupTitle}>{t("Valuta i zemlja")}</h3>
               <div className={twoColumns}>
                 <label className={labelClass}>
-                  Oznaka valute *
+                  {t("Oznaka valute *")}
                   <input
                     name="currency"
                     required
@@ -111,7 +114,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   />
                 </label>
                 <label className={labelClass}>
-                  Zapis iznosa
+                  {t("Zapis iznosa")}
                   <select
                     name="currencyDecimals"
                     defaultValue={String(decimals)}
@@ -130,7 +133,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   />
                 </label>
                 <label className={labelClass}>
-                  Početak nasumičnih kodova za popust
+                  {t("Početak nasumičnih kodova za popust")}
                   <input
                     name="codePrefix"
                     maxLength={12}
@@ -139,21 +142,40 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   />
                 </label>
                 <label className={labelClass}>
-                  Jezik datuma
+                  {t("Jezik sajta i poruka kupcima")}
+                  <select name="language" defaultValue={store.language} className={inputClass}>
+                    {Object.entries(LANGS).map(([id, label]) => (
+                      <option key={id} value={id}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={labelClass}>
+                  {t("Jezik panela")}
+                  <select name="panelLanguage" defaultValue={store.panelLanguage} className={inputClass}>
+                    {Object.entries(LANGS).map(([id, label]) => (
+                      // Panel je za sada preveden samo delimično, pa se drugi jezik još ne nudi.
+                      <option key={id} value={id} disabled={id !== "sr"}>
+                        {id === "sr" ? label : `${label} (u pripremi)`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={labelClass}>
+                  {t("Jezik datuma")}
                   <input name="locale" defaultValue={store.locale} className={inputClass} />
                 </label>
                 <label className={labelClass}>
-                  Vremenska zona
+                  {t("Vremenska zona")}
                   <input name="timeZone" defaultValue={store.timeZone} className={inputClass} />
                 </label>
               </div>
               <p className="mt-[-8px] text-[14px] text-muted">
-                Zapis iznosa izaberite pre unosa proizvoda: ako ga promenite kasnije, već upisane
-                cene se čitaju sto puta veće ili manje. Po pozivnom broju se isti kupac prepoznaje i
-                kada jednom upiše 064…, a drugi put +38164…
+                {t("Zapis iznosa izaberite pre unosa proizvoda: ako ga promenite kasnije, već upisane cene se čitaju sto puta veće ili manje. Po pozivnom broju se isti kupac prepoznaje i kada jednom upiše 064…, a drugi put +38164…")}
               </p>
 
-              <h3 className={groupTitle}>Sajt prodavnice</h3>
+              <h3 className={groupTitle}>{t("Sajt prodavnice")}</h3>
               <label className={labelClass}>
                 Adresa sajta (link „Otvori sajt“ u meniju)
                 <input
@@ -165,8 +187,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 />
               </label>
               <label className={labelClass}>
-                Sajtovi koji smeju da zovu API iz pregledača — jedan po redu, npr.
-                https://mojsajt.rs
+                {t("Sajtovi koji smeju da zovu API iz pregledača — jedan po redu, npr. https://mojsajt.rs")}
                 <textarea
                   name="allowedOrigins"
                   defaultValue={store.allowedOrigins}
@@ -174,39 +195,37 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 />
               </label>
               <p className="mt-[-8px] text-[14px] text-muted">
-                Dok je polje prazno, API može da zove bilo koji sajt. Kada sajt bude objavljen,
-                upišite njegovu adresu.
+                {t("Dok je polje prazno, API može da zove bilo koji sajt. Kada sajt bude objavljen, upišite njegovu adresu.")}
               </p>
               <div>
                 <button type="submit" className={buttonClass}>
-                  Sačuvaj prodavnicu
+                  {t("Sačuvaj prodavnicu")}
                 </button>
               </div>
             </form>
           </section>
 
           <section className={sectionClass}>
-            <h2 className={sectionTitle}>Povezivanje sajta</h2>
+            <h2 className={sectionTitle}>{t("Povezivanje sajta")}</h2>
             <p className={sectionHint}>
-              Sajt prodavnice čita proizvode i šalje porudžbine preko API-ja na ovoj adresi. Na bilo
-              koji sajt se dodaje jednim redom:
+              {t("Sajt prodavnice čita proizvode i šalje porudžbine preko API-ja na ovoj adresi. Na bilo koji sajt se dodaje jednim redom:")}
             </p>
             <div className={codeClass}>{`<script src="${crmUrl}/sdk.js"></script>`}</div>
             <div className="mt-[12px] flex flex-wrap gap-[12px]">
               <a href="/demo.html" target="_blank" className={quietButtonClass}>
-                Probna prodavnica ↗
+                {t("Probna prodavnica ↗")}
               </a>
               <a href="/api/v1/products" target="_blank" className={quietButtonClass}>
-                API: proizvodi ↗
+                {t("API: proizvodi ↗")}
               </a>
               <a href="/api/v1/store" target="_blank" className={quietButtonClass}>
-                API: prodavnica ↗
+                {t("API: prodavnica ↗")}
               </a>
             </div>
           </section>
 
           <section className={sectionClass}>
-            <h2 className={sectionTitle}>Dostava</h2>
+            <h2 className={sectionTitle}>{t("Dostava")}</h2>
             <p className={sectionHint}>
               Načini dostave koje kupac bira pri poručivanju. Svaki ima svoju cenu (stalnu ili po
               težini), prag za besplatnu dostavu i, po želji, zonu u koju se isporučuje. Prvi način
@@ -227,19 +246,18 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           </section>
 
           <section className={sectionClass}>
-            <h2 className={sectionTitle}>Plaćanje</h2>
+            <h2 className={sectionTitle}>{t("Plaćanje")}</h2>
             <p className={sectionHint}>
-              Načini plaćanja koje kupac može da izabere pri poručivanju. Nijedan ne traži ugovor sa
-              bankom ni proviziju.
+              {t("Načini plaćanja koje kupac može da izabere pri poručivanju. Nijedan ne traži ugovor sa bankom ni proviziju.")}
             </p>
             <form action={savePaymentAction} className="flex flex-col gap-[16px]">
               <label className={checkboxLabel}>
                 <Checkbox name="cod" defaultChecked={payment.cod} />
-                Plaćanje pouzećem — kupac plaća kuriru
+                {t("Plaćanje pouzećem — kupac plaća kuriru")}
               </label>
               <label className={checkboxLabel}>
                 <Checkbox name="bank" defaultChecked={payment.bank} />
-                Uplata na račun — kupac dobija podatke za uplatu
+                {t("Uplata na račun — kupac dobija podatke za uplatu")}
               </label>
               <label className={labelClass}>
                 Podaci za uplatu (primalac, broj računa, svrha) — kupac ih vidi posle porudžbine i u
@@ -253,12 +271,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               </label>
               <label className={checkboxLabel}>
                 <Checkbox name="card" defaultChecked={payment.card} />
-                Plaćanje karticom — traži povezan procesor
+                {t("Plaćanje karticom — traži povezan procesor")}
               </label>
               <label className={labelClass}>
-                Procesor kartica
+                {t("Procesor kartica")}
                 <select name="cardProvider" defaultValue={payment.cardProvider} className={inputClass}>
-                  <option value="">— nijedan —</option>
+                  <option value="">{t("— nijedan —")}</option>
                   {providers.map((provider) => (
                     <option key={provider.id} value={provider.id} disabled={!provider.ready}>
                       {provider.label}
@@ -274,23 +292,21 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               </label>
               <div>
                 <button type="submit" className={buttonClass}>
-                  Sačuvaj plaćanje
+                  {t("Sačuvaj plaćanje")}
                 </button>
               </div>
             </form>
           </section>
 
           <section className={sectionClass}>
-            <h2 className={sectionTitle}>Analitika</h2>
+            <h2 className={sectionTitle}>{t("Analitika")}</h2>
             <p className={sectionHint}>
-              Merenje poseta i kupovina. Kodovi se učitavaju tek kada posetilac pristane u traci za
-              kolačiće, koja se prikazuje čim upišete bar jednu oznaku. Bez oznaka sajt ne koristi
-              kolačiće za praćenje i traka se ne prikazuje.
+              {t("Merenje poseta i kupovina. Kodovi se učitavaju tek kada posetilac pristane u traci za kolačiće, koja se prikazuje čim upišete bar jednu oznaku. Bez oznaka sajt ne koristi kolačiće za praćenje i traka se ne prikazuje.")}
             </p>
             <form action={saveAnalyticsAction} className="flex flex-col gap-[16px]">
               <label className={labelClass}>
-                Google Analytics 4 — oznaka merenja
-                <input name="ga4" defaultValue={analytics.ga4} placeholder="G-XXXXXXXXXX" autoComplete="off" className={inputClass} />
+                {t("Google Analytics 4 — oznaka merenja")}
+                <input name="ga4" defaultValue={analytics.ga4} placeholder={t("G-XXXXXXXXXX")} autoComplete="off" className={inputClass} />
               </label>
               <label className={labelClass}>
                 Meta (Facebook) Pixel ID
@@ -298,17 +314,16 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               </label>
               <div>
                 <button type="submit" className={buttonClass}>
-                  Sačuvaj analitiku
+                  {t("Sačuvaj analitiku")}
                 </button>
               </div>
             </form>
           </section>
 
           <section className={sectionClass}>
-            <h2 className={sectionTitle}>Račun i PDV</h2>
+            <h2 className={sectionTitle}>{t("Račun i PDV")}</h2>
             <p className={sectionHint}>
-Podaci za račun u PDF-u. Račun iz panela nije fiskalni račun: fiskalizaciju vodite kroz
-              svoj fiskalni uređaj ili servis.
+{t("Podaci za račun u PDF-u. Račun iz panela nije fiskalni račun: fiskalizaciju vodite kroz svoj fiskalni uređaj ili servis.")}
             </p>
             <form action={saveTaxAction} className="flex flex-col gap-[16px]">
               <label className={labelClass}>
@@ -322,7 +337,7 @@ Podaci za račun u PDF-u. Račun iz panela nije fiskalni račun: fiskalizaciju v
               </label>
               <label className={checkboxLabel}>
                 <Checkbox name="taxEnabled" defaultChecked={tax.enabled} />
-                Prodavnica je u sistemu PDV-a — na računu se iskazuju osnovica i PDV
+                {t("Prodavnica je u sistemu PDV-a — na računu se iskazuju osnovica i PDV")}
               </label>
               <label className={labelClass}>
                 Stopa PDV-a (%)
@@ -340,19 +355,19 @@ Podaci za račun u PDF-u. Račun iz panela nije fiskalni račun: fiskalizaciju v
                 </span>
               </label>
               <label className={labelClass}>
-                Račun u PDF-u u emailu kupcu
+                {t("Račun u PDF-u u emailu kupcu")}
                 <select name="invoiceEmail" defaultValue={tax.invoiceEmail} className={inputClass}>
-                  <option value="none">Ne šalji</option>
-                  <option value="order">Uz potvrdu porudžbine</option>
-                  <option value="shipped">Uz poruku da je porudžbina poslata</option>
+                  <option value="none">{t("Ne šalji")}</option>
+                  <option value="order">{t("Uz potvrdu porudžbine")}</option>
+                  <option value="shipped">{t("Uz poruku da je porudžbina poslata")}</option>
                 </select>
                 <span className="font-sans text-[14px] font-normal text-muted">
-                  Račun se uvek može preuzeti iz porudžbine u panelu, a prijavljen kupac ga vidi u svom nalogu.
+                  {t("Račun se uvek može preuzeti iz porudžbine u panelu, a prijavljen kupac ga vidi u svom nalogu.")}
                 </span>
               </label>
               <div>
                 <button type="submit" className={buttonClass}>
-                  Sačuvaj račun i PDV
+                  {t("Sačuvaj račun i PDV")}
                 </button>
               </div>
             </form>
@@ -360,11 +375,11 @@ Podaci za račun u PDF-u. Račun iz panela nije fiskalni račun: fiskalizaciju v
         </div>
         <div className={columnClass}>
           <section className={sectionClass}>
-            <h2 className={sectionTitle}>Logo i favicon</h2>
+            <h2 className={sectionTitle}>{t("Logo i favicon")}</h2>
             <p className={sectionHint}>
               Logo se prikazuje u zaglavlju sajta i u emailu o porudžbini. Boje i fontovi su u delu{" "}
               <Link href={`${ADMIN_PATH}/izgled`} className={textLinkClass}>
-                Izgled sajta
+                {t("Izgled sajta")}
               </Link>
               .
             </p>
@@ -373,38 +388,38 @@ Podaci za račun u PDF-u. Račun iz panela nije fiskalni račun: fiskalizaciju v
                 <div className={labelClass}>
                   Logo (PNG ili WebP providne pozadine)
                   <div className="flex flex-wrap items-center gap-[12px]">
-                    <Thumb src={logo} alt="Logo" contain />
+                    <Thumb src={logo} alt={t("Logo")} contain />
                     <input
                       type="file"
                       name="logo"
                       accept={IMAGE_ACCEPT}
-                      aria-label="Logo"
+                      aria-label={t("Logo")}
                       className={fileClass}
                     />
                   </div>
                   {logo && (
                     <label className="flex cursor-pointer items-center gap-[10px] text-ink">
                       <Checkbox name="logoRemove" />
-                      Ukloni logo
+                      {t("Ukloni logo")}
                     </label>
                   )}
                 </div>
                 <div className={labelClass}>
                   Favicon (kvadratni PNG, bar 64 × 64 px)
                   <div className="flex flex-wrap items-center gap-[12px]">
-                    <Thumb src={favicon} alt="Favicon" contain />
+                    <Thumb src={favicon} alt={t("Favicon")} contain />
                     <input
                       type="file"
                       name="favicon"
                       accept={IMAGE_ACCEPT}
-                      aria-label="Favicon"
+                      aria-label={t("Favicon")}
                       className={fileClass}
                     />
                   </div>
                   {favicon && (
                     <label className="flex cursor-pointer items-center gap-[10px] text-ink">
                       <Checkbox name="faviconRemove" />
-                      Ukloni favicon
+                      {t("Ukloni favicon")}
                     </label>
                   )}
                 </div>
@@ -412,26 +427,25 @@ Podaci za račun u PDF-u. Račun iz panela nije fiskalni račun: fiskalizaciju v
 
               <div>
                 <button type="submit" className={buttonClass}>
-                  Sačuvaj logo i favicon
+                  {t("Sačuvaj logo i favicon")}
                 </button>
               </div>
             </form>
           </section>
 
           <section id="email" className={`${sectionClass} scroll-mt-[20px]`}>
-            <h2 className={sectionTitle}>Email o porudžbini</h2>
+            <h2 className={sectionTitle}>{t("Email o porudžbini")}</h2>
             <p className={sectionHint}>
-              Kada neko poruči, šalje se email preko vašeg email naloga. Porudžbina se uvek sačuva u
-              panelu, i kada slanje ne uspe.
+              {t("Kada neko poruči, šalje se email preko vašeg email naloga. Porudžbina se uvek sačuva u panelu, i kada slanje ne uspe.")}
             </p>
             <form action={saveMailAction} className="flex flex-col gap-[16px]">
               <label className={checkboxLabel}>
                 <Checkbox name="notifySeller" defaultChecked={mail.notifySeller} />
-                Šalji meni email za svaku novu porudžbinu
+                {t("Šalji meni email za svaku novu porudžbinu")}
               </label>
               <label className={checkboxLabel}>
                 <Checkbox name="notifyCustomer" defaultChecked={mail.notifyCustomer} />
-                Šalji kupcu potvrdu porudžbine
+                {t("Šalji kupcu potvrdu porudžbine")}
               </label>
 
               <div className={twoColumns}>
@@ -452,17 +466,15 @@ Podaci za račun u PDF-u. Račun iz panela nije fiskalni račun: fiskalizaciju v
 
               <h3 className={groupTitle}>Nalog sa kog se šalje (SMTP)</h3>
               <p className="mt-[-12px] text-[14px] text-muted">
-                Podatke daje vaš email provajder ili hosting. Za Gmail: server smtp.gmail.com, port
-                587, korisničko ime je vaša adresa, a lozinka je „lozinka za aplikacije“ iz Google
-                naloga, ne vaša obična lozinka.
+                {t("Podatke daje vaš email provajder ili hosting. Za Gmail: server smtp.gmail.com, port 587, korisničko ime je vaša adresa, a lozinka je „lozinka za aplikacije“ iz Google naloga, ne vaša obična lozinka.")}
               </p>
               <div className={twoColumns}>
                 <label className={labelClass}>
-                  SMTP server
+                  {t("SMTP server")}
                   <input
                     name="smtpHost"
                     defaultValue={mail.smtpHost}
-                    placeholder="npr. smtp.gmail.com"
+                    placeholder={t("npr. smtp.gmail.com")}
                     className={inputClass}
                   />
                 </label>
@@ -479,7 +491,7 @@ Podaci za račun u PDF-u. Račun iz panela nije fiskalni račun: fiskalizaciju v
                   />
                 </label>
                 <label className={labelClass}>
-                  Korisničko ime
+                  {t("Korisničko ime")}
                   <input
                     name="smtpUser"
                     autoComplete="off"
@@ -488,7 +500,7 @@ Podaci za račun u PDF-u. Račun iz panela nije fiskalni račun: fiskalizaciju v
                   />
                 </label>
                 <label className={labelClass}>
-                  Lozinka
+                  {t("Lozinka")}
                   <input
                     name="smtpPassword"
                     type="password"
@@ -510,19 +522,19 @@ Podaci za račun u PDF-u. Račun iz panela nije fiskalni račun: fiskalizaciju v
 
               <div>
                 <button type="submit" className={buttonClass}>
-                  Sačuvaj email podešavanja
+                  {t("Sačuvaj email podešavanja")}
                 </button>
               </div>
             </form>
             <form action={sendTestEmailAction} className="mt-[12px]">
               <button type="submit" className={quietButtonClass}>
-                Pošalji probni email na moju adresu
+                {t("Pošalji probni email na moju adresu")}
               </button>
             </form>
           </section>
 
           <section className={sectionClass}>
-            <h2 className={sectionTitle}>Poruke o statusu</h2>
+            <h2 className={sectionTitle}>{t("Poruke o statusu")}</h2>
             <p className={sectionHint}>
 Email kupcu kada porudžbina promeni status ili kada upišete povraćaj. U tekstu se{" "}
               {"{ime}"}, {"{broj}"}, {"{pracenje}"} (broj pošiljke i link, kada su upisani),{" "}
@@ -536,7 +548,7 @@ Email kupcu kada porudžbina promeni status ili kada upišete povraćaj. U tekst
                     Šalji {statusEmailLabels[key]}
                   </label>
                   <label className={labelClass}>
-                    Naslov
+                    {t("Naslov")}
                     <input
                       name={`${key}Subject`}
                       maxLength={200}
@@ -545,7 +557,7 @@ Email kupcu kada porudžbina promeni status ili kada upišete povraćaj. U tekst
                     />
                   </label>
                   <label className={labelClass}>
-                    Tekst
+                    {t("Tekst")}
                     <textarea
                       name={`${key}Text`}
                       maxLength={2000}
@@ -557,14 +569,14 @@ Email kupcu kada porudžbina promeni status ili kada upišete povraćaj. U tekst
               ))}
               <div>
                 <button type="submit" className={buttonClass}>
-                  Sačuvaj poruke
+                  {t("Sačuvaj poruke")}
                 </button>
               </div>
             </form>
           </section>
 
           <section className={sectionClass}>
-            <h2 className={sectionTitle}>Šablon emaila</h2>
+            <h2 className={sectionTitle}>{t("Šablon emaila")}</h2>
             <p className={sectionHint}>
               Trenutno se koristi{" "}
               <strong>{mail.customTemplate ? "vaš šablon" : "naš šablon"}</strong>. Isti šablon ide
@@ -573,13 +585,13 @@ Email kupcu kada porudžbina promeni status ili kada upišete povraćaj. U tekst
             </p>
             <div className="flex flex-wrap gap-[12px]">
               <a href={previewPath} target="_blank" className={quietButtonClass}>
-                Pregled: email kupcu ↗
+                {t("Pregled: email kupcu ↗")}
               </a>
               <a href={`${previewPath}?za=prodavac`} target="_blank" className={quietButtonClass}>
-                Pregled: email meni ↗
+                {t("Pregled: email meni ↗")}
               </a>
               <a href={`${ADMIN_PATH}/podesavanja/sablon`} className={quietButtonClass}>
-                Preuzmi naš šablon
+                {t("Preuzmi naš šablon")}
               </a>
             </div>
 
@@ -598,20 +610,20 @@ Email kupcu kada porudžbina promeni status ili kada upišete povraćaj. U tekst
                 />
               </label>
               <button type="submit" className={buttonClass}>
-                Ubaci šablon
+                {t("Ubaci šablon")}
               </button>
             </form>
             {mail.customTemplate && (
               <form action={resetTemplateAction} className="mt-[12px]">
                 <button type="submit" className={quietButtonClass}>
-                  Vrati naš šablon
+                  {t("Vrati naš šablon")}
                 </button>
               </form>
             )}
 
             <details className="mt-[16px] border-t border-line pt-[12px] text-[14px]">
               <summary className="cursor-pointer text-[15px]">
-                Mesta u šablonu koja se zamenjuju podacima porudžbine
+                {t("Mesta u šablonu koja se zamenjuju podacima porudžbine")}
               </summary>
               <table className="mt-[8px] w-full">
                 <tbody>

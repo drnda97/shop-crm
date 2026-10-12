@@ -2,16 +2,17 @@
   "name": "shopcrm",
   "version": "0.1.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "backup": "node --env-file=.env.local scripts/backup.mjs",
-    "seed:demo": "node --env-file=.env.local --experimental-strip-types --no-warnings scripts/seed-demo.mjs",
-    "admin:user": "node --env-file=.env.local --experimental-strip-types --no-warnings scripts/admin-user.mjs",
-    "images:optimize": "node --env-file=.env.local --experimental-strip-types --no-warnings scripts/optimize-images.mjs"
+    "backup": "node --env-file-if-exists=.env.local scripts/backup.mjs",
+    "seed:demo": "node --env-file-if-exists=.env.local --experimental-strip-types --no-warnings scripts/seed-demo.mjs",
+    "admin:user": "node --env-file-if-exists=.env.local --experimental-strip-types --no-warnings scripts/admin-user.mjs",
+    "images:optimize": "node --env-file-if-exists=.env.local --experimental-strip-types --no-warnings scripts/optimize-images.mjs"
   },
   "dependencies": {
     "dejavu-fonts-ttf": "^2.37.3",

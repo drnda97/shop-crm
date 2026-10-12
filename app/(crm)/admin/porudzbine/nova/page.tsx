@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { isAvailable, isVariantAvailable, variantLabel } from "@/lib/catalog";
@@ -7,6 +8,7 @@ import { PageHeader, textLinkClass } from "../../ui";
 import { ManualOrderForm } from "./manual-order-form";
 
 export default async function NewOrderPage() {
+  const t = await getPanelT();
   await requireAdmin("orders");
   const [products, settings] = await Promise.all([getProducts(), getSettings()]);
   const ordersPath = `${ADMIN_PATH}/porudzbine`;
@@ -14,12 +16,12 @@ export default async function NewOrderPage() {
   return (
     <>
       <Link href={ordersPath} className={textLinkClass}>
-        ← Porudžbine
+        {t("← Porudžbine")}
       </Link>
       <div className="mt-[12px]">
         <PageHeader
-          title="Nova porudžbina"
-          hint="Za porudžbinu primljenu telefonom, porukom ili u radnji. Nude se proizvodi koji mogu da se poruče; cene, popust i dostava se računaju isto kao na sajtu."
+          title={t("Nova porudžbina")}
+          hint={t("Za porudžbinu primljenu telefonom, porukom ili u radnji. Nude se proizvodi koji mogu da se poruče; cene, popust i dostava se računaju isto kao na sajtu.")}
         />
       </div>
       <ManualOrderForm

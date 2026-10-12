@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { HOME_SLUG } from "@/lib/catalog";
 import { getSitePage, inPreview } from "@/lib/storefront/pages";
-import { PageView } from "../_sections/page-view";
+import { ContentPage } from "@theme/pages/content";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -29,5 +29,5 @@ export default async function SitePage({ params, searchParams }: Props) {
   if (slug === HOME_SLUG && !(await inPreview())) permanentRedirect("/");
   const page = await getSitePage(slug);
   if (!page) notFound();
-  return <PageView sections={page.sections} query={query} />;
+  return <ContentPage sections={page.sections} query={query} />;
 }

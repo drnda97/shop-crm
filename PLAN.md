@@ -165,13 +165,33 @@ Ostalo:
 - Isti kod iz aplikacije može se upotrebiti dva puta dok važi (oko minut).
 - Korisnik koji zaboravi lozinku ne dobija link emailom: novu mu postavlja vlasnik, a vlasniku skripta.
 
-### Faza 6 — Objavljivanje kao otvoren kod
+### Faza 6 — Objavljivanje kao otvoren kod (u toku)
 
-- Licenca, `docker compose`, čarobnjak za prvo pokretanje (baza, nalog vlasnika, osnovna podešavanja).
-- Panel i prodavnica na više jezika; sada su tekstovi na srpskom u kodu.
-- Tema odvojena od jezgra, da druga prodavnica dobije drugi izgled bez diranja panela.
-- Webhook-ovi i API ključevi za spoljne sisteme.
-- Uputstvo za postavljanje, za izradu teme i za doprinos; CI; javna demo adresa.
+Urađeno 12. 10. 2026:
+
+- **Prvo pokretanje**: na praznoj bazi `/admin` nudi pravljenje naloga vlasnika i upis naziva prodavnice; `ADMIN_USERNAME` i `ADMIN_PASSWORD` više nisu obavezni. Ko prvi otvori `/admin` na novoj instalaciji postaje vlasnik, pa to treba uraditi odmah po postavljanju.
+- **API ključevi i API za spoljne sisteme** (`lib/integrations.ts`, `/api/v1/admin`; panel → Integracije): čitanje porudžbina i proizvoda, promena statusa, broj pošiljke, upis stanja. Ključ je samo za čitanje ili i za izmene; u bazi se čuva njegov heš.
+- **Webhook-ovi**: nova porudžbina, promena statusa, uplata, povraćaj. Poruka je potpisana (HMAC-SHA256), tri pokušaja, ishod poslednjeg slanja se vidi u panelu, uz dugme za probu.
+- **Docker**: `Dockerfile` i `docker-compose.yml` (aplikacija i MariaDB).
+- **CI** (`.github/workflows/ci.yml`): lint, tipovi, testovi i build na svaki push.
+- `.env.example` je sada u gitu (bio je izostavljen pravilom `.env*`).
+
+- **Licenca**: AGPL-3.0 (`LICENSE`).
+- **Tema odvojena od jezgra** (`themes/default`, `themes/README.md`): izgled prodavnice je jedan folder; rute u `app/(shop)/` samo učitaju podatke i predaju ih stranicama teme. Aktivnu temu bira jedan red u `tsconfig.json`. Šta tema mora da ima piše u `themes/README.md`.
+- **Sadržaj kroz API**: `/api/v1/site` (traka, meni, podnožje, boje, fontovi, tekstovi stalnih stranica) i `/api/v1/sections` (vrste sekcija i polja), uz postojeći `/api/v1/pages/{slug}`. Sajt van ove aplikacije tako koristi uređivač iz panela.
+- **Jezici, prvi deo** (`lib/i18n`): tekstovi u kodu su na srpskom i ujedno ključ prevoda, a rečnik drugog jezika ih zamenjuje; nepreveden tekst ostaje na srpskom. Podešavanja → Prodavnica bira jezik sajta. Na engleskom rade: sve stranice teme, poruke o grešci, nazivi statusa i plaćanja, naslovi stranica, i email kupcu (porudžbina, status, napuštena korpa, novosti, nova lozinka).
+
+Ostaje:
+
+- **Panel na engleskom**: tekstovi panela su pripremljeni za prevod na oko 500 mesta, ali engleski rečnik panela nije napisan, i ostaje još oko 480 redova sa tekstom (najviše poruke u `actions.ts`). Zato se „Jezik panela" za sada ne može promeniti.
+- **Početni sadržaj na engleskom**: meni, podnožje, tekstovi stalnih stranica, početne stranice i tekstovi email poruka su sadržaj iz panela i na novoj instalaciji počinju na srpskom, i kada je jezik sajta engleski.
+- **Adrese stranica** ostaju srpske i na engleskom sajtu (`/kolekcija`, `/proizvod/…`, `/placanje`, `/nalog`).
+- Račun u PDF-u i poruke javnog API-ja su samo na srpskom.
+- Tema se menja izmenom reda u `tsconfig.json` i novim build-om, ne iz panela.
+- Uputstvo za postavljanje i za doprinos; javna demo adresa.
+- Docker fajlovi nisu pokrenuti (na računaru na kom je ovo rađeno nema Docker-a).
+- Webhook koji tri puta ne uspe se ne ponavlja kasnije i nema istoriju slanja, samo poslednji ishod.
+- API za spoljne sisteme ne pravi i ne menja proizvode, samo stanje.
 
 ## Odluke
 
@@ -180,9 +200,11 @@ Ostalo:
 | Uređivač stranica | Sekcije sa poljima, kao Shopify; bez slobodnog prevlačenja elemenata. |
 | Više prodavnica | Jedna prodavnica po instalaciji i bazi; postavljanje treba da traje nekoliko minuta. |
 | Plaćanje karticom | Opcija i sloj za procesore postoje (`lib/payments.ts`), isključeno po podrazumevanom; procesor se dopisuje kada neko ima ugovor sa bankom. Stripe ne otvara naloge firmama iz Srbije. |
-| Licenca | Otvoreno do Faze 6. MIT ako je cilj što više korisnika; AGPL ako ne želite da neko od koda napravi zatvoren plaćeni servis. |
+| Licenca | AGPL-3.0: ko kod izmeni i nudi ga kao servis mora da objavi izmene. |
 | Dodaci kao u WordPress-u | Ne u prvoj verziji; webhook-ovi i API, a sistem dodataka tek ako ga korisnici traže. (predlog, nije potvrđeno) |
-| Jezici | Srpski i engleski pred objavljivanje; prevod se priprema u kodu od Faze 1. (predlog, nije potvrđeno) |
+| Jezici | Srpski i engleski, za sajt i za panel; jezik sajta i jezik panela su odvojena podešavanja. |
+| Tema | I zamenljiv folder teme u ovoj aplikaciji, i sadržaj kroz API za sajt van nje. |
+| Docker | Ostaje, kao olakšica za druge; nije obavezan. |
 
 ## Šta svesno ne ulazi
 

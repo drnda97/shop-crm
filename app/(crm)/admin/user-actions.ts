@@ -1,15 +1,19 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   ADMIN_PATH,
   beginTotp,
   checkAdminPassword,
   createAdmin,
+  createFirstOwner,
+  createSession,
   deleteAdmin,
   disableTotp,
   enableTotp,
   isValidUsername,
+  needsSetup,
   PASSWORD_MIN,
   requireAdmin,
   roleLabels,
@@ -18,6 +22,20 @@ import {
   type Role,
 } from "@/lib/admin-auth";
 import { audit } from "@/lib/audit";
+import { updateContent } from "@/lib/content";
+import {
+  createApiKey,
+  createWebhook,
+  deleteApiKey,
+  deleteWebhook,
+  deliverWebhook,
+  isWebhookUrl,
+  listWebhooks,
+  setWebhookActive,
+  webhookEvents,
+  type WebhookEvent,
+} from "@/lib/integrations";
+import { clientIp, TOO_MANY, tooMany } from "@/lib/rate-limit";
 
 /** Korisnici panela (samo vlasnik) i sopstveni nalog: lozinka i prijava u dva koraka. */
 
@@ -42,6 +60,97 @@ function passwordProblem(password: string): string | null {
   if (password.length < PASSWORD_MIN) return `Lozinka mora imati najmanje ${PASSWORD_MIN} znakova.`;
   if (password.length > 200) return "Lozinka je predugačka.";
   return null;
+}
+
+/* ---------- Prvo pokretanje ---------- */
+
+export type SetupState = { error?: string };
+
+/** Pravi nalog vlasnika i upisuje naziv prodavnice; radi samo dok u panelu nema nijednog korisnika. */
+export async function setupAction(_previous: SetupState, formData: FormData): Promise<SetupState> {
+  if (tooMany("admin-setup", clientIp(await headers()), 10)) return { error: TOO_MANY };
+  if (!(await needsSetup())) return { error: "Panel je već podešen. Osvežite stranicu i prijavite se." };
+  const username = text(formData, "username").toLowerCase();
+  const name = text(formData, "name").slice(0, 100);
+  const store = text(formData, "store").slice(0, 100);
+  const email = text(formData, "email").slice(0, 200);
+  const password = String(formData.get("password") ?? "");
+  if (!name) return { error: "Upišite svoje ime." };
+  if (!isValidUsername(username)) return { error: "Korisničko ime: 3–100 znakova, mala slova, cifre, tačka, crtica ili email adresa." };
+  const problem = passwordProblem(password);
+  if (problem) return { error: problem };
+  if (password !== String(formData.get("repeat") ?? "")) return { error: "Lozinke se ne poklapaju." };
+
+  const user = await createFirstOwner({ username, name, password });
+  if (!user) return { error: "Panel je već podešen. Osvežite stranicu i prijavite se." };
+  if (store || email) {
+    await updateContent((content) => {
+      if (store) content.settings.store.name = store;
+      if (email) content.settings.store.email = email;
+    });
+  }
+  await createSession(user.id);
+  await audit("Prvo pokretanje: napravljen vlasnik", user.username, user);
+  redirect(`${ADMIN_PATH}/podesavanja`);
+}
+
+/* ---------- Veza sa spoljnim sistemima ---------- */
+
+const INTEGRATIONS_PATH = `${ADMIN_PATH}/integracije`;
+
+export type ApiKeyState = { error?: string; key?: string };
+
+/** Ceo ključ se vraća formi i vidi samo jednom; u bazi ostaje heš. */
+export async function createApiKeyAction(_previous: ApiKeyState, formData: FormData): Promise<ApiKeyState> {
+  await requireAdmin("settings");
+  const name = text(formData, "name").slice(0, 100);
+  if (!name) return { error: "Upišite čemu ključ služi, npr. „Knjigovodstvo“." };
+  const key = await createApiKey(name, text(formData, "scope") === "write" ? "write" : "read");
+  await audit("Napravljen API ključ", name);
+  return { key };
+}
+
+export async function deleteApiKeyAction(formData: FormData) {
+  await requireAdmin("settings");
+  await deleteApiKey(Number(text(formData, "id")));
+  await audit("Obrisan API ključ", formData);
+  back(INTEGRATIONS_PATH, "ok", "Ključ je obrisan i više ne važi.");
+}
+
+export async function createWebhookAction(formData: FormData) {
+  await requireAdmin("settings");
+  const url = text(formData, "url");
+  if (!isWebhookUrl(url)) back(INTEGRATIONS_PATH, "greska", "Adresa počinje sa https:// ili http:// i ima najviše 500 znakova.");
+  const events = formData.getAll("events").filter((event): event is WebhookEvent => typeof event === "string" && event in webhookEvents);
+  if (events.length === 0) back(INTEGRATIONS_PATH, "greska", "Izaberite bar jedan događaj.");
+  await createWebhook(url, events);
+  await audit("Dodat webhook", url);
+  back(INTEGRATIONS_PATH, "ok", "Webhook je dodat. Pošaljite probu da proverite da adresa odgovara.");
+}
+
+export async function toggleWebhookAction(formData: FormData) {
+  await requireAdmin("settings");
+  await setWebhookActive(Number(text(formData, "id")), text(formData, "active") === "1");
+  await audit(text(formData, "active") === "1" ? "Uključen webhook" : "Isključen webhook", text(formData, "url"));
+  redirect(INTEGRATIONS_PATH);
+}
+
+export async function deleteWebhookAction(formData: FormData) {
+  await requireAdmin("settings");
+  await deleteWebhook(Number(text(formData, "id")));
+  await audit("Obrisan webhook", text(formData, "url"));
+  back(INTEGRATIONS_PATH, "ok", "Webhook je obrisan.");
+}
+
+/** Šalje probnu poruku (događaj `ping`), jednom i bez ponavljanja, i javlja šta je adresa odgovorila. */
+export async function testWebhookAction(formData: FormData) {
+  await requireAdmin("settings");
+  const id = Number(text(formData, "id"));
+  const webhook = (await listWebhooks()).find((hook) => hook.id === id);
+  if (!webhook) redirect(INTEGRATIONS_PATH);
+  const outcome = await deliverWebhook(webhook, "ping", { message: "Proba iz panela" }, []);
+  if (outcome.error) back(INTEGRATIONS_PATH, "greska", `Proba nije uspela: ${outcome.error}`);
+  back(INTEGRATIONS_PATH, "ok", `Proba je stigla (odgovor ${outcome.status}).`);
 }
 
 /* ---------- Korisnici ---------- */

@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import {
@@ -35,6 +36,7 @@ const moveButton =
   "flex size-[28px] cursor-pointer items-center justify-center rounded-full bg-band text-[13px] transition-colors duration-300 hover:bg-gold disabled:cursor-default disabled:opacity-30";
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+  const t = await getPanelT();
   await requireAdmin("catalog");
   const { greska, q = "" } = await searchParams;
   const [all, categories, settings] = await Promise.all([
@@ -53,19 +55,19 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   return (
     <>
       <PageHeader
-        title="Proizvodi"
-        hint="Stanje se menja ovde na klik, ili upisom broja komada kod proizvoda kojima se broj vodi. Strelice menjaju redosled kojim se proizvodi prikazuju na sajtu."
+        title={t("Proizvodi")}
+        hint={t("Stanje se menja ovde na klik, ili upisom broja komada kod proizvoda kojima se broj vodi. Strelice menjaju redosled kojim se proizvodi prikazuju na sajtu.")}
         error={greska}
         action={
           <div className="flex flex-wrap gap-[8px]">
             <Link href={`${ADMIN_PATH}/proizvodi/uvoz`} className={quietButtonClass}>
-              Uvoz
+              {t("Uvoz")}
             </Link>
             <a href={`${ADMIN_PATH}/proizvodi/izvoz`} className={quietButtonClass}>
-              Izvoz
+              {t("Izvoz")}
             </a>
             <Link href={`${ADMIN_PATH}/proizvodi/novi`} className={buttonClass}>
-              + Novi proizvod
+              {t("+ Novi proizvod")}
             </Link>
           </div>
         }
@@ -78,13 +80,13 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               name="q"
               type="search"
               defaultValue={q}
-              placeholder="Naziv ili šifra"
-              aria-label="Pretraga proizvoda"
+              placeholder={t("Naziv ili šifra")}
+              aria-label={t("Pretraga proizvoda")}
               className={inputClass}
             />
           </div>
           <button type="submit" className={buttonClass}>
-            Traži
+            {t("Traži")}
           </button>
         </form>
       )}
@@ -150,7 +152,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 </div>
                 <div className="mt-[6px] flex flex-wrap items-center gap-[8px] text-[13px]">
                   {!product.active && (
-                    <span className={`${badge} bg-band text-muted`}>Nacrt</span>
+                    <span className={`${badge} bg-band text-muted`}>{t("Nacrt")}</span>
                   )}
                   <span
                     className={`${badge} ${
@@ -205,7 +207,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                     />
                   </div>
                   <button type="submit" className={`${quietButtonClass} whitespace-nowrap`}>
-                    Sačuvaj
+                    {t("Sačuvaj")}
                   </button>
                 </form>
               ) : (
@@ -217,7 +219,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 </form>
               )}
               <Link href={`${ADMIN_PATH}/proizvodi/${product.slug}`} className={quietButtonClass}>
-                Izmeni
+                {t("Izmeni")}
               </Link>
               <form action={deleteProductAction}>
                 <input type="hidden" name="slug" value={product.slug} />
@@ -225,7 +227,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                   question={`Obrisati proizvod „${product.name}"?`}
                   className={quietButtonClass}
                 >
-                  Obriši
+                  {t("Obriši")}
                 </ConfirmButton>
               </form>
             </div>

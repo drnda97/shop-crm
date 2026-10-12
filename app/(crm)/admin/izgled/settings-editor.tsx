@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import type { Field, SectionData } from "@/lib/sections";
@@ -27,6 +28,7 @@ type SettingsEditorProps = {
  * Levo polja, desno pregled sajta koji prati izmene; kupci ih vide tek posle „Sačuvaj".
  */
 export function SettingsEditor({ tabs, target, hint, fields, value: saved, previewUrl, options }: SettingsEditorProps) {
+  const t = useT();
   const [value, setValue] = useState(saved);
   const [media, setMedia] = useState(options.media);
   const [dirty, setDirty] = useState(false);
@@ -95,7 +97,7 @@ export function SettingsEditor({ tabs, target, hint, fields, value: saved, previ
 
   return (
     <>
-      <nav aria-label="Delovi izgleda sajta" className="mb-[16px] flex flex-wrap gap-[6px]">
+      <nav aria-label={t("Delovi izgleda sajta")} className="mb-[16px] flex flex-wrap gap-[6px]">
         {tabs.map((tab) => (
           <Link
             key={tab.href}
@@ -139,10 +141,10 @@ export function SettingsEditor({ tabs, target, hint, fields, value: saved, previ
 
         <div className="sticky top-[12px] flex h-[calc(100vh-24px)] min-h-[480px] flex-col overflow-hidden rounded-[26px] bg-white shadow-soft max-xl:hidden">
           <div className="flex items-center justify-between gap-[12px] border-b border-line px-[18px] py-[10px]">
-            <span className="font-display text-[14px] font-bold">Pregled</span>
+            <span className="font-display text-[14px] font-bold">{t("Pregled")}</span>
             <span className="text-[13.5px] text-muted">{dirty ? "prikazuje nesačuvane izmene" : "kao na sajtu"}</span>
           </div>
-          <iframe ref={frame} src={ready ? previewUrl : undefined} title="Pregled sajta" className="w-full grow border-0" onLoad={onPreviewLoad} />
+          <iframe ref={frame} src={ready ? previewUrl : undefined} title={t("Pregled sajta")} className="w-full grow border-0" onLoad={onPreviewLoad} />
         </div>
       </div>
     </>

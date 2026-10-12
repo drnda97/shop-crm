@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ADMIN_PATH } from "@/lib/admin-auth";
 import type { ReactNode } from "react";
@@ -38,7 +39,8 @@ type ProductFormProps = {
 
 const textareaClass = `${inputClass} min-h-[110px]`;
 
-export function ProductForm({ product, categories, others, currency, error, children }: ProductFormProps) {
+export async function ProductForm({ product, categories, others, currency, error, children }: ProductFormProps) {
+  const t = await getPanelT();
   const tree = categoryTree(categories);
   const backPath = `${ADMIN_PATH}/proizvodi`;
   const priceStep = currency.decimals === 0 ? "1" : "0.01";
@@ -46,7 +48,7 @@ export function ProductForm({ product, categories, others, currency, error, chil
   return (
     <>
       <Link href={backPath} className={textLinkClass}>
-        ← Proizvodi
+        {t("← Proizvodi")}
       </Link>
       <div className="mt-[12px]">
         <PageHeader
@@ -62,21 +64,21 @@ export function ProductForm({ product, categories, others, currency, error, chil
         <div className={formGridClass}>
           <div className={stackClass}>
             <section className={panelClass}>
-              <h2 className={panelTitleClass}>Osnovno</h2>
+              <h2 className={panelTitleClass}>{t("Osnovno")}</h2>
               <label className={labelClass}>
-                Naziv *
+                {t("Naziv *")}
                 <input name="name" required defaultValue={product?.name} className={inputClass} />
               </label>
 
               <div className={fieldRowClass}>
                 <label className={labelClass}>
-                  Kategorija
+                  {t("Kategorija")}
                   <select
                     name="category"
                     defaultValue={product?.category ?? ""}
                     className={inputClass}
                   >
-                    <option value="">Bez kategorije</option>
+                    <option value="">{t("Bez kategorije")}</option>
                     {tree.map(({ category, depth }) => (
                       <option key={category.id} value={category.id}>
                         {"\u00a0\u00a0".repeat(depth)}
@@ -86,7 +88,7 @@ export function ProductForm({ product, categories, others, currency, error, chil
                   </select>
                 </label>
                 <label className={labelClass}>
-                  Šifra artikla
+                  {t("Šifra artikla")}
                   <input
                     name="sku"
                     maxLength={64}
@@ -95,20 +97,20 @@ export function ProductForm({ product, categories, others, currency, error, chil
                   />
                 </label>
                 <label className={labelClass}>
-                  Status
+                  {t("Status")}
                   <select
                     name="status"
                     defaultValue={(product?.active ?? true) ? "active" : "draft"}
                     className={inputClass}
                   >
-                    <option value="active">Objavljen — vidi se na sajtu</option>
-                    <option value="draft">Nacrt — ne vidi se</option>
+                    <option value="active">{t("Objavljen — vidi se na sajtu")}</option>
+                    <option value="draft">{t("Nacrt — ne vidi se")}</option>
                   </select>
                 </label>
               </div>
               {categories.length > 1 && (
                 <fieldset className="flex flex-col gap-[8px]">
-                  <legend className={`${labelClass} mb-[8px]`}>Dodatne kategorije</legend>
+                  <legend className={`${labelClass} mb-[8px]`}>{t("Dodatne kategorije")}</legend>
                   <div className="flex flex-wrap gap-x-[20px] gap-y-[8px]">
                     {tree.map(({ category, depth }) => (
                       <label key={category.id} className="flex cursor-pointer items-center gap-[8px] text-[15px]">
@@ -123,7 +125,7 @@ export function ProductForm({ product, categories, others, currency, error, chil
                     ))}
                   </div>
                   <p className="text-[14px] text-muted">
-                    Proizvod se vidi u glavnoj kategoriji, u dodatnim i u svim njihovim nadkategorijama.
+                    {t("Proizvod se vidi u glavnoj kategoriji, u dodatnim i u svim njihovim nadkategorijama.")}
                   </p>
                 </fieldset>
               )}
@@ -139,10 +141,10 @@ export function ProductForm({ product, categories, others, currency, error, chil
               </label>
             </section>
             <section className={panelClass}>
-              <h2 className={panelTitleClass}>Opis</h2>
+              <h2 className={panelTitleClass}>{t("Opis")}</h2>
 
               <label className={labelClass}>
-                Opis — prazan red razdvaja pasuse
+                {t("Opis — prazan red razdvaja pasuse")}
                 <textarea
                   name="description"
                   defaultValue={product?.description}
@@ -162,9 +164,9 @@ export function ProductForm({ product, categories, others, currency, error, chil
               </label>
             </section>
             <section className={panelClass}>
-              <h2 className={panelTitleClass}>Pretraživači i slični proizvodi</h2>
+              <h2 className={panelTitleClass}>{t("Pretraživači i slični proizvodi")}</h2>
               <label className={labelClass}>
-                Naslov za pretraživače
+                {t("Naslov za pretraživače")}
                 <input
                   name="seoTitle"
                   maxLength={255}
@@ -174,7 +176,7 @@ export function ProductForm({ product, categories, others, currency, error, chil
                 />
               </label>
               <label className={labelClass}>
-                Opis za pretraživače
+                {t("Opis za pretraživače")}
                 <textarea
                   name="seoDescription"
                   maxLength={500}
@@ -183,11 +185,11 @@ export function ProductForm({ product, categories, others, currency, error, chil
                 />
               </label>
               <p className="mt-[-8px] text-[14px] text-muted">
-                Prazno: naziv proizvoda, odnosno početak njegovog opisa.
+                {t("Prazno: naziv proizvoda, odnosno početak njegovog opisa.")}
               </p>
               {others.length > 0 && (
                 <label className={labelClass}>
-                  Slični proizvodi
+                  {t("Slični proizvodi")}
                   <select
                     name="related"
                     multiple
@@ -209,13 +211,12 @@ export function ProductForm({ product, categories, others, currency, error, chil
               )}
             </section>
             <section className={panelClass}>
-              <h2 className={panelTitleClass}>Istaknuti deo stranice</h2>
+              <h2 className={panelTitleClass}>{t("Istaknuti deo stranice")}</h2>
               <p className="mt-[-8px] text-[14px] text-muted">
-                Tamna traka ispod podataka o proizvodu: naslov, tekst, mere i fotografija. Bez
-                naslova se ne prikazuje.
+                {t("Tamna traka ispod podataka o proizvodu: naslov, tekst, mere i fotografija. Bez naslova se ne prikazuje.")}
               </p>
               <label className={labelClass}>
-                Naslov
+                {t("Naslov")}
                 <input
                   name="highlightHeading"
                   maxLength={200}
@@ -224,7 +225,7 @@ export function ProductForm({ product, categories, others, currency, error, chil
                 />
               </label>
               <label className={labelClass}>
-                Tekst
+                {t("Tekst")}
                 <textarea
                   name="highlightText"
                   maxLength={2000}
@@ -244,21 +245,21 @@ export function ProductForm({ product, categories, others, currency, error, chil
                 />
               </label>
               <div className={labelClass}>
-                Fotografija
+                {t("Fotografija")}
                 <div className="flex flex-wrap items-center gap-[16px]">
                   <Thumb src={product?.highlight.image} alt="" />
                   <input
                     type="file"
                     name="highlightImage"
                     accept={IMAGE_ACCEPT}
-                    aria-label="Fotografija istaknutog dela"
+                    aria-label={t("Fotografija istaknutog dela")}
                     className={fileClass}
                   />
                 </div>
                 {product?.highlight.image && (
                   <label className="flex cursor-pointer items-center gap-[10px] text-ink">
                     <Checkbox name="highlightImageRemove" />
-                    Ukloni fotografiju
+                    {t("Ukloni fotografiju")}
                   </label>
                 )}
               </div>
@@ -266,7 +267,7 @@ export function ProductForm({ product, categories, others, currency, error, chil
           </div>
           <div className={stackClass}>
             <section className={panelClass}>
-              <h2 className={panelTitleClass}>Cena</h2>
+              <h2 className={panelTitleClass}>{t("Cena")}</h2>
               <div className={fieldRowClass}>
                 <label className={labelClass}>
                   Cena ({currency.code})
@@ -287,7 +288,7 @@ export function ProductForm({ product, categories, others, currency, error, chil
                     min="0"
                     step={priceStep}
                     defaultValue={fromMinor(product?.salePrice, currency.decimals)}
-                    placeholder="nema akcije"
+                    placeholder={t("nema akcije")}
                     className={inputClass}
                   />
                 </label>
@@ -305,53 +306,51 @@ export function ProductForm({ product, categories, others, currency, error, chil
                 </label>
               </div>
               <p className="mt-[-8px] text-[14px] text-muted">
-                Proizvod bez upisane cene se vidi na sajtu, ali ne može da se poruči. Težina služi
-                samo za popuste koji se dobijaju po težini porudžbine.
+                {t("Proizvod bez upisane cene se vidi na sajtu, ali ne može da se poruči. Težina služi samo za popuste koji se dobijaju po težini porudžbine.")}
               </p>
             </section>
             <section className={panelClass}>
-              <h2 className={panelTitleClass}>Stanje</h2>
+              <h2 className={panelTitleClass}>{t("Stanje")}</h2>
 
               <div className={fieldRowClass}>
                 <label className={labelClass}>
-                  Ručno stanje
+                  {t("Ručno stanje")}
                   <select
                     name="inStock"
                     defaultValue={(product?.inStock ?? true) ? "yes" : "no"}
                     className={inputClass}
                   >
-                    <option value="yes">Na stanju</option>
-                    <option value="no">Nema na stanju</option>
+                    <option value="yes">{t("Na stanju")}</option>
+                    <option value="no">{t("Nema na stanju")}</option>
                   </select>
                 </label>
                 <label className={labelClass}>
-                  Broj komada na stanju
+                  {t("Broj komada na stanju")}
                   <input
                     name="stockQty"
                     type="number"
                     min="0"
                     step="1"
                     defaultValue={product?.stockQty ?? ""}
-                    placeholder="ne vodi se"
+                    placeholder={t("ne vodi se")}
                     className={inputClass}
                   />
                 </label>
               </div>
               <p className="mt-[-8px] text-[14px] text-muted">
-                Ako upišete broj komada, stanje se vodi samo: svaka porudžbina ga smanjuje, a na
-                nuli proizvod postaje rasprodat. Dok je polje prazno, važi ručno stanje.
+                {t("Ako upišete broj komada, stanje se vodi samo: svaka porudžbina ga smanjuje, a na nuli proizvod postaje rasprodat. Dok je polje prazno, važi ručno stanje.")}
               </p>
               <div className={fieldRowClass}>
                 <label className={labelClass}>
-                  Oznaka „pri kraju“ na sajtu
+                  {t("Oznaka „pri kraju“ na sajtu")}
                   <select
                     name="lowStockMode"
                     defaultValue={product?.lowStockMode ?? "off"}
                     className={inputClass}
                   >
-                    <option value="off">Ne prikazuj</option>
-                    <option value="always">Uvek prikazuj</option>
-                    <option value="auto">Sama, kada broj padne na prag</option>
+                    <option value="off">{t("Ne prikazuj")}</option>
+                    <option value="always">{t("Uvek prikazuj")}</option>
+                    <option value="auto">{t("Sama, kada broj padne na prag")}</option>
                   </select>
                 </label>
                 <label className={labelClass}>
@@ -367,12 +366,11 @@ export function ProductForm({ product, categories, others, currency, error, chil
                 </label>
               </div>
               <p className="mt-[-8px] text-[14px] text-muted">
-                Prag važi samo uz upisan broj komada: sa pragom 5, kupac vidi „Još samo 5 kom.“ čim
-                ih ostane pet ili manje.
+                {t("Prag važi samo uz upisan broj komada: sa pragom 5, kupac vidi „Još samo 5 kom.“ čim ih ostane pet ili manje.")}
               </p>
             </section>
             <section className={panelClass}>
-              <h2 className={panelTitleClass}>Slike</h2>
+              <h2 className={panelTitleClass}>{t("Slike")}</h2>
               <div className={labelClass}>
                 Glavna slika ({IMAGE_HINT})
                 <div className="flex flex-wrap items-center gap-[16px]">
@@ -381,11 +379,11 @@ export function ProductForm({ product, categories, others, currency, error, chil
                     type="file"
                     name="image"
                     accept={IMAGE_ACCEPT}
-                    aria-label="Glavna slika"
+                    aria-label={t("Glavna slika")}
                     className={fileClass}
                   />
                 </div>
-                {product?.image && <span>Ako ne izaberete novu, ostaje trenutna slika.</span>}
+                {product?.image && <span>{t("Ako ne izaberete novu, ostaje trenutna slika.")}</span>}
               </div>
 
               <div className={labelClass}>
@@ -400,7 +398,7 @@ export function ProductForm({ product, categories, others, currency, error, chil
                         <Thumb src={src} alt="" />
                         <span className="flex items-center gap-[6px] text-[13px]">
                           <Checkbox name="galleryRemove" value={src} />
-                          Ukloni
+                          {t("Ukloni")}
                         </span>
                       </label>
                     ))}
@@ -411,7 +409,7 @@ export function ProductForm({ product, categories, others, currency, error, chil
                   name="gallery"
                   accept={IMAGE_ACCEPT}
                   multiple
-                  aria-label="Dodatne slike"
+                  aria-label={t("Dodatne slike")}
                   className={fileClass}
                 />
                 <span>Možete izabrati više slika odjednom (zajedno do 15 MB).</span>
@@ -421,7 +419,7 @@ export function ProductForm({ product, categories, others, currency, error, chil
         </div>
 
         <section className={panelClass}>
-          <h2 className={panelTitleClass}>Opcije i varijante</h2>
+          <h2 className={panelTitleClass}>{t("Opcije i varijante")}</h2>
           <VariantsEditor
             options={formatOptions(product?.options ?? [])}
             variants={product?.variants ?? []}
@@ -432,10 +430,10 @@ export function ProductForm({ product, categories, others, currency, error, chil
 
         <div className="flex flex-wrap gap-[12px]">
           <button type="submit" className={buttonClass}>
-            Sačuvaj
+            {t("Sačuvaj")}
           </button>
           <Link href={backPath} className={quietButtonClass}>
-            Odustani
+            {t("Odustani")}
           </Link>
         </div>
       </form>

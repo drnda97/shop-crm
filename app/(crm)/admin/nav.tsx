@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -162,6 +163,7 @@ type SidebarProps = {
 
 /** Bočni meni panela. Dugme u zaglavlju ga skuplja na same ikonice. */
 export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, areas, logout }: SidebarProps) {
+  const t = useT();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(initialCollapsed);
 
@@ -204,6 +206,7 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
       title: "Podešavanja",
       items: [
         { href: `${base}/podesavanja`, label: "Opšte", icon: icons.settings, area: "settings" },
+        { href: `${base}/integracije`, label: "Integracije", icon: icons.layout, area: "settings" },
         { href: `${base}/korisnici`, label: "Korisnici", icon: icons.customers, area: "users" },
         { href: `${base}/dnevnik`, label: "Dnevnik", icon: icons.pages, area: "users" },
         { href: `${base}/nalog`, label: "Moj nalog", icon: icons.account },
@@ -239,7 +242,7 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
       </div>
 
       <nav
-        aria-label="Glavni meni"
+        aria-label={t("Glavni meni")}
         className="flex flex-col gap-[2px] max-md:flex-row max-md:flex-wrap"
       >
         {groups.map((group) => (
@@ -290,7 +293,7 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
           className={`${item} ${quiet}`}
         >
           {icons.external}
-          <span className={`whitespace-nowrap ${whenCollapsedHide}`}>Otvori sajt</span>
+          <span className={`whitespace-nowrap ${whenCollapsedHide}`}>{t("Otvori sajt")}</span>
         </a>
         <form action={logout}>
           <button

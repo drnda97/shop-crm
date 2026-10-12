@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getProducts, getSettings } from "@/lib/content";
@@ -11,6 +12,7 @@ const statusLabels: Record<ReviewStatus, string> = { pending: "čeka odobrenje",
 const badge = "rounded-full px-[12px] font-display text-[12.5px] leading-[26px] font-bold";
 
 export default async function ReviewsPage() {
+  const t = await getPanelT();
   await requireAdmin("orders");
   const [reviews, products, settings] = await Promise.all([getAllReviews(), getProducts(), getSettings()]);
   const { orderDate } = dateFormats(settings.store);
@@ -19,8 +21,8 @@ export default async function ReviewsPage() {
   return (
     <>
       <PageHeader
-        title="Utisci"
-        hint="Utiske pišu prijavljeni kupci na stranici proizvoda. Na sajtu se vide tek kada ih odobrite; izmenjen utisak ponovo čeka odobrenje."
+        title={t("Utisci")}
+        hint={t("Utiske pišu prijavljeni kupci na stranici proizvoda. Na sajtu se vide tek kada ih odobrite; izmenjen utisak ponovo čeka odobrenje.")}
       />
       <div className={cardClass}>
         <p className="mb-[8px] text-[15px] text-muted">
@@ -37,7 +39,7 @@ export default async function ReviewsPage() {
                   <span className={`${badge} ${review.status === "pending" ? "bg-gold text-ink" : review.status === "approved" ? "bg-band text-ink" : "bg-band text-muted line-through"}`}>
                     {statusLabels[review.status]}
                   </span>
-                  {review.verified && <span className="text-[13px] text-muted">kupio/la proizvod</span>}
+                  {review.verified && <span className="text-[13px] text-muted">{t("kupio/la proizvod")}</span>}
                 </div>
                 <div className="text-[13px] text-muted">
                   {orderDate(review.createdAt)} ·{" "}
@@ -57,7 +59,7 @@ export default async function ReviewsPage() {
                     <input type="hidden" name="id" value={review.id} />
                     <input type="hidden" name="status" value="approved" />
                     <button type="submit" className={quietButtonClass}>
-                      Odobri
+                      {t("Odobri")}
                     </button>
                   </form>
                 )}
@@ -72,15 +74,15 @@ export default async function ReviewsPage() {
                 )}
                 <form action={deleteReviewAction}>
                   <input type="hidden" name="id" value={review.id} />
-                  <ConfirmButton question="Obrisati ovaj utisak?" className={quietButtonClass}>
-                    Obriši
+                  <ConfirmButton question={t("Obrisati ovaj utisak?")} className={quietButtonClass}>
+                    {t("Obriši")}
                   </ConfirmButton>
                 </form>
               </div>
             </div>
           );
         })}
-        {reviews.length === 0 && <p className="text-[15px] text-muted">Još nema utisaka.</p>}
+        {reviews.length === 0 && <p className="text-[15px] text-muted">{t("Još nema utisaka.")}</p>}
       </div>
     </>
   );

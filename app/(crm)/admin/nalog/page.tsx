@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import QRCode from "qrcode";
 import { PASSWORD_MIN, pendingTotpSecret, requireAdmin, roleHints, roleLabels } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
@@ -10,6 +11,7 @@ type AccountPageProps = { searchParams: Promise<{ greska?: string; ok?: string; 
 
 /** Sopstveni nalog u panelu: lozinka i prijava u dva koraka. Dostupan svakoj ulozi. */
 export default async function AccountPage({ searchParams }: AccountPageProps) {
+  const t = await getPanelT();
   const user = await requireAdmin();
   const [{ greska, ok, korak }, settings] = await Promise.all([searchParams, getSettings()]);
   // Tajna postoji samo dok je podešavanje u toku; prikazuje se kao QR kod i kao tekst.
@@ -19,16 +21,16 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   return (
     <>
       <PageHeader
-        title="Moj nalog"
+        title={t("Moj nalog")}
         hint={`${user.name} · ${user.username} · ${roleLabels[user.role]}: ${roleHints[user.role]}.`}
         error={greska}
         notice={ok}
       />
       <div className="grid items-start gap-[16px] xl:grid-cols-2">
         <form action={changePasswordAction} className={panelClass}>
-          <h2 className={panelTitleClass}>Lozinka</h2>
+          <h2 className={panelTitleClass}>{t("Lozinka")}</h2>
           <label className={labelClass}>
-            Trenutna lozinka
+            {t("Trenutna lozinka")}
             <input name="current" type="password" autoComplete="current-password" required className={inputClass} />
           </label>
           <label className={labelClass}>
@@ -37,26 +39,26 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
           </label>
           <div>
             <button type="submit" className={buttonClass}>
-              Promeni lozinku
+              {t("Promeni lozinku")}
             </button>
           </div>
         </form>
 
         <div className={panelClass}>
-          <h2 className={panelTitleClass}>Prijava u dva koraka</h2>
+          <h2 className={panelTitleClass}>{t("Prijava u dva koraka")}</h2>
           {user.totpEnabled ? (
             <>
               <p className="mt-[-8px] text-[15px]">
-                Uključena: uz lozinku se traži kod iz aplikacije na vašem telefonu.
+                {t("Uključena: uz lozinku se traži kod iz aplikacije na vašem telefonu.")}
               </p>
               <form action={disableTotpAction} className="flex flex-col gap-[12px]">
                 <label className={labelClass}>
-                  Lozinka, za potvrdu
+                  {t("Lozinka, za potvrdu")}
                   <input name="current" type="password" autoComplete="current-password" required className={inputClass} />
                 </label>
                 <div>
                   <button type="submit" className={quietButtonClass}>
-                    Isključi prijavu u dva koraka
+                    {t("Isključi prijavu u dva koraka")}
                   </button>
                 </div>
               </form>
@@ -68,21 +70,20 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                 upišite šest cifara koje prikaže.
               </p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qr} alt="QR kod za aplikaciju" width={220} height={220} className="rounded-[16px]" />
+              <img src={qr} alt={t("QR kod za aplikaciju")} width={220} height={220} className="rounded-[16px]" />
               <p className="text-[14px] text-muted">
-                Ne možete da skenirate? Upišite u aplikaciju ovaj ključ: <span className="font-mono text-ink">{secret}</span>
+                {t("Ne možete da skenirate? Upišite u aplikaciju ovaj ključ:")} <span className="font-mono text-ink">{secret}</span>
               </p>
               <TotpForm />
             </>
           ) : (
             <>
               <p className="mt-[-8px] text-[15px]">
-                Uz lozinku se traži i kod iz aplikacije na telefonu, pa ukradena lozinka sama nije dovoljna za
-                ulazak u panel.
+                {t("Uz lozinku se traži i kod iz aplikacije na telefonu, pa ukradena lozinka sama nije dovoljna za ulazak u panel.")}
               </p>
               <form action={startTotpAction}>
                 <button type="submit" className={buttonClass}>
-                  Podesi
+                  {t("Podesi")}
                 </button>
               </form>
             </>

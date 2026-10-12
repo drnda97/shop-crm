@@ -1,3 +1,5 @@
+import { makeT } from "@/lib/i18n";
+import { shopDict } from "@/lib/i18n/shop";
 import { randomBytes } from "node:crypto";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getSettings } from "@/lib/content";
@@ -73,6 +75,7 @@ export async function sendCampaign(id: number, baseUrl: string) {
   if (rows.length === 0) return;
   const settings = await getSettings();
   const recipients = await getRecipients();
+  const t = makeT(settings.store.language, shopDict);
 
   for (let start = 0; start < recipients.length; start += BATCH) {
     const messages = recipients.slice(start, start + BATCH).map(({ email, token }) => {
@@ -82,7 +85,7 @@ export async function sendCampaign(id: number, baseUrl: string) {
         subject: `${rows[0].subject} — ${settings.store.name}`,
         ...simpleEmail(settings, {
           message: rows[0].body,
-          footer: { text: "Ovu poruku ste dobili jer ste se prijavili na novosti.", link: { label: "Odjavite se", url: stop } },
+          footer: { text: t("Ovu poruku ste dobili jer ste se prijavili na novosti."), link: { label: t("Odjavite se"), url: stop } },
         }),
         headers: { "List-Unsubscribe": `<${stop}>` },
       };

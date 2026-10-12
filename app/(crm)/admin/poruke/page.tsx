@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { isMailReady } from "@/lib/mail";
@@ -13,6 +14,7 @@ const sectionTitle = "mb-[14px] text-[22px]";
 type MessagesPageProps = { searchParams: Promise<{ greska?: string; ok?: string }> };
 
 export default async function MessagesPage({ searchParams }: MessagesPageProps) {
+  const t = await getPanelT();
   await requireAdmin("orders");
   const [{ greska, ok }, messages, subscribers, settings, campaigns] = await Promise.all([
     searchParams,
@@ -27,8 +29,8 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
   return (
     <>
       <PageHeader
-        title="Poruke"
-        hint="Poruke iz kontakt forme na sajtu i novosti: poruka svim prijavljenima. Na poruku iz kontakt forme odgovarate iz svog programa za email."
+        title={t("Poruke")}
+        hint={t("Poruke iz kontakt forme na sajtu i novosti: poruka svim prijavljenima. Na poruku iz kontakt forme odgovarate iz svog programa za email.")}
         error={greska}
         notice={ok}
       />
@@ -37,7 +39,7 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
         <h2 className={sectionTitle}>Kontakt forma ({messages.length})</h2>
         <div className={cardClass}>
           {messages.length === 0 ? (
-            <p className="text-[15px] text-muted">Još nema poruka.</p>
+            <p className="text-[15px] text-muted">{t("Još nema poruka.")}</p>
           ) : (
             messages.map((message) => (
               <div key={message.id} className={`${rowClass} items-start`}>
@@ -55,8 +57,8 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
                 </div>
                 <form action={deleteMessageAction}>
                   <input type="hidden" name="id" value={message.id} />
-                  <ConfirmButton question="Obrisati ovu poruku?" className={quietButtonClass}>
-                    Obriši
+                  <ConfirmButton question={t("Obrisati ovu poruku?")} className={quietButtonClass}>
+                    {t("Obriši")}
                   </ConfirmButton>
                 </form>
               </div>
@@ -69,35 +71,34 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
         <div className="mb-[14px] flex flex-wrap items-center justify-between gap-[12px]">
           <h2 className="text-[22px]">Novosti ({active.length} prijavljenih)</h2>
           <a href={`${ADMIN_PATH}/poruke/izvoz`} className={quietButtonClass}>
-            Preuzmi CSV
+            {t("Preuzmi CSV")}
           </a>
         </div>
         <MailNotice configured={isMailReady(settings)} settingsPath={`${ADMIN_PATH}/podesavanja`} />
         <div className="grid items-start gap-[16px] xl:grid-cols-2">
           <form action={sendCampaignAction} className={`${cardClass} flex flex-col gap-[14px]`}>
-            <h3 className="text-[18px]">Nova poruka</h3>
+            <h3 className="text-[18px]">{t("Nova poruka")}</h3>
             <label className={labelClass}>
-              Naslov
+              {t("Naslov")}
               <input name="subject" required maxLength={200} className={inputClass} />
             </label>
             <label className={labelClass}>
-              Tekst — prazan red razdvaja pasuse
+              {t("Tekst — prazan red razdvaja pasuse")}
               <textarea name="body" required maxLength={10000} className={`${inputClass} min-h-[180px]`} />
             </label>
             <div>
               <ConfirmButton question={`Poslati poruku na ${active.length} adresa?`} className={buttonClass}>
-                Pošalji svima
+                {t("Pošalji svima")}
               </ConfirmButton>
             </div>
             <p className="text-[14px] text-muted">
-              Poruka ide svakom prijavljenom posebno, sa linkom za odjavu na dnu. Šalje se preko vašeg SMTP
-              naloga, pa proverite koliko poruka na sat vaš hosting dozvoljava.
+              {t("Poruka ide svakom prijavljenom posebno, sa linkom za odjavu na dnu. Šalje se preko vašeg SMTP naloga, pa proverite koliko poruka na sat vaš hosting dozvoljava.")}
             </p>
           </form>
           <div className={cardClass}>
-            <h3 className="mb-[8px] text-[18px]">Poslate poruke</h3>
+            <h3 className="mb-[8px] text-[18px]">{t("Poslate poruke")}</h3>
             {campaigns.length === 0 ? (
-              <p className="text-[15px] text-muted">Još nema poslatih poruka.</p>
+              <p className="text-[15px] text-muted">{t("Još nema poslatih poruka.")}</p>
             ) : (
               campaigns.map((campaign) => (
                 <div key={campaign.id} className="border-t border-line py-[10px] text-[15px] first:border-t-0">
@@ -124,7 +125,7 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
                 </span>
               </div>
             ))}
-            {subscribers.length === 0 && <p className="text-[15px] text-muted">Još nema prijavljenih.</p>}
+            {subscribers.length === 0 && <p className="text-[15px] text-muted">{t("Još nema prijavljenih.")}</p>}
           </div>
         </details>
       </section>

@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
@@ -26,6 +27,7 @@ export default async function EditCollectionPage({
   params,
   searchParams,
 }: EditCollectionPageProps) {
+  const t = await getPanelT();
   await requireAdmin("catalog");
   const [{ id }, { greska }] = await Promise.all([params, searchParams]);
   const [collections, products] = await Promise.all([getCollections(), getProducts()]);
@@ -36,7 +38,7 @@ export default async function EditCollectionPage({
   return (
     <>
       <Link href={backPath} className={textLinkClass}>
-        ← Kolekcije
+        {t("← Kolekcije")}
       </Link>
       <div className="mt-[12px]">
         <PageHeader title={collection.name} error={greska} />
@@ -47,9 +49,9 @@ export default async function EditCollectionPage({
 
         <div className={formGridClass}>
           <section className={panelClass}>
-            <h2 className={panelTitleClass}>Kolekcija</h2>
+            <h2 className={panelTitleClass}>{t("Kolekcija")}</h2>
             <label className={labelClass}>
-              Naziv *
+              {t("Naziv *")}
               <input name="name" required defaultValue={collection.name} className={inputClass} />
             </label>
             <label className={labelClass}>
@@ -63,9 +65,9 @@ export default async function EditCollectionPage({
           </section>
 
           <fieldset className={panelClass}>
-            <legend className="sr-only">Proizvodi u kolekciji</legend>
+            <legend className="sr-only">{t("Proizvodi u kolekciji")}</legend>
             <h2 className={panelTitleClass} aria-hidden="true">
-              Proizvodi u kolekciji
+              {t("Proizvodi u kolekciji")}
             </h2>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-[8px]">
               {products.map((product) => (
@@ -88,10 +90,10 @@ export default async function EditCollectionPage({
 
         <div className="flex flex-wrap gap-[12px]">
           <button type="submit" className={buttonClass}>
-            Sačuvaj
+            {t("Sačuvaj")}
           </button>
           <Link href={backPath} className={quietButtonClass}>
-            Odustani
+            {t("Odustani")}
           </Link>
         </div>
       </form>

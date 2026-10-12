@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ADMIN_PATH } from "@/lib/admin-auth";
 import { categoryTree } from "@/lib/catalog";
@@ -26,6 +27,7 @@ type DiscountFormProps = {
 };
 
 export async function DiscountForm({ discount, error }: DiscountFormProps) {
+  const t = await getPanelT();
   const backPath = `${ADMIN_PATH}/popusti`;
   const { store } = await getSettings();
   // Prag je iznos (u valuti prodavnice) ili težina u gramima, prema vrsti popusta.
@@ -41,7 +43,7 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
   return (
     <>
       <Link href={backPath} className={textLinkClass}>
-        ← Popusti
+        {t("← Popusti")}
       </Link>
       <div className="mt-[12px]">
         <PageHeader title={discount ? discount.name : "Novi popust"} error={error} />
@@ -52,20 +54,20 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
 
         <div className={formGridClass}>
           <section className={panelClass}>
-            <h2 className={panelTitleClass}>Popust</h2>
+            <h2 className={panelTitleClass}>{t("Popust")}</h2>
             <label className={labelClass}>
-              Naslov * — kod nagrada ga kupac vidi u emailu, iznad koda
+              {t("Naslov * — kod nagrada ga kupac vidi u emailu, iznad koda")}
               <input
                 name="name"
                 required
                 defaultValue={discount?.name}
-                placeholder="npr. Hvala na prvoj porudžbini"
+                placeholder={t("npr. Hvala na prvoj porudžbini")}
                 className={inputClass}
               />
             </label>
 
             <label className={labelClass}>
-              Vrsta
+              {t("Vrsta")}
               <select
                 name="trigger"
                 defaultValue={discount?.trigger ?? "public"}
@@ -81,18 +83,18 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
 
             <div className={fieldRowClass}>
               <label className={labelClass}>
-                Kod koji kupac upisuje
+                {t("Kod koji kupac upisuje")}
                 <input
                   name="code"
                   defaultValue={discount?.code}
-                  placeholder="npr. LETO10"
+                  placeholder={t("npr. LETO10")}
                   autoComplete="off"
                   maxLength={32}
                   className={`${inputClass} tracking-[0.06em] uppercase`}
                 />
               </label>
               <label className={labelClass}>
-                Šta popust daje
+                {t("Šta popust daje")}
                 <select name="kind" defaultValue={discount?.kind ?? "percent"} className={inputClass}>
                   {(Object.keys(kindLabels) as DiscountKind[]).map((kind) => (
                     <option key={kind} value={kind}>
@@ -138,20 +140,20 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
             </p>
 
             <label className={labelClass}>
-              Status
+              {t("Status")}
               <select
                 name="status"
                 defaultValue={discount?.status ?? "draft"}
                 className={inputClass}
               >
-                <option value="draft">Nacrt — ne važi</option>
-                <option value="active">Aktivan</option>
+                <option value="draft">{t("Nacrt — ne važi")}</option>
+                <option value="active">{t("Aktivan")}</option>
               </select>
             </label>
           </section>
           <div className={stackClass}>
             <section className={panelClass}>
-              <h2 className={panelTitleClass}>Promo kod i automatski popust</h2>
+              <h2 className={panelTitleClass}>{t("Promo kod i automatski popust")}</h2>
               <p className="mt-[-8px] text-[14px] text-muted">
                 Automatski popust važi bez koda čim korpa ispuni uslov. Kada važe i kod kupca i
                 automatski popust, primenjuje se onaj koji kupcu više štedi; popusti se ne sabiraju.
@@ -159,14 +161,14 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
 
               <div className={fieldRowClass}>
                 <label className={labelClass}>
-                  Najviše korišćenja
+                  {t("Najviše korišćenja")}
                   <input
                     name="maxUses"
                     type="number"
                     min="1"
                     step="1"
                     defaultValue={discount?.maxUses ?? ""}
-                    placeholder="bez ograničenja"
+                    placeholder={t("bez ograničenja")}
                     className={inputClass}
                   />
                 </label>
@@ -182,7 +184,7 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
               </div>
               {categories.length > 0 && (
                 <label className={labelClass}>
-                  Samo za kategorije
+                  {t("Samo za kategorije")}
                   <select
                     name="categories"
                     multiple
@@ -201,7 +203,7 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
               )}
               {products.length > 0 && (
                 <label className={labelClass}>
-                  Samo za proizvode
+                  {t("Samo za proizvode")}
                   <select
                     name="products"
                     multiple
@@ -223,7 +225,7 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
               </p>
             </section>
             <section className={panelClass}>
-              <h2 className={panelTitleClass}>Uslov</h2>
+              <h2 className={panelTitleClass}>{t("Uslov")}</h2>
 
               <label className={labelClass}>
                 Najmanji iznos korpe ({store.currency}); kod nagrada prag: iznos ili težina (g)
@@ -248,10 +250,10 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
 
         <div className="flex flex-wrap gap-[12px]">
           <button type="submit" className={buttonClass}>
-            Sačuvaj
+            {t("Sačuvaj")}
           </button>
           <Link href={backPath} className={quietButtonClass}>
-            Odustani
+            {t("Odustani")}
           </Link>
         </div>
       </form>

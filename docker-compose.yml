@@ -1,0 +1,45 @@
+# Pokretanje: docker compose up -d, pa otvorite http://localhost:3000/admin i napravite nalog vlasnika.
+# Pre javnog postavljanja promenite lozinke baze ispod (ili ih zadajte u fajlu .env pored ovog).
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: shopcrm
+      DB_PASSWORD: ${DB_PASSWORD:-shopcrm}
+      DB_NAME: shopcrm
+      # Javna adresa, npr. https://prodavnica.rs — za linkove u emailovima i adrese slika u API-ju.
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      MYSQLDUMP_PATH: mariadb-dump
+    volumes:
+      - uploads:/app/storage
+      - backups:/app/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: shopcrm
+      MARIADB_USER: shopcrm
+      MARIADB_PASSWORD: ${DB_PASSWORD:-shopcrm}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-shopcrm-root}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  db:
+  uploads:
+  backups:

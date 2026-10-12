@@ -30,6 +30,7 @@ import {
   type OrderResult,
   type OrderStatus,
 } from "@/lib/orders";
+import { emitOrderEvent } from "@/lib/integrations";
 import { cardProvider } from "@/lib/payments";
 import { enabledPayments, type PaymentMethod, type Settings } from "@/lib/settings";
 import { availableMethods, basePrice, type ShippingMethod } from "@/lib/shipping";
@@ -180,6 +181,7 @@ export async function setOrderPaid(number: string, paid: boolean, note: string, 
       );
   if (changed.affectedRows === 0) return false;
   await addOrderEvent(db, number, note);
+  if (paid) emitOrderEvent("order.paid", number);
   return true;
 }
 
@@ -194,7 +196,7 @@ export async function refundOrder(
   reason: string,
   returns: { position: number; qty: number }[] = [],
 ): Promise<boolean> {
-  return withContentLock(async (connection) => {
+  const done = await withContentLock(async (connection) => {
     // Uslov u upitu: zbir povraćaja ne može da pređe iznos porudžbine, ni kada stignu dva odjednom.
     const [changed] = await connection.query<ResultSetHeader>(
       "UPDATE orders SET refunded = refunded + ? WHERE number = ? AND refunded + ? <= total",
@@ -229,6 +231,8 @@ export async function refundOrder(
     await addOrderEvent(connection, number, back.length > 0 ? `${reason}. Vraćeno na stanje: ${back.join(", ")}` : reason);
     return true;
   });
+  if (done) emitOrderEvent("order.refunded", number, { amount });
+  return done;
 }
 
 /**
@@ -271,7 +275,8 @@ export async function countNewOrders(): Promise<number> {
  * Menja status porudžbine. Otkazivanje vraća komade na stanje, a vraćanje
  * otkazane porudžbine ih ponovo skida — samo kod proizvoda kojima se vodi broj.
  */
-export async function setOrderStatus(number: string, status: OrderStatus) {
+export async function setOrderStatus(number: string, status: OrderStatus): Promise<boolean> {
+  let changed = false;
   await withContentLock(async (connection) => {
     const [rows] = await connection.query<RowDataPacket[]>(
       "SELECT status FROM orders WHERE number = ?",
@@ -305,7 +310,10 @@ export async function setOrderStatus(number: string, status: OrderStatus) {
     }
     await connection.query("UPDATE orders SET status = ? WHERE number = ?", [status, number]);
     await addOrderEvent(connection, number, `Status: ${orderStatusLabels[status]}`);
+    changed = true;
   });
+  if (changed) emitOrderEvent("order.status", number);
+  return changed;
 }
 
 export async function setOrderNote(number: string, note: string) {
@@ -813,6 +821,7 @@ export async function submitOrder(input: unknown, source = "Porudžbina primljen
 
   // Email se šalje pošto kupac dobije odgovor, da spor mail server ne zadržava poručivanje.
   // Porudžbina je već sačuvana; ako slanje ne uspe, razlog se upisuje uz nju i vidi u panelu.
+  emitOrderEvent("order.created", order.number);
   after(async () => {
     const error = await notifyOrder(order).catch((reason) => String(reason));
     if (error) {

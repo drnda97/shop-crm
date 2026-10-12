@@ -1,19 +1,16 @@
+import { getShopT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/storefront/auth";
-import { OrderLookup } from "../_components/account-extras";
-import { SimplePage } from "../_components/simple-page";
+import { TrackingPage } from "@theme/pages/simple";
 
-export const metadata: Metadata = { title: "Praćenje porudžbine", robots: { index: false, follow: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getShopT())("Praćenje porudžbine"), robots: { index: false, follow: false } };
+}
 
 type Props = { searchParams: Promise<{ broj?: string }> };
 
 /** Status porudžbine po broju i email adresi, bez naloga; odavde se podnosi i zahtev za povrat. */
-export default async function TrackingPage({ searchParams }: Props) {
+export default async function TrackingRoute({ searchParams }: Props) {
   const [{ broj = "" }, user] = await Promise.all([searchParams, getCurrentUser()]);
-  return (
-    <SimplePage title="Praćenje porudžbine">
-      <p className="lead">Upišite broj porudžbine iz emaila i adresu sa kojom ste poručili.</p>
-      <OrderLookup number={/^\d{1,10}$/.test(broj) ? broj : ""} loggedIn={user !== null} />
-    </SimplePage>
-  );
+  return <TrackingPage number={/^\d{1,10}$/.test(broj) ? broj : ""} loggedIn={user !== null} />;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/client";
 import { useActionState, useState } from "react";
 import { login, type LoginState } from "./actions";
 import { buttonClass, ErrorNote, inputClass, labelClass } from "./ui";
@@ -11,6 +12,7 @@ const initialState: LoginState = {};
  * traži i kod iz aplikacije; ime i lozinka ostaju upisani.
  */
 export function LoginForm() {
+  const t = useT();
   const [state, action, pending] = useActionState(login, initialState);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -19,7 +21,7 @@ export function LoginForm() {
     <form action={action} className="flex flex-col gap-[16px]">
       <ErrorNote message={state.error} />
       <label className={labelClass}>
-        Korisničko ime
+        {t("Korisničko ime")}
         <input
           name="username"
           autoComplete="username"
@@ -31,7 +33,7 @@ export function LoginForm() {
         />
       </label>
       <label className={labelClass}>
-        Lozinka
+        {t("Lozinka")}
         <input
           name="password"
           type="password"
@@ -45,14 +47,14 @@ export function LoginForm() {
       </label>
       {state.needCode && (
         <label className={labelClass}>
-          Kod iz aplikacije
+          {t("Kod iz aplikacije")}
           <input
             name="code"
             inputMode="numeric"
             autoComplete="one-time-code"
             autoFocus
             required
-            placeholder="6 cifara, ili rezervni kod"
+            placeholder={t("6 cifara, ili rezervni kod")}
             className={inputClass}
           />
         </label>

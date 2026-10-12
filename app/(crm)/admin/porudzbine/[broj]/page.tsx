@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
@@ -38,6 +39,7 @@ type OrderPageProps = {
 
 /** Jedna porudžbina: dostava i praćenje, uplata i povraćaj, podaci kupca, račun i istorija. */
 export default async function OrderPage({ params, searchParams }: OrderPageProps) {
+  const t = await getPanelT();
   await requireAdmin("orders");
   const [{ broj }, { greska }] = await Promise.all([params, searchParams]);
   const [order, events, settings, returns] = await Promise.all([
@@ -57,7 +59,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
     <>
       <div className="mb-[16px] flex flex-wrap items-center justify-between gap-[12px]">
         <Link href={`${ADMIN_PATH}/porudzbine`} className={textLinkClass}>
-          ← Porudžbine
+          {t("← Porudžbine")}
         </Link>
         <a href={`${path}/racun`} target="_blank" rel="noreferrer" className={quietButtonClass}>
           Račun (PDF)
@@ -89,15 +91,14 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
                 </label>
                 <div className="flex flex-wrap gap-[8px]">
                   <button type="submit" name="decision" value="approve" className={buttonClass}>
-                    Odobri
+                    {t("Odobri")}
                   </button>
                   <button type="submit" name="decision" value="reject" className={quietButtonClass}>
-                    Odbij
+                    {t("Odbij")}
                   </button>
                 </div>
                 <p className="text-[14px] text-muted">
-                  Kupac odgovor dobija emailom. Odobrenje ne vraća novac: kada roba stigne, upišite povraćaj
-                  ispod.
+                  {t("Kupac odgovor dobija emailom. Odobrenje ne vraća novac: kada roba stigne, upišite povraćaj ispod.")}
                 </p>
               </form>
             ) : (
@@ -108,7 +109,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
 
         <div className="grid items-start gap-[16px] xl:grid-cols-2">
           <form action={saveTrackingAction} className={panelClass}>
-            <h2 className={panelTitleClass}>Dostava i praćenje</h2>
+            <h2 className={panelTitleClass}>{t("Dostava i praćenje")}</h2>
             <p className="mt-[-8px] text-[14.5px] text-muted">
               {order.deliveryMethod || "Dostava"}. Broj pošiljke i link kupac dobija u emailu kada porudžbinu
               označite kao poslatu, pa ih upišite pre toga.
@@ -116,16 +117,16 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
             <input type="hidden" name="number" value={order.number} />
             <div className={fieldRowClass}>
               <label className={labelClass}>
-                Broj pošiljke
+                {t("Broj pošiljke")}
                 <input name="trackingNumber" maxLength={100} defaultValue={order.tracking?.number} className={inputClass} />
               </label>
               <label className={labelClass}>
-                Adresa za praćenje
+                {t("Adresa za praćenje")}
                 <input
                   name="trackingUrl"
                   type="url"
                   maxLength={500}
-                  placeholder="https://…"
+                  placeholder={t("https://…")}
                   defaultValue={order.tracking?.url}
                   className={inputClass}
                 />
@@ -133,13 +134,13 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
             </div>
             <div>
               <button type="submit" className={buttonClass}>
-                Sačuvaj praćenje
+                {t("Sačuvaj praćenje")}
               </button>
             </div>
           </form>
 
           <div className={panelClass}>
-            <h2 className={panelTitleClass}>Uplata i povraćaj</h2>
+            <h2 className={panelTitleClass}>{t("Uplata i povraćaj")}</h2>
             <p className="mt-[-8px] text-[15px]">
               {order.paidAt ? `Plaćeno ${orderDate(order.paidAt)}` : "Nije označeno kao plaćeno"}
               {order.paymentRef && <span className="text-muted"> · {order.paymentRef}</span>}
@@ -169,13 +170,13 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
                     />
                   </label>
                   <label className={labelClass}>
-                    Razlog
+                    {t("Razlog")}
                     <input name="reason" maxLength={300} className={inputClass} />
                   </label>
                 </div>
                 {order.items.some((item) => item.returned < item.qty) && (
                   <fieldset className="flex flex-col gap-[8px]">
-                    <legend className={`${labelClass} mb-[8px]`}>Vraćena roba — koliko komada se vraća na stanje</legend>
+                    <legend className={`${labelClass} mb-[8px]`}>{t("Vraćena roba — koliko komada se vraća na stanje")}</legend>
                     {order.items.map((item, position) =>
                       item.returned < item.qty ? (
                         <label key={position} className="flex items-center gap-[10px] text-[15px]">
@@ -199,7 +200,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
                 )}
                 <div>
                   <button type="submit" className={quietButtonClass}>
-                    Upiši povraćaj
+                    {t("Upiši povraćaj")}
                   </button>
                 </div>
                 <p className="text-[14px] text-muted">
@@ -212,49 +213,49 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
           </div>
 
           <form action={saveOrderCustomerAction} className={panelClass}>
-            <h2 className={panelTitleClass}>Podaci kupca</h2>
+            <h2 className={panelTitleClass}>{t("Podaci kupca")}</h2>
             <input type="hidden" name="number" value={order.number} />
             <div className={fieldRowClass}>
               <label className={labelClass}>
-                Ime i prezime
+                {t("Ime i prezime")}
                 <input name="name" required defaultValue={order.customer.name} className={inputClass} />
               </label>
               <label className={labelClass}>
-                Telefon
+                {t("Telefon")}
                 <input name="phone" required defaultValue={order.customer.phone} className={inputClass} />
               </label>
             </div>
             <label className={labelClass}>
-              Email
+              {t("Email")}
               <input name="email" type="email" required defaultValue={order.customer.email} className={inputClass} />
             </label>
             <label className={labelClass}>
-              Ulica i broj
+              {t("Ulica i broj")}
               <input name="street" required defaultValue={order.customer.street} className={inputClass} />
             </label>
             <div className={fieldRowClass}>
               <label className={labelClass}>
-                Poštanski broj
+                {t("Poštanski broj")}
                 <input name="postalCode" required defaultValue={order.customer.postalCode} className={inputClass} />
               </label>
               <label className={labelClass}>
-                Mesto
+                {t("Mesto")}
                 <input name="city" required defaultValue={order.customer.city} className={inputClass} />
               </label>
             </div>
             <label className={labelClass}>
-              Napomena kupca
+              {t("Napomena kupca")}
               <input name="note" maxLength={500} defaultValue={order.customer.note} className={inputClass} />
             </label>
             <div>
               <button type="submit" className={buttonClass}>
-                Sačuvaj podatke
+                {t("Sačuvaj podatke")}
               </button>
             </div>
           </form>
 
           <div className={cardClass}>
-            <h2 className={panelTitleClass}>Istorija</h2>
+            <h2 className={panelTitleClass}>{t("Istorija")}</h2>
             <ul className="mt-[10px] flex flex-col">
               {events.map((event, index) => (
                 <li key={index} className="flex flex-wrap justify-between gap-x-[16px] border-t border-line py-[8px] text-[15px] first:border-t-0">
@@ -263,7 +264,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
                 </li>
               ))}
               {events.length === 0 && (
-                <li className="text-[15px] text-muted">Istorija se vodi za porudžbine primljene posle uvođenja ove stranice.</li>
+                <li className="text-[15px] text-muted">{t("Istorija se vodi za porudžbine primljene posle uvođenja ove stranice.")}</li>
               )}
             </ul>
           </div>

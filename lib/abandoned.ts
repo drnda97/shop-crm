@@ -1,3 +1,5 @@
+import { makeT } from "@/lib/i18n";
+import { shopDict } from "@/lib/i18n/shop";
 import { randomBytes } from "node:crypto";
 import nodemailer from "nodemailer";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
@@ -106,6 +108,7 @@ export async function renderReminder(cart: AbandonedCart, settings: Settings, ba
   const lines = toLines(cart.items, await getProducts());
   if (lines.length === 0) return null;
 
+  const t = makeT(store.language, shopDict);
   const fill = (text: string) => text.replace(/\{ime\}/g, cart.firstName || "").replace(/\{prodavnica\}/g, store.name).replace(/ ,/g, ",").trim();
   const message = fill(abandoned.text);
   const link = `${baseUrl}/korpa/vrati/${cart.token}`;
@@ -116,7 +119,7 @@ export async function renderReminder(cart: AbandonedCart, settings: Settings, ba
     price: formatMoney((currentPrice(line.product, line.variant) ?? 0) * line.qty, currency),
   }));
 
-  const html = `<!doctype html><html lang="sr"><body style="margin:0;padding:24px;background:${colors.surface};font-family:Helvetica,Arial,sans-serif;color:${colors.text};">
+  const html = `<!doctype html><html lang="${t("sr")}"><body style="margin:0;padding:24px;background:${colors.surface};font-family:Helvetica,Arial,sans-serif;color:${colors.text};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:100%;background:${colors.background};">
 <tr><td style="padding:32px 32px 8px;font-size:22px;font-weight:bold;">${escapeHtml(store.name)}</td></tr>
@@ -124,8 +127,8 @@ export async function renderReminder(cart: AbandonedCart, settings: Settings, ba
 <tr><td style="padding:0 32px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px;">
 ${rows.map((row) => `<tr><td style="padding:8px 0;border-top:1px solid ${colors.surface};">${row.qty} × ${escapeHtml(row.name)}</td><td align="right" style="padding:8px 0;border-top:1px solid ${colors.surface};white-space:nowrap;">${escapeHtml(row.price)}</td></tr>`).join("\n")}
 </table></td></tr>
-<tr><td style="padding:24px 32px;"><a href="${escapeHtml(link)}" style="display:inline-block;padding:14px 26px;border-radius:999px;background:${colors.accent};color:${readableOn(colors.accent, colors.text, colors.background, "#ffffff")};font-weight:bold;text-decoration:none;">Završite porudžbinu</a></td></tr>
-<tr><td style="padding:0 32px 32px;font-size:12.5px;line-height:1.6;color:${accentText({ ...colors, accent: colors.text })};">Ovu poruku ste dobili jer ste upisali email na stranici plaćanja. Šaljemo je samo jednom. <a href="${escapeHtml(stop)}" style="color:inherit;">Ne želim podsetnike</a>.</td></tr>
+<tr><td style="padding:24px 32px;"><a href="${escapeHtml(link)}" style="display:inline-block;padding:14px 26px;border-radius:999px;background:${colors.accent};color:${readableOn(colors.accent, colors.text, colors.background, "#ffffff")};font-weight:bold;text-decoration:none;">${t("Završite porudžbinu")}</a></td></tr>
+<tr><td style="padding:0 32px 32px;font-size:12.5px;line-height:1.6;color:${accentText({ ...colors, accent: colors.text })};">${t("Ovu poruku ste dobili jer ste upisali email na stranici plaćanja. Šaljemo je samo jednom.")} <a href="${escapeHtml(stop)}" style="color:inherit;">${t("Ne želim podsetnike")}</a>.</td></tr>
 </table></td></tr></table></body></html>`;
 
   const text = [
@@ -133,9 +136,9 @@ ${rows.map((row) => `<tr><td style="padding:8px 0;border-top:1px solid ${colors.
     "",
     ...rows.map((row) => `${row.qty} × ${row.name} — ${row.price}`),
     "",
-    `Završite porudžbinu: ${link}`,
+    `${t("Završite porudžbinu")}: ${link}`,
     "",
-    `Ne želite podsetnike? ${stop}`,
+    `${t("Ne želite podsetnike?")} ${stop}`,
   ].join("\n");
 
   return { subject: `${fill(abandoned.subject)} — ${store.name}`, html, text, stop };

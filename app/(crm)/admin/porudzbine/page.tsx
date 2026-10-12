@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
@@ -37,6 +38,7 @@ function listUrl(params: Record<string, string | undefined>): string {
 }
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
+  const t = await getPanelT();
   await requireAdmin("orders");
   const { status, q = "", strana } = await searchParams;
   const active = statuses.find((candidate) => candidate === status);
@@ -74,15 +76,15 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   return (
     <>
       <PageHeader
-        title="Porudžbine"
-        hint="Najnovije su na vrhu. Otkazivanje vraća komade na stanje kod proizvoda kojima se vodi broj."
+        title={t("Porudžbine")}
+        hint={t("Najnovije su na vrhu. Otkazivanje vraća komade na stanje kod proizvoda kojima se vodi broj.")}
         action={
           <div className="flex flex-wrap gap-[8px]">
             <a href={`${ORDERS_PATH}/izvoz`} className={quietButtonClass}>
-              Preuzmi CSV
+              {t("Preuzmi CSV")}
             </a>
             <Link href={`${ORDERS_PATH}/nova`} className={buttonClass}>
-              + Nova porudžbina
+              {t("+ Nova porudžbina")}
             </Link>
           </div>
         }
@@ -95,13 +97,13 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             name="q"
             type="search"
             defaultValue={q}
-            placeholder="Broj porudžbine, ime, telefon, email ili mesto"
-            aria-label="Pretraga porudžbina"
+            placeholder={t("Broj porudžbine, ime, telefon, email ili mesto")}
+            aria-label={t("Pretraga porudžbina")}
             className={inputClass}
           />
         </div>
         <button type="submit" className={buttonClass}>
-          Traži
+          {t("Traži")}
         </button>
       </form>
 
@@ -149,7 +151,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
               href={listUrl({ status: active, q: q.trim(), strana: String(page - 1) })}
               className={quietButtonClass}
             >
-              ← Novije
+              {t("← Novije")}
             </Link>
           )}
           {page < pages && (
@@ -157,7 +159,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
               href={listUrl({ status: active, q: q.trim(), strana: String(page + 1) })}
               className={quietButtonClass}
             >
-              Starije →
+              {t("Starije →")}
             </Link>
           )}
         </div>

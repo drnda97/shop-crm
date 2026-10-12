@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { formatMoney } from "@/lib/format";
@@ -9,6 +10,7 @@ import { buttonClass, cardClass, inputClass, labelClass, PageHeader, panelTitleC
 type ReportsPageProps = { searchParams: Promise<{ od?: string; do?: string }> };
 
 export default async function ReportsPage({ searchParams }: ReportsPageProps) {
+  const t = await getPanelT();
   await requireAdmin("orders");
   const query = await searchParams;
   const [orders, settings] = await Promise.all([getOrders(), getSettings()]);
@@ -22,7 +24,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     <div className={cardClass}>
       <h2 className={`${panelTitleClass} mb-[8px]`}>{title}</h2>
       {rows.length === 0 ? (
-        <p className="text-[15px] text-muted">Nema podataka za ovaj period.</p>
+        <p className="text-[15px] text-muted">{t("Nema podataka za ovaj period.")}</p>
       ) : (
         <table className="w-full text-left text-[14.5px]">
           <thead>
@@ -49,26 +51,26 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   return (
     <>
       <PageHeader
-        title="Izveštaji"
-        hint="Prodaja je vrednost poručenih proizvoda posle popusta, bez dostave i bez vraćenog novca. Otkazane porudžbine se ne računaju."
+        title={t("Izveštaji")}
+        hint={t("Prodaja je vrednost poručenih proizvoda posle popusta, bez dostave i bez vraćenog novca. Otkazane porudžbine se ne računaju.")}
         action={
           <a href={`${ADMIN_PATH}/izvestaji/izvoz?od=${period.from}&do=${period.to}`} className={quietButtonClass}>
-            Preuzmi CSV
+            {t("Preuzmi CSV")}
           </a>
         }
       />
 
       <form action={`${ADMIN_PATH}/izvestaji`} className={`${cardClass} mb-[16px] flex flex-wrap items-end gap-[12px]`}>
         <label className={labelClass}>
-          Od
+          {t("Od")}
           <input type="date" name="od" defaultValue={period.from} className={inputClass} />
         </label>
         <label className={labelClass}>
-          Do
+          {t("Do")}
           <input type="date" name="do" defaultValue={period.to} className={inputClass} />
         </label>
         <button type="submit" className={buttonClass}>
-          Prikaži
+          {t("Prikaži")}
         </button>
       </form>
 
@@ -91,9 +93,9 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       </div>
 
       <div className={`${cardClass} mb-[16px]`}>
-        <h2 className={`${panelTitleClass} mb-[10px]`}>Po danima</h2>
+        <h2 className={`${panelTitleClass} mb-[10px]`}>{t("Po danima")}</h2>
         {report.days.length === 0 ? (
-          <p className="text-[15px] text-muted">Nema porudžbina u ovom periodu.</p>
+          <p className="text-[15px] text-muted">{t("Nema porudžbina u ovom periodu.")}</p>
         ) : (
           <table className="w-full text-left text-[14.5px]">
             <tbody>

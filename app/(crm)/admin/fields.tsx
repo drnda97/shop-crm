@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/client";
 import { useRef, useState, useTransition } from "react";
 import { sizedSrc } from "@/lib/media";
 import { IMAGE_POSITIONS, normalizeData, type Field, type ImageValue, type SectionData } from "@/lib/sections";
@@ -57,6 +58,7 @@ type FieldInputProps = {
 };
 
 function FieldInput({ field, value, onChange, options }: FieldInputProps) {
+  const t = useT();
   const hint = field.hint && <span className={hintClass}>{field.hint}</span>;
 
   switch (field.kind) {
@@ -87,7 +89,7 @@ function FieldInput({ field, value, onChange, options }: FieldInputProps) {
           <input
             className={inputClass}
             list="link-options"
-            placeholder="/kolekcija ili https://…"
+            placeholder={t("/kolekcija ili https://…")}
             value={value as string}
             onChange={(event) => onChange(event.target.value)}
           />
@@ -187,6 +189,7 @@ type ImageInputProps = {
 };
 
 function ImageInput({ label, value, onChange, options }: ImageInputProps) {
+  const t = useT();
   const input = useRef<HTMLInputElement>(null);
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState("");
@@ -224,7 +227,7 @@ function ImageInput({ label, value, onChange, options }: ImageInputProps) {
           />
         ) : (
           <div className="flex h-[72px] w-[96px] shrink-0 items-center justify-center rounded-[14px] bg-ph text-[12px] text-muted">
-            bez slike
+            {t("bez slike")}
           </div>
         )}
         <div className="flex flex-wrap gap-[8px]">
@@ -242,11 +245,11 @@ function ImageInput({ label, value, onChange, options }: ImageInputProps) {
             {pending ? "Šaljem…" : "Ubaci sliku"}
           </button>
           <button type="button" className={quietButtonClass} aria-expanded={picking} onClick={() => setPicking(!picking)}>
-            Iz biblioteke
+            {t("Iz biblioteke")}
           </button>
           {value.src && (
             <button type="button" className={quietButtonClass} onClick={() => onChange({ ...value, src: "" })}>
-              Ukloni
+              {t("Ukloni")}
             </button>
           )}
         </div>
@@ -263,7 +266,7 @@ function ImageInput({ label, value, onChange, options }: ImageInputProps) {
             <button
               type="button"
               key={src}
-              aria-label="Izaberi ovu sliku"
+              aria-label={t("Izaberi ovu sliku")}
               aria-pressed={src === value.src}
               className="cursor-pointer overflow-hidden rounded-[10px] outline-offset-2 aria-pressed:outline-2 aria-pressed:outline-ink"
               onClick={() => {
@@ -276,7 +279,7 @@ function ImageInput({ label, value, onChange, options }: ImageInputProps) {
             </button>
           ))}
           {options.media.length === 0 && (
-            <p className="col-span-full text-[14px] text-muted">Biblioteka je prazna. Ubacite prvu sliku.</p>
+            <p className="col-span-full text-[14px] text-muted">{t("Biblioteka je prazna. Ubacite prvu sliku.")}</p>
           )}
         </div>
       )}
@@ -284,16 +287,16 @@ function ImageInput({ label, value, onChange, options }: ImageInputProps) {
       {value.src && (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(160px,100%),1fr))] gap-[12px]">
           <label className={labelClass}>
-            Opis slike
+            {t("Opis slike")}
             <input
               className={inputClass}
-              placeholder="Šta je na slici"
+              placeholder={t("Šta je na slici")}
               value={value.alt}
               onChange={(event) => onChange({ ...value, alt: event.target.value })}
             />
           </label>
           <label className={labelClass}>
-            Vidljiv deo kada se iseca
+            {t("Vidljiv deo kada se iseca")}
             <select
               className={inputClass}
               value={value.position}
@@ -333,6 +336,7 @@ function itemTitle(fields: Field[], item: SectionData): string {
 }
 
 function ListInput({ field, value, onChange, options }: ListInputProps) {
+  const t = useT();
   // Koja je stavka otvorena; nova se otvara odmah.
   const [open, setOpen] = useState<number | null>(null);
   const full = value.length >= (field.max ?? 30);
@@ -363,10 +367,10 @@ function ListInput({ field, value, onChange, options }: ListInputProps) {
                 {field.itemLabel} {index + 1}
                 {title && <span className="font-sans font-normal text-muted"> · {title}</span>}
               </button>
-              <button type="button" className={smallButton} aria-label="Pomeri gore" disabled={index === 0} onClick={() => move(index, -1)}>
+              <button type="button" className={smallButton} aria-label={t("Pomeri gore")} disabled={index === 0} onClick={() => move(index, -1)}>
                 ↑
               </button>
-              <button type="button" className={smallButton} aria-label="Pomeri dole" disabled={index === value.length - 1} onClick={() => move(index, 1)}>
+              <button type="button" className={smallButton} aria-label={t("Pomeri dole")} disabled={index === value.length - 1} onClick={() => move(index, 1)}>
                 ↓
               </button>
               <button

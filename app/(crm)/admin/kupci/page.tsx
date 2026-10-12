@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
@@ -23,6 +24,7 @@ const CUSTOMERS_PATH = `${ADMIN_PATH}/kupci`;
 const SHOWN = 200;
 
 export default async function CustomersPage({ searchParams }: CustomersPageProps) {
+  const t = await getPanelT();
   await requireAdmin("orders");
   const { q = "", red } = await searchParams;
   const search = q.trim().toLocaleLowerCase();
@@ -52,11 +54,11 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
   return (
     <>
       <PageHeader
-        title="Kupci"
+        title={t("Kupci")}
         hint={`Kupac se prepoznaje po broju telefona, pa se sve njegove porudžbine vide na jednom mestu. Ukupno kupaca: ${all.length}, od toga je ${returning} poručilo više puta.`}
         action={
           <a href={`${CUSTOMERS_PATH}/izvoz`} className={quietButtonClass}>
-            Preuzmi CSV
+            {t("Preuzmi CSV")}
           </a>
         }
       />
@@ -68,13 +70,13 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
             name="q"
             type="search"
             defaultValue={q}
-            placeholder="Ime, telefon, email ili mesto"
-            aria-label="Pretraga kupaca"
+            placeholder={t("Ime, telefon, email ili mesto")}
+            aria-label={t("Pretraga kupaca")}
             className={inputClass}
           />
         </div>
         <button type="submit" className={buttonClass}>
-          Traži
+          {t("Traži")}
         </button>
       </form>
 
@@ -111,11 +113,11 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
           <table className="w-full min-w-[640px] text-[15px]">
             <thead>
               <tr className="text-left text-[13px] text-muted">
-                <th className="pb-[8px] font-normal">Kupac</th>
-                <th className="pb-[8px] font-normal">Kontakt</th>
-                <th className="pb-[8px] font-normal">Porudžbine</th>
-                <th className="pb-[8px] text-right font-normal">Potrošeno</th>
-                <th className="pb-[8px] text-right font-normal">Poslednja</th>
+                <th className="pb-[8px] font-normal">{t("Kupac")}</th>
+                <th className="pb-[8px] font-normal">{t("Kontakt")}</th>
+                <th className="pb-[8px] font-normal">{t("Porudžbine")}</th>
+                <th className="pb-[8px] text-right font-normal">{t("Potrošeno")}</th>
+                <th className="pb-[8px] text-right font-normal">{t("Poslednja")}</th>
               </tr>
             </thead>
             <tbody>

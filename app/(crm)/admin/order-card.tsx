@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ADMIN_PATH } from "@/lib/admin-auth";
 import { discountText } from "@/lib/discounts";
@@ -45,7 +46,8 @@ type OrderCardProps = {
   detail?: boolean;
 };
 
-export function OrderCard({ order, currency, date, back, hideCustomer = false, detail = false }: OrderCardProps) {
+export async function OrderCard({ order, currency, date, back, hideCustomer = false, detail = false }: OrderCardProps) {
+  const t = await getPanelT();
   const money = (value: number) => formatMoney(value, currency);
 
   return (
@@ -132,7 +134,7 @@ export function OrderCard({ order, currency, date, back, hideCustomer = false, d
             <span>{money(order.delivery)}</span>
           </div>
           <div className="flex justify-between gap-[12px] font-medium">
-            <span>Ukupno</span>
+            <span>{t("Ukupno")}</span>
             <span>{money(order.total)}</span>
           </div>
         </div>
@@ -140,7 +142,7 @@ export function OrderCard({ order, currency, date, back, hideCustomer = false, d
 
       {order.issuedCode && (
         <p className="mt-[12px] text-[14px] text-muted">
-          Kupcu je poslat kod <span className="font-mono text-ink">{order.issuedCode.code}</span> za{" "}
+          {t("Kupcu je poslat kod")} <span className="font-mono text-ink">{order.issuedCode.code}</span> za{" "}
           {order.issuedCode.percent}% popusta pri sledećoj kupovini
           {order.issuedCode.title && ` (${order.issuedCode.title})`}.
         </p>
@@ -160,20 +162,20 @@ export function OrderCard({ order, currency, date, back, hideCustomer = false, d
             name="note"
             defaultValue={order.adminNote ?? ""}
             maxLength={2000}
-            placeholder="Vaša beleška (kupac je ne vidi), npr. broj pošiljke"
+            placeholder={t("Vaša beleška (kupac je ne vidi), npr. broj pošiljke")}
             aria-label={`Beleška uz porudžbinu ${order.number}`}
             className={inputClass}
           />
         </div>
         <button type="submit" className={quietButtonClass}>
-          Sačuvaj belešku
+          {t("Sačuvaj belešku")}
         </button>
       </form>
 
       <div className="mt-[12px] flex flex-wrap gap-[8px]">
         {!detail && (
           <Link href={`${ADMIN_PATH}/porudzbine/${order.number}`} className={quietButtonClass}>
-            Detalji
+            {t("Detalji")}
           </Link>
         )}
         {nextSteps[order.status].map((step) => (

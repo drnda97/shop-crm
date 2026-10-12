@@ -1,3 +1,4 @@
+import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getProducts, getSettings, getStoredValue } from "@/lib/content";
@@ -11,6 +12,7 @@ import { buttonClass, cardClass, Checkbox, fileClass, PageHeader, panelTitleClas
 type ImportPageProps = { searchParams: Promise<{ greska?: string; ok?: string }> };
 
 export default async function ImportPage({ searchParams }: ImportPageProps) {
+  const t = await getPanelT();
   await requireAdmin("catalog");
   const { greska, ok } = await searchParams;
   const [stored, products, settings] = await Promise.all([getStoredValue(IMPORT_KEY), getProducts(), getSettings()]);
@@ -20,12 +22,12 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
   return (
     <>
       <Link href={`${ADMIN_PATH}/proizvodi`} className={textLinkClass}>
-        ← Proizvodi
+        {t("← Proizvodi")}
       </Link>
       <div className="mt-[12px]">
         <PageHeader
-          title="Uvoz proizvoda"
-          hint="Uvozi se CSV fajl: izvoz proizvoda iz Shopify-ja ili WooCommerce-a, ili fajl koji je napravio izvoz iz ovog panela. Pre upisa vidite šta će biti dodato i izmenjeno."
+          title={t("Uvoz proizvoda")}
+          hint={t("Uvozi se CSV fajl: izvoz proizvoda iz Shopify-ja ili WooCommerce-a, ili fajl koji je napravio izvoz iz ovog panela. Pre upisa vidite šta će biti dodato i izmenjeno.")}
           error={greska}
           notice={ok}
         />
@@ -34,26 +36,26 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
       {!pending ? (
         <div className="flex max-w-[820px] flex-col gap-[16px]">
           <form action={startImportAction} className={`${cardClass} flex flex-col gap-[16px]`}>
-            <h2 className={panelTitleClass}>Izaberite fajl</h2>
-            <input type="file" name="file" accept=".csv,text/csv" required aria-label="CSV fajl" className={fileClass} />
+            <h2 className={panelTitleClass}>{t("Izaberite fajl")}</h2>
+            <input type="file" name="file" accept=".csv,text/csv" required aria-label={t("CSV fajl")} className={fileClass} />
             <div>
               <button type="submit" className={buttonClass}>
-                Pročitaj fajl
+                {t("Pročitaj fajl")}
               </button>
             </div>
           </form>
           <div className={`${cardClass} flex flex-col gap-[10px] text-[15px]`}>
-            <h2 className={panelTitleClass}>Odakle fajl</h2>
+            <h2 className={panelTitleClass}>{t("Odakle fajl")}</h2>
             <p>
-              <strong>Shopify:</strong> Products → Export → „All products”, „Plain CSV file”.
+              <strong>{t("Shopify:")}</strong> {t("Products → Export → „All products”, „Plain CSV file”.")}
             </p>
             <p>
-              <strong>WooCommerce:</strong> Products → All Products → Export, sa svim kolonama.
+              <strong>{t("WooCommerce:")}</strong> {t("Products → All Products → Export, sa svim kolonama.")}
             </p>
             <p>
-              <strong>Ovaj panel:</strong>{" "}
+              <strong>{t("Ovaj panel:")}</strong>{" "}
               <a href={`${ADMIN_PATH}/proizvodi/izvoz`} className={textLinkClass}>
-                preuzmite izvoz
+                {t("preuzmite izvoz")}
               </a>
               , izmenite ga u Excel-u i uvezite nazad. Proizvod sa oznakom koja već postoji se menja, a
               nova oznaka pravi nov proizvod.
@@ -71,11 +73,10 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
               {pending.fileName} · {formatLabels[pending.format]}
             </h2>
             <p className="text-[15.5px]">
-              Proizvoda: <strong>{pending.products.length}</strong> — novih{" "}
+              {t("Proizvoda:")} <strong>{pending.products.length}</strong> — novih{" "}
               <strong>{pending.products.filter((item) => !products.some((product) => product.slug === item.slug)).length}</strong>,
               postojećih koji će biti izmenjeni{" "}
-              <strong>{pending.products.filter((item) => products.some((product) => product.slug === item.slug)).length}</strong>.
-              Varijanti: <strong>{pending.products.reduce((sum, item) => sum + item.variants.length, 0)}</strong>. Slika:{" "}
+              <strong>{pending.products.filter((item) => products.some((product) => product.slug === item.slug)).length}</strong>{t(". Varijanti:")} <strong>{pending.products.reduce((sum, item) => sum + item.variants.length, 0)}</strong>. Slika:{" "}
               <strong>{new Set(pending.products.flatMap((item) => item.images)).size}</strong>.
             </p>
             {pending.warnings.length > 0 && (
@@ -92,7 +93,7 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
             <form action={applyImportAction} className="flex flex-wrap items-center gap-[14px]">
               <label className="flex cursor-pointer items-center gap-[10px] text-[15px]">
                 <Checkbox name="images" defaultChecked />
-                Preuzmi slike sa adresa iz fajla
+                {t("Preuzmi slike sa adresa iz fajla")}
               </label>
               <button type="submit" className={buttonClass} disabled={pending.products.length === 0}>
                 Uvezi {pending.products.length} proizvoda
@@ -100,12 +101,11 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
             </form>
             <form action={cancelImportAction}>
               <button type="submit" className={quietButtonClass}>
-                Odustani
+                {t("Odustani")}
               </button>
             </form>
             <p className="text-[14px] text-muted">
-              Preuzimanje slika traje: računajte oko sekund po slici. Bez preuzimanja, postojeći proizvodi
-              zadržavaju svoje slike, a novi nastaju bez njih.
+              {t("Preuzimanje slika traje: računajte oko sekund po slici. Bez preuzimanja, postojeći proizvodi zadržavaju svoje slike, a novi nastaju bez njih.")}
             </p>
           </div>
 
@@ -115,12 +115,12 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
               <table className="w-full text-left text-[14.5px]">
                 <thead>
                   <tr className="font-display text-[13px] text-muted">
-                    <th className="py-[6px] pr-[16px] font-semibold">Naziv</th>
-                    <th className="py-[6px] pr-[16px] font-semibold">Oznaka</th>
-                    <th className="py-[6px] pr-[16px] font-semibold">Cena</th>
-                    <th className="py-[6px] pr-[16px] font-semibold">Kategorije</th>
-                    <th className="py-[6px] pr-[16px] font-semibold">Varijante</th>
-                    <th className="py-[6px] font-semibold">Stanje</th>
+                    <th className="py-[6px] pr-[16px] font-semibold">{t("Naziv")}</th>
+                    <th className="py-[6px] pr-[16px] font-semibold">{t("Oznaka")}</th>
+                    <th className="py-[6px] pr-[16px] font-semibold">{t("Cena")}</th>
+                    <th className="py-[6px] pr-[16px] font-semibold">{t("Kategorije")}</th>
+                    <th className="py-[6px] pr-[16px] font-semibold">{t("Varijante")}</th>
+                    <th className="py-[6px] font-semibold">{t("Stanje")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -130,7 +130,7 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
                       <tr key={item.slug} className="border-t border-line align-top">
                         <td className="py-[8px] pr-[16px] font-display font-bold">
                           {item.name}
-                          {!item.active && <span className="font-sans font-normal text-muted"> · nacrt</span>}
+                          {!item.active && <span className="font-sans font-normal text-muted"> {t("· nacrt")}</span>}
                         </td>
                         <td className="py-[8px] pr-[16px] text-muted">
                           {item.slug} {exists ? "· menja se" : "· nov"}

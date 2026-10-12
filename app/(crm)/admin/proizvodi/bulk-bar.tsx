@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/client";
 import { useState } from "react";
 import { bulkProductsAction } from "../actions";
 import { buttonClass, cardClass, inputClass, labelClass, quietButtonClass } from "../ui";
@@ -20,6 +21,7 @@ const OPERATIONS = [
  * vezana su za ovu formu atributom form="bulk".
  */
 export function BulkBar({ categories }: BulkBarProps) {
+  const t = useT();
   const [operation, setOperation] = useState("publish");
 
   function selectAll(checked: boolean) {
@@ -41,16 +43,16 @@ export function BulkBar({ categories }: BulkBarProps) {
       }}
     >
       <div className="flex w-full flex-wrap items-center gap-[10px]">
-        <span className="font-display text-[15px] font-bold">Označeni proizvodi</span>
+        <span className="font-display text-[15px] font-bold">{t("Označeni proizvodi")}</span>
         <button type="button" className={quietButtonClass} onClick={() => selectAll(true)}>
-          Označi sve
+          {t("Označi sve")}
         </button>
         <button type="button" className={quietButtonClass} onClick={() => selectAll(false)}>
-          Poništi
+          {t("Poništi")}
         </button>
       </div>
       <label className={`${labelClass} min-w-[220px] grow basis-0`}>
-        Šta uraditi
+        {t("Šta uraditi")}
         <select name="operation" value={operation} onChange={(event) => setOperation(event.target.value)} className={inputClass}>
           {OPERATIONS.map((item) => (
             <option key={item.id} value={item.id}>
@@ -61,7 +63,7 @@ export function BulkBar({ categories }: BulkBarProps) {
       </label>
       {(operation === "addCategory" || operation === "removeCategory") && (
         <label className={`${labelClass} min-w-[200px] grow basis-0`}>
-          Kategorija
+          {t("Kategorija")}
           <select name="category" required className={inputClass}>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
@@ -78,7 +80,7 @@ export function BulkBar({ categories }: BulkBarProps) {
         </label>
       )}
       <button type="submit" className={buttonClass}>
-        Primeni na označene
+        {t("Primeni na označene")}
       </button>
     </form>
   );

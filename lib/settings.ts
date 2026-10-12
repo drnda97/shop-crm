@@ -1,3 +1,4 @@
+import { isLang, type Lang } from "@/lib/i18n";
 import type { Currency } from "@/lib/format";
 import { legacyMethods, normalizeMethods, type ShippingMethod } from "@/lib/shipping";
 import { defaultSite, mergeSite, type SiteSettings } from "@/lib/site";
@@ -27,6 +28,9 @@ export type StoreSettings = {
   currency: string;
   /** 0: iznosi su celi (RSD); 2: iznosi imaju dve decimale (EUR). */
   currencyDecimals: 0 | 2;
+  /** Jezik sajta i poruka kupcima, i jezik panela (lib/i18n). */
+  language: Lang;
+  panelLanguage: Lang;
   /** Jezik i zemlja za zapis datuma, npr. "sr-Latn-RS". */
   locale: string;
   /** Vremenska zona za datume i statistiku po danima, npr. "Europe/Belgrade". */
@@ -201,6 +205,8 @@ export const defaultSettings: Settings = {
     address: "",
     currency: "RSD",
     currencyDecimals: 0,
+    language: "sr",
+    panelLanguage: "sr",
     locale: "sr-Latn-RS",
     timeZone: "Europe/Belgrade",
     phonePrefix: "381",
@@ -259,7 +265,12 @@ export function mergeSettings(saved: Partial<Settings>): Settings {
   return {
     ...defaultSettings,
     ...saved,
-    store: { ...defaultSettings.store, ...saved.store },
+    store: {
+      ...defaultSettings.store,
+      ...saved.store,
+      language: isLang(saved.store?.language) ? saved.store.language : "sr",
+      panelLanguage: isLang(saved.store?.panelLanguage) ? saved.store.panelLanguage : "sr",
+    },
     colors: mergeColors(saved.colors),
     fonts: {
       display: isFontId(saved.fonts?.display) ? saved.fonts.display : defaultFonts.display,
