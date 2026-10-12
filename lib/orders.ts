@@ -19,7 +19,7 @@ export type OrderInput = {
   discountCode: string;
   /** Način plaćanja koji je kupac izabrao; prazan znači prvi uključen. */
   paymentMethod: string;
-  /** "pickup": kupac preuzima u salonu; sve ostalo je dostava. */
+  /** Id načina dostave (Podešavanja → Dostava); prazno: prvi koji važi za adresu. "pickup": lično preuzimanje. */
   deliveryMethod: string;
 };
 
@@ -34,6 +34,11 @@ export type OrderResult =
       paymentMethod: PaymentMethod;
       /** Podaci za uplatu, kada je izabrana uplata na račun. */
       paymentInstructions?: string;
+      /** Naziv izabranog načina dostave i rečenica o isporuci koju kupac vidi posle porudžbine. */
+      deliveryMethod: string;
+      deliveryNote: string;
+      /** Plaćanje karticom: adresa stranice procesora na koju sajt šalje kupca. */
+      paymentUrl?: string;
     }
   | { ok: false; errors: OrderErrors; message?: string };
 
@@ -55,9 +60,22 @@ export type Order = {
   /** Po ovome se porudžbine istog kupca spajaju u delu Kupci. */
   customerKey: string;
   customer: OrderCustomer;
-  /** `variant` je naziv izabrane varijante („Grafit, Orah"), ili prazno. */
-  items: { slug: string; name: string; variant: string; sku: string; qty: number; price: number }[];
+  /** `variant` je naziv izabrane varijante („Grafit, Orah"), ili prazno; `returned`: koliko je komada kupac vratio. */
+  items: { slug: string; name: string; variant: string; sku: string; qty: number; price: number; returned: number }[];
   paymentMethod: PaymentMethod;
+  /** Naziv načina dostave koji je kupac izabrao; `pickup`: preuzima sam. */
+  deliveryMethod: string;
+  pickup: boolean;
+  /** Broj pošiljke i adresa za praćenje, kada ih prodavac upiše. */
+  tracking?: { number: string; url: string };
+  /** Kada je uplata stigla (kartica odmah, uplata na račun kada je prodavac označi). */
+  paidAt?: string;
+  /** Oznaka transakcije kod procesora kartica. */
+  paymentRef?: string;
+  /** Ukupno vraćeno kupcu. */
+  refunded: number;
+  /** Stopa PDV-a u trenutku poručivanja; null kada prodavnica nije u sistemu PDV-a. */
+  taxPercent: number | null;
   subtotal: number;
   delivery: number;
   total: number;
@@ -70,6 +88,18 @@ export type Order = {
   /** Beleška prodavca; kupac je ne vidi. */
   adminNote?: string;
 };
+
+export type OrderEvent = { at: string; text: string };
+
+/** PDV sadržan u iznosu koji već uključuje PDV (cene u prodavnici su sa PDV-om). */
+export function includedTax(amount: number, percent: number): number {
+  return Math.round((amount * percent) / (100 + percent));
+}
+
+/** Koliko još može da se vrati kupcu. */
+export function refundable(order: { total: number; refunded: number }): number {
+  return Math.max(0, order.total - order.refunded);
+}
 
 /** Naziv stavke sa izabranom varijantom: „Fotelja Mio — Grafit, Orah". */
 export function itemName(item: { name: string; variant: string }): string {

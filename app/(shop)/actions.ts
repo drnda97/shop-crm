@@ -13,7 +13,9 @@ import {
   linkOrder,
   startSession,
 } from "@/lib/storefront/auth";
+import { clearCart, saveCart, unsubscribeCart } from "@/lib/abandoned";
 import { getShopProducts, getWelcomeCode } from "@/lib/storefront/catalog";
+import { getShopSettings, siteUrl } from "@/lib/storefront/pages";
 import { addMessage, addSubscriber } from "@/lib/storefront/inbox";
 import { CONTACT_TOPICS } from "./_components/topics";
 
@@ -135,6 +137,33 @@ export async function checkPromoAction(
   return check.ok ? { ok: true, ...check.discount } : { ok: false, message: "Ovaj kod ne važi." };
 }
 
+/**
+ * Pamti korpu uz email sa stranice plaćanja, za podsetnik ako kupac ne poruči. Ne radi ništa
+ * dok podsetnici nisu uključeni u panelu: bez toga se email ne čuva.
+ */
+export async function saveCartAction(input: {
+  email: string;
+  firstName: string;
+  items: { slug: string; variantId?: string; qty: number }[];
+}): Promise<void> {
+  const settings = await getShopSettings();
+  if (!settings.abandoned.enabled) return;
+  const email = asEmail(input?.email);
+  if (!email || (await tooMany("cart", 30))) return;
+  const items = (Array.isArray(input.items) ? input.items.slice(0, 100) : []).flatMap((item) => {
+    const qty = Number(item?.qty);
+    if (typeof item?.slug !== "string" || !Number.isInteger(qty) || qty < 1) return [];
+    return [{ slug: item.slug, qty, ...(typeof item.variantId === "string" ? { variant: item.variantId } : {}) }];
+  });
+  await saveCart({ email, firstName: asText(input.firstName, 100), items, siteUrl: await siteUrl() });
+}
+
+/** Odjava od podsetnika za korpu, sa linka u emailu. */
+export async function unsubscribeCartAction(token: string): Promise<boolean> {
+  if (await tooMany("unsubscribe", 30)) return false;
+  return unsubscribeCart(token);
+}
+
 export type CheckoutField = "email" | "phone" | "firstName" | "lastName" | "address" | "city" | "zip" | "note";
 export type CheckoutErrors = Partial<Record<CheckoutField, string>>;
 
@@ -146,8 +175,12 @@ export type PlacedOrder = {
   promoCode: string;
   delivery: number;
   total: number;
-  pickup: boolean;
+  /** Naziv načina dostave i rečenica o isporuci (Podešavanja → Dostava). */
+  deliveryMethod: string;
+  deliveryNote: string;
   paymentMethod: PaymentMethod;
+  /** Plaćanje karticom: adresa stranice procesora. */
+  paymentUrl?: string;
   /** Podaci za uplatu iz CRM-a, kada je izabrana uplata na račun. */
   paymentInstructions: string;
 };
@@ -158,7 +191,8 @@ export type PlaceOrderInput = {
   items: { slug: string; variantId?: string; qty: number }[];
   promoCode: string;
   payment: string;
-  pickup: boolean;
+  /** Id izabranog načina dostave. */
+  delivery: string;
 };
 
 const CUSTOMER_NOTE_MAX = 250;
@@ -218,12 +252,14 @@ export async function placeOrderAction(
     items,
     discountCode: asText(raw.promoCode, 64),
     paymentMethod: asText(raw.payment, 20),
-    deliveryMethod: raw.pickup === true ? "pickup" : "",
+    deliveryMethod: asText(raw.delivery, 60),
   });
   if (!result.ok) return { ok: false, errors: fromCrm(result.errors), message: result.message };
 
   const user = await getCurrentUser();
   if (user) await linkOrder(user.id, result.orderNumber);
+  // Kupac je poručio, pa mu podsetnik za korpu ne treba.
+  await clearCart(crmCustomer.email);
 
   const saved = (await getOrders()).find((order) => order.number === result.orderNumber);
   return {
@@ -236,8 +272,10 @@ export async function placeOrderAction(
       promoCode: saved?.discount?.code ?? "",
       delivery: saved?.delivery ?? 0,
       total: result.total,
-      pickup: raw.pickup === true,
+      deliveryMethod: result.deliveryMethod,
+      deliveryNote: result.deliveryNote,
       paymentMethod: result.paymentMethod,
+      ...(result.paymentUrl ? { paymentUrl: result.paymentUrl } : {}),
       paymentInstructions: result.paymentInstructions ?? "",
     },
   };

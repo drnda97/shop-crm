@@ -15,6 +15,7 @@ import {
   type Variant,
 } from "@/lib/catalog";
 import { imageSizes } from "@/lib/media";
+import { cardProvider } from "@/lib/payments";
 import { collectImages, sectionType } from "@/lib/sections";
 import {
   allowedOrigins,
@@ -170,6 +171,7 @@ export function publicPage(page: Page, base: string) {
 
 export function publicStore(settings: Settings, base: string) {
   const { store, shipping, payment } = settings;
+  const delivery = shipping.methods.find((method) => method.kind === "delivery") ?? shipping.methods[0];
   return {
     name: store.name,
     phone: store.phone,
@@ -183,13 +185,14 @@ export function publicStore(settings: Settings, base: string) {
     logo: mediaUrl(settings.logo, base),
     favicon: mediaUrl(settings.favicon, base),
     shipping: {
-      price: shipping.price,
-      /** Vrednost od koje je dostava besplatna; null kada je isključena. */
-      freeFrom: shipping.freeEnabled ? shipping.freeFrom : null,
-      /** Kupac može da izabere preuzimanje u salonu (deliveryMethod: "pickup"). */
-      pickup: shipping.pickupEnabled,
+      /** Načini dostave. Cena: prvi red iz `weightRates` čija granica (g) pokriva težinu, inače `price`; od `freeFrom` je besplatno. */
+      methods: shipping.methods,
+      // Polja iz prve verzije API-ja, po prvom načinu dostave.
+      price: delivery?.price ?? 0,
+      freeFrom: delivery?.freeFrom ?? null,
+      pickup: shipping.methods.some((method) => method.kind === "pickup"),
     },
-    paymentMethods: enabledPayments(settings).map((id) => ({
+    paymentMethods: enabledPayments(settings, cardProvider(settings) !== null).map((id) => ({
       id,
       label: paymentLabels[id],
       ...(id === "bank" ? { instructions: payment.bankInstructions } : {}),

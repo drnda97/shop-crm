@@ -4,15 +4,19 @@ import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { templatePlaceholders } from "@/lib/email-template";
 import { fromMinor } from "@/lib/format";
+import { PAYMENT_PROVIDERS } from "@/lib/payments";
+import { STATUS_EMAILS, statusEmailLabels } from "@/lib/settings";
+import { ShippingEditor } from "./shipping-editor";
 import {
   resetTemplateAction,
   saveAppearanceAction,
   saveMailAction,
   savePaymentAction,
-  saveShippingAction,
   saveStoreAction,
   sendTestEmailAction,
   uploadTemplateAction,
+  saveStatusEmailsAction,
+  saveTaxAction,
 } from "../actions";
 import {
   buttonClass,
@@ -45,10 +49,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   await requireAdmin();
   const { greska, ok } = await searchParams;
   // Lozinka za SMTP se namerno ne šalje u formu.
-  const { store, logo, favicon, mail, shipping, payment } = await getSettings();
+  const { store, logo, favicon, mail, shipping, payment, tax } = await getSettings();
+  const providers = PAYMENT_PROVIDERS.map((provider) => ({ id: provider.id, label: provider.label, ready: provider.ready() }));
   const previewPath = `${ADMIN_PATH}/podesavanja/pregled`;
   const decimals = store.currencyDecimals;
-  const priceStep = decimals === 0 ? "1" : "0.01";
 
   // Adresa ovog CRM-a, za primer povezivanja sajta.
   const requestHeaders = await headers();
@@ -203,47 +207,22 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           <section className={sectionClass}>
             <h2 className={sectionTitle}>Dostava</h2>
             <p className={sectionHint}>
-              Cena dostave se dodaje na svaku porudžbinu. Kada je besplatna dostava uključena, ne
-              naplaćuje se od upisanog iznosa naviše; gleda se vrednost proizvoda, posle popusta.
+              Načini dostave koje kupac bira pri poručivanju. Svaki ima svoju cenu (stalnu ili po
+              težini), prag za besplatnu dostavu i, po želji, zonu u koju se isporučuje. Prvi način
+              dostave na adresu je podrazumevan.
             </p>
-            <form action={saveShippingAction} className="flex flex-col gap-[16px]">
-              <label className={labelClass}>
-                Cena dostave ({store.currency})
-                <input
-                  name="price"
-                  type="number"
-                  min="0"
-                  step={priceStep}
-                  required
-                  defaultValue={fromMinor(shipping.price, decimals)}
-                  className={inputClass}
-                />
-              </label>
-              <label className={checkboxLabel}>
-                <Checkbox name="freeEnabled" defaultChecked={shipping.freeEnabled} />
-                Besplatna dostava za veće porudžbine
-              </label>
-              <label className={labelClass}>
-                Besplatna od iznosa ({store.currency})
-                <input
-                  name="freeFrom"
-                  type="number"
-                  min="0"
-                  step={priceStep}
-                  defaultValue={shipping.freeFrom ? fromMinor(shipping.freeFrom, decimals) : ""}
-                  className={inputClass}
-                />
-              </label>
-              <label className={checkboxLabel}>
-                <Checkbox name="pickupEnabled" defaultChecked={shipping.pickupEnabled} />
-                Kupac može da izabere preuzimanje u salonu (bez dostave)
-              </label>
-              <div>
-                <button type="submit" className={buttonClass}>
-                  Sačuvaj dostavu
-                </button>
-              </div>
-            </form>
+            <ShippingEditor
+              currency={store.currency}
+              methods={shipping.methods.map((method) => ({
+                ...method,
+                price: fromMinor(method.price, decimals),
+                freeFrom: fromMinor(method.freeFrom, decimals),
+                weightRates: method.weightRates.map((rate) => ({
+                  upTo: String(rate.upTo / 1000),
+                  price: fromMinor(rate.price, decimals),
+                })),
+              }))}
+            />
           </section>
 
           <section className={sectionClass}>
@@ -271,9 +250,84 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   className={`${inputClass} min-h-[100px]`}
                 />
               </label>
+              <label className={checkboxLabel}>
+                <Checkbox name="card" defaultChecked={payment.card} />
+                Plaćanje karticom — traži povezan procesor
+              </label>
+              <label className={labelClass}>
+                Procesor kartica
+                <select name="cardProvider" defaultValue={payment.cardProvider} className={inputClass}>
+                  <option value="">— nijedan —</option>
+                  {providers.map((provider) => (
+                    <option key={provider.id} value={provider.id} disabled={!provider.ready}>
+                      {provider.label}
+                      {provider.ready ? "" : " (nije povezan)"}
+                    </option>
+                  ))}
+                </select>
+                <span className="font-sans text-[14px] font-normal text-muted">
+                  {providers.some((provider) => provider.ready)
+                    ? "Kartica se nudi kupcu kada je uključena i procesor izabran."
+                    : "Nijedan procesor nije povezan, pa se kartica ne nudi kupcu ni kada je uključena. Procesor banke se dopisuje u lib/payments.ts."}
+                </span>
+              </label>
               <div>
                 <button type="submit" className={buttonClass}>
                   Sačuvaj plaćanje
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className={sectionClass}>
+            <h2 className={sectionTitle}>Račun i PDV</h2>
+            <p className={sectionHint}>
+Podaci za račun u PDF-u. Račun iz panela nije fiskalni račun: fiskalizaciju vodite kroz
+              svoj fiskalni uređaj ili servis.
+            </p>
+            <form action={saveTaxAction} className="flex flex-col gap-[16px]">
+              <label className={labelClass}>
+                Podaci firme (pun naziv, sedište, PIB, matični broj, tekući račun)
+                <textarea
+                  name="legal"
+                  defaultValue={store.legal}
+                  maxLength={1000}
+                  className={`${inputClass} min-h-[110px]`}
+                />
+              </label>
+              <label className={checkboxLabel}>
+                <Checkbox name="taxEnabled" defaultChecked={tax.enabled} />
+                Prodavnica je u sistemu PDV-a — na računu se iskazuju osnovica i PDV
+              </label>
+              <label className={labelClass}>
+                Stopa PDV-a (%)
+                <input
+                  name="taxPercent"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  defaultValue={tax.percent}
+                  className={inputClass}
+                />
+                <span className="font-sans text-[14px] font-normal text-muted">
+                  Cene u prodavnici već sadrže PDV; stopa služi samo da se on iskaže na računu.
+                </span>
+              </label>
+              <label className={labelClass}>
+                Račun u PDF-u u emailu kupcu
+                <select name="invoiceEmail" defaultValue={tax.invoiceEmail} className={inputClass}>
+                  <option value="none">Ne šalji</option>
+                  <option value="order">Uz potvrdu porudžbine</option>
+                  <option value="shipped">Uz poruku da je porudžbina poslata</option>
+                </select>
+                <span className="font-sans text-[14px] font-normal text-muted">
+                  Račun se uvek može preuzeti iz porudžbine u panelu, a prijavljen kupac ga vidi u svom nalogu.
+                </span>
+              </label>
+              <div>
+                <button type="submit" className={buttonClass}>
+                  Sačuvaj račun i PDV
                 </button>
               </div>
             </form>
@@ -339,7 +393,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             </form>
           </section>
 
-          <section className={sectionClass}>
+          <section id="email" className={`${sectionClass} scroll-mt-[20px]`}>
             <h2 className={sectionTitle}>Email o porudžbini</h2>
             <p className={sectionHint}>
               Kada neko poruči, šalje se email preko vašeg email naloga. Porudžbina se uvek sačuva u
@@ -439,6 +493,48 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               <button type="submit" className={quietButtonClass}>
                 Pošalji probni email na moju adresu
               </button>
+            </form>
+          </section>
+
+          <section className={sectionClass}>
+            <h2 className={sectionTitle}>Poruke o statusu</h2>
+            <p className={sectionHint}>
+Email kupcu kada porudžbina promeni status ili kada upišete povraćaj. U tekstu se{" "}
+              {"{ime}"}, {"{broj}"}, {"{pracenje}"} (broj pošiljke i link, kada su upisani),{" "}
+              {"{iznos}"} (kod povraćaja) i {"{prodavnica}"} menjaju podacima porudžbine. Ispod teksta idu stavke i iznosi, kao u potvrdi porudžbine.
+            </p>
+            <form action={saveStatusEmailsAction} className="flex flex-col gap-[18px]">
+              {STATUS_EMAILS.map((key) => (
+                <fieldset key={key} className="flex flex-col gap-[10px] border-t border-line pt-[14px] first:border-t-0 first:pt-0">
+                  <label className={checkboxLabel}>
+                    <Checkbox name={`${key}Enabled`} defaultChecked={mail.statusEmails[key].enabled} />
+                    Šalji {statusEmailLabels[key]}
+                  </label>
+                  <label className={labelClass}>
+                    Naslov
+                    <input
+                      name={`${key}Subject`}
+                      maxLength={200}
+                      defaultValue={mail.statusEmails[key].subject}
+                      className={inputClass}
+                    />
+                  </label>
+                  <label className={labelClass}>
+                    Tekst
+                    <textarea
+                      name={`${key}Text`}
+                      maxLength={2000}
+                      defaultValue={mail.statusEmails[key].text}
+                      className={`${inputClass} min-h-[80px]`}
+                    />
+                  </label>
+                </fieldset>
+              ))}
+              <div>
+                <button type="submit" className={buttonClass}>
+                  Sačuvaj poruke
+                </button>
+              </div>
             </form>
           </section>
 

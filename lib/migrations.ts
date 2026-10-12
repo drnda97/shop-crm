@@ -229,6 +229,62 @@ export const MIGRATIONS: Migration[] = [
       );
     },
   },
+  {
+    id: 11,
+    name: "porudžbine: način dostave, praćenje, uplata, povraćaj, PDV i istorija",
+    up: async (connection) => {
+      await connection.query(
+        `ALTER TABLE orders
+          ADD COLUMN delivery_method VARCHAR(191) NOT NULL DEFAULT '',
+          ADD COLUMN pickup TINYINT(1) NOT NULL DEFAULT 0,
+          ADD COLUMN tracking_number VARCHAR(100) NOT NULL DEFAULT '',
+          ADD COLUMN tracking_url VARCHAR(500) NOT NULL DEFAULT '',
+          ADD COLUMN paid_at DATETIME(3) NULL,
+          ADD COLUMN payment_ref VARCHAR(191) NOT NULL DEFAULT '',
+          ADD COLUMN refunded INT NOT NULL DEFAULT 0,
+          ADD COLUMN tax_percent DECIMAL(5,2) NULL`,
+      );
+      // Preuzimanje se do sada prepoznavalo po početku napomene.
+      await connection.query(
+        "UPDATE orders SET pickup = 1, delivery_method = 'Preuzimanje u salonu' WHERE note LIKE 'Preuzimanje u salonu.%'",
+      );
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS order_events (
+          id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          order_number INT NOT NULL,
+          at DATETIME(3) NOT NULL,
+          text VARCHAR(500) NOT NULL,
+          KEY order_events_order (order_number, id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+      );
+    },
+  },
+  {
+    id: 12,
+    name: "povraćaj po stavkama i napuštene korpe",
+    up: async (connection) => {
+      // Koliko je komada stavke kupac vratio: vraćeni komadi su već na stanju, pa ih
+      // otkazivanje porudžbine ne vraća drugi put.
+      await connection.query("ALTER TABLE order_items ADD COLUMN returned INT NOT NULL DEFAULT 0");
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS abandoned_carts (
+          id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          token CHAR(48) NOT NULL,
+          email VARCHAR(191) NOT NULL,
+          first_name VARCHAR(100) NOT NULL DEFAULT '',
+          site_url VARCHAR(255) NOT NULL DEFAULT '',
+          items TEXT NOT NULL,
+          value INT NOT NULL DEFAULT 0,
+          created_at DATETIME(3) NOT NULL,
+          updated_at DATETIME(3) NOT NULL,
+          reminded_at DATETIME(3) NULL,
+          unsubscribed TINYINT(1) NOT NULL DEFAULT 0,
+          UNIQUE KEY abandoned_carts_email (email),
+          UNIQUE KEY abandoned_carts_token (token)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+      );
+    },
+  },
 ];
 
 // GET_LOCK važi za ceo MySQL server, pa ime sadrži i bazu (najviše 64 znaka).

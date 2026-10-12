@@ -2,6 +2,7 @@
 
 import { existsSync } from "node:fs";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -49,20 +50,35 @@ import {
   type Discount,
   type DiscountTrigger,
 } from "@/lib/discounts";
-import { toMinor } from "@/lib/format";
+import { formatMoney, toMinor } from "@/lib/format";
 import {
   MAX_TEMPLATE_BYTES,
+  notifyStatus,
   removeCustomTemplate,
   saveCustomTemplate,
   sendTestEmail,
 } from "@/lib/order-email";
-import { setOrderNote, setOrderStatus } from "@/lib/order-store";
-import { orderStatusLabels, type OrderStatus } from "@/lib/orders";
+import {
+  addOrderEvent,
+  getOrder,
+  refundOrder,
+  setOrderCustomer,
+  setOrderNote,
+  setOrderPaid,
+  setOrderStatus,
+  setOrderTracking,
+  submitOrder,
+} from "@/lib/order-store";
+import { getDb } from "@/lib/db";
+import { customerKey, orderStatusLabels, refundable, validateCustomer, type OrderStatus } from "@/lib/orders";
 import { applyImport, parseImport, type ParsedImport } from "@/lib/product-import";
 import { clientIp, TOO_MANY, tooMany } from "@/lib/rate-limit";
 import { fetchImage } from "@/lib/remote-image";
 import { newSection, normalizeData, normalizeSections } from "@/lib/sections";
-import { defaultSettings, mergeSettings } from "@/lib/settings";
+import { findProvider } from "@/lib/payments";
+import { currencyOf, defaultSettings, INVOICE_EMAILS, mergeSettings, STATUS_EMAILS } from "@/lib/settings";
+import { normalizeMethods } from "@/lib/shipping";
+import { sendDueReminders } from "@/lib/abandoned";
 import { mergeSite } from "@/lib/site";
 import { IMPORT_KEY } from "./import-key";
 import type { VariantRow } from "./variants-editor";
@@ -1000,12 +1016,126 @@ function returnPath(formData: FormData, fallback: string): string {
 export async function setOrderStatusAction(formData: FormData) {
   await requireAdmin();
 
+  const number = text(formData, "number");
   const status = text(formData, "status");
   if (status in orderStatusLabels) {
-    await setOrderStatus(text(formData, "number"), status as OrderStatus);
+    await setOrderStatus(number, status as OrderStatus);
+    // Email kupcu o novom statusu ide pošto panel dobije odgovor; ishod se upisuje u istoriju porudžbine.
+    after(async () => {
+      const order = await getOrder(number);
+      if (!order || order.status !== status) return;
+      const outcome = await notifyStatus(order).catch((reason) => String(reason));
+      if (outcome === "skipped") return;
+      await addOrderEvent(
+        await getDb(),
+        number,
+        outcome === "sent" ? `Kupcu je poslat email: ${orderStatusLabels[order.status].toLowerCase()}` : `Email kupcu nije poslat: ${outcome}`,
+      );
+    });
   }
   refresh();
   redirect(returnPath(formData, `${ADMIN_PATH}/porudzbine`));
+}
+
+const orderPath = (number: string) => `${ADMIN_PATH}/porudzbine/${number}`;
+
+export async function saveTrackingAction(formData: FormData) {
+  await requireAdmin();
+  const number = text(formData, "number");
+  const url = text(formData, "trackingUrl").slice(0, 500);
+  if (url !== "" && !/^https?:\/\//.test(url)) {
+    backWithError(orderPath(number), "Adresa za praćenje počinje sa https:// ili http://.");
+  }
+  await setOrderTracking(number, { number: text(formData, "trackingNumber").slice(0, 100), url });
+  refresh();
+  redirect(orderPath(number));
+}
+
+export async function setOrderPaidAction(formData: FormData) {
+  await requireAdmin();
+  const number = text(formData, "number");
+  const paid = text(formData, "paid") === "yes";
+  await setOrderPaid(number, paid, paid ? "Označeno kao plaćeno" : "Oznaka plaćeno je uklonjena");
+  refresh();
+  redirect(orderPath(number));
+}
+
+/** Evidencija povraćaja: iznos se upisuje uz porudžbinu i oduzima od prodaje. Novac vraća prodavac. */
+export async function refundOrderAction(formData: FormData) {
+  await requireAdmin();
+  const number = text(formData, "number");
+  const [order, settings] = await Promise.all([getOrder(number), getSettings()]);
+  if (!order) backWithError(`${ADMIN_PATH}/porudzbine`, "Porudžbina više ne postoji.");
+  const amount = toMinor(text(formData, "amount"), settings.store.currencyDecimals);
+  if (amount === null || Number.isNaN(amount) || amount < 1) {
+    backWithError(orderPath(number), "Upišite iznos povraćaja.");
+  }
+  if (amount > refundable(order)) {
+    backWithError(orderPath(number), `Najviše može da se vrati ${formatMoney(refundable(order), currencyOf(settings))}.`);
+  }
+  const reason = text(formData, "reason").slice(0, 300);
+  // Vraćeni komadi po stavci: polja returned-0, returned-1… iz forme.
+  const returns = order.items.flatMap((item, position) => {
+    const qty = Math.round(Number(text(formData, `returned-${position}`)) || 0);
+    return qty > 0 ? [{ position, qty: Math.min(qty, item.qty - item.returned) }] : [];
+  });
+  const label = formatMoney(amount, currencyOf(settings));
+
+  // Kartica: ako procesor ume, novac se vraća preko njega; inače ga prodavac vraća sam.
+  const provider = order.paymentMethod === "card" && order.paymentRef ? findProvider(settings.payment.cardProvider) : undefined;
+  let how = "";
+  if (provider?.refund && provider.ready()) {
+    const sent = await provider.refund(order.paymentRef as string, amount);
+    if (!sent.ok) backWithError(orderPath(number), `Procesor kartica nije prihvatio povraćaj: ${sent.error}`);
+    how = ` (vraćeno na karticu, ${provider.label})`;
+  }
+
+  const done = await refundOrder(number, amount, `Povraćaj ${label}${how}${reason ? `: ${reason}` : ""}`, returns);
+  if (!done) backWithError(orderPath(number), "Povraćaj nije upisan: iznos prelazi ono što je ostalo da se vrati.");
+
+  after(async () => {
+    const fresh = await getOrder(number);
+    if (!fresh) return;
+    const outcome = await notifyStatus(fresh, "refunded", { iznos: label }).catch((cause) => String(cause));
+    if (outcome === "skipped") return;
+    await addOrderEvent(await getDb(), number, outcome === "sent" ? "Kupcu je poslat email o povraćaju" : `Email o povraćaju nije poslat: ${outcome}`);
+  });
+  refresh();
+  redirect(orderPath(number));
+}
+
+export async function saveOrderCustomerAction(formData: FormData) {
+  await requireAdmin();
+  const number = text(formData, "number");
+  const customer = {
+    name: text(formData, "name").slice(0, 255),
+    phone: text(formData, "phone").slice(0, 64),
+    email: text(formData, "email").slice(0, 255),
+    street: text(formData, "street").slice(0, 255),
+    city: text(formData, "city").slice(0, 255),
+    postalCode: text(formData, "postalCode").slice(0, 16),
+    note: text(formData, "note").slice(0, 500),
+  };
+  const errors = Object.values(validateCustomer(customer));
+  if (errors.length > 0) backWithError(orderPath(number), errors[0]);
+  const settings = await getSettings();
+  await setOrderCustomer(number, customer, customerKey(customer, settings.store.phonePrefix));
+  refresh();
+  redirect(orderPath(number));
+}
+
+export type ManualOrderResult = { ok: true; number: string } | { ok: false; error: string };
+
+/** Porudžbina uneta u panelu (telefonom, u radnji): prolazi iste provere kao porudžbina sa sajta. */
+export async function createManualOrderAction(input: unknown): Promise<ManualOrderResult> {
+  await requireAdmin();
+  const raw = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  // Kartica traži kupca na stranici procesora, pa se ručno unose samo pouzeće i uplata na račun.
+  if (raw.paymentMethod === "card") return { ok: false, error: "Ručna porudžbina se ne plaća karticom." };
+  const result = await submitOrder(raw, "Uneta ručno u panelu");
+  if (!result.ok) return { ok: false, error: result.message ?? Object.values(result.errors)[0] ?? "Proverite podatke." };
+  refresh();
+  return { ok: true, number: result.orderNumber };
 }
 
 export async function saveOrderNoteAction(formData: FormData) {
@@ -1023,6 +1153,36 @@ export async function saveCustomerNoteAction(formData: FormData) {
     await setCustomerNote(key, text(formData, "note").slice(0, 5000));
   }
   redirect(`${ADMIN_PATH}/kupci/${key}?ok=${encodeURIComponent("Beleška je sačuvana.")}`);
+}
+
+/* ---------- Napuštene korpe ---------- */
+
+const CARTS_PATH = `${ADMIN_PATH}/korpe`;
+
+export async function saveAbandonedAction(formData: FormData) {
+  await requireAdmin();
+  const hours = Math.round(Number(text(formData, "delayHours")));
+  if (!Number.isFinite(hours) || hours < 1 || hours > 168) {
+    backWithError(CARTS_PATH, "Podsetnik se šalje posle najmanje 1, a najviše 168 sati.");
+  }
+  await updateContent((content) => {
+    content.settings.abandoned = {
+      enabled: formData.get("enabled") === "on",
+      delayHours: hours,
+      subject: text(formData, "subject").slice(0, 200) || defaultSettings.abandoned.subject,
+      text: text(formData, "text").slice(0, 2000) || defaultSettings.abandoned.text,
+    };
+  });
+  refreshSite();
+  redirect(`${CARTS_PATH}?ok=${encodeURIComponent("Podešavanja podsetnika su sačuvana.")}`);
+}
+
+/** Šalje podsetnike kojima je vreme odmah, bez čekanja na raspored. */
+export async function sendRemindersAction() {
+  await requireAdmin();
+  const sent = await sendDueReminders();
+  refresh();
+  redirect(`${CARTS_PATH}?ok=${encodeURIComponent(`Poslato podsetnika: ${sent}.`)}`);
 }
 
 /* ---------- Poruke ---------- */
@@ -1094,6 +1254,7 @@ export async function saveStoreAction(formData: FormData) {
       phone: text(formData, "phone"),
       email,
       address: text(formData, "address"),
+      legal: content.settings.store.legal,
       currency,
       currencyDecimals: text(formData, "currencyDecimals") === "2" ? 2 : 0,
       locale,
@@ -1140,24 +1301,46 @@ export async function saveAppearanceAction(formData: FormData) {
   backWithNotice("Logo i favicon su sačuvani.");
 }
 
-export async function saveShippingAction(formData: FormData) {
+/** Načini dostave iz uređivača: iznosi stižu kao tekst, granice težine u kilogramima. */
+export async function saveShippingAction(input: unknown): Promise<SaveResult> {
   await requireAdmin();
-
   const decimals = (await getSettings()).store.currencyDecimals;
-  const price = toMinor(text(formData, "price"), decimals) ?? 0;
-  const freeFrom = toMinor(text(formData, "freeFrom"), decimals) ?? 0;
-  if (Number.isNaN(price) || Number.isNaN(freeFrom)) {
-    backWithError(SETTINGS_PATH, "Iznosi dostave su brojevi, npr. 450 ili 4,50.");
+  const amount = (value: unknown) => toMinor(typeof value === "string" ? value : "", decimals);
+
+  const rows = (Array.isArray(input) ? input : []) as Record<string, unknown>[];
+  const taken: string[] = [];
+  const methods: unknown[] = [];
+  for (const row of rows) {
+    const name = typeof row.name === "string" ? row.name.trim() : "";
+    if (!name) return { ok: false, error: "Svaki način dostave mora imati naziv." };
+    const price = amount(row.price) ?? 0;
+    const freeFrom = amount(row.freeFrom);
+    const rates = (Array.isArray(row.weightRates) ? row.weightRates : []).map((rate: Record<string, unknown>) => ({
+      upTo: Math.round(Number(String(rate.upTo ?? "").replace(",", ".")) * 1000),
+      price: amount(rate.price) ?? 0,
+    }));
+    if (Number.isNaN(price) || Number.isNaN(freeFrom) || rates.some((rate) => Number.isNaN(rate.price))) {
+      return { ok: false, error: `„${name}": iznosi su brojevi, npr. 450 ili 4,50.` };
+    }
+    if (rates.some((rate) => !(rate.upTo > 0))) {
+      return { ok: false, error: `„${name}": granica težine je broj kilograma veći od nule, npr. 2 ili 0,5.` };
+    }
+    // Način koji već postoji zadržava svoju oznaku; nov je dobija iz naziva.
+    const id =
+      typeof row.id === "string" && row.id && !taken.includes(row.id)
+        ? row.id
+        : uniqueSlug(name, taken).slice(0, 60) || `dostava-${taken.length + 1}`;
+    taken.push(id);
+    methods.push({ ...row, id, name, price, freeFrom, weightRates: rates });
   }
-  const freeEnabled = formData.get("freeEnabled") === "on";
-  if (freeEnabled && freeFrom < 1) {
-    backWithError(SETTINGS_PATH, "Upišite iznos od kog je dostava besplatna.");
-  }
-  const pickupEnabled = formData.get("pickupEnabled") === "on";
+  const normalized = normalizeMethods(methods);
+  if (normalized.length === 0) return { ok: false, error: "Mora postojati bar jedan način dostave." };
+
   await updateContent((content) => {
-    content.settings.shipping = { price, freeEnabled, freeFrom, pickupEnabled };
+    content.settings.shipping = { methods: normalized };
   });
-  backWithNotice("Dostava je sačuvana.");
+  refreshSite();
+  return { ok: true };
 }
 
 export async function savePaymentAction(formData: FormData) {
@@ -1165,15 +1348,53 @@ export async function savePaymentAction(formData: FormData) {
 
   const cod = formData.get("cod") === "on";
   const bank = formData.get("bank") === "on";
+  const card = formData.get("card") === "on";
+  const cardProvider = findProvider(text(formData, "cardProvider"))?.id ?? "";
   const bankInstructions = text(formData, "bankInstructions").slice(0, 2000);
-  if (!cod && !bank) backWithError(SETTINGS_PATH, "Bar jedan način plaćanja mora biti uključen.");
+  // Kartica se računa kao način plaćanja samo kada je procesor zaista povezan.
+  const cardReady = card && findProvider(cardProvider)?.ready() === true;
+  if (!cod && !bank && !cardReady) {
+    backWithError(SETTINGS_PATH, "Bar jedan način plaćanja mora biti uključen. Kartica se računa tek kada je procesor povezan.");
+  }
   if (bank && bankInstructions === "") {
     backWithError(SETTINGS_PATH, "Za uplatu na račun upišite podatke za uplatu.");
   }
   await updateContent((content) => {
-    content.settings.payment = { cod, bank, bankInstructions };
+    content.settings.payment = { cod, bank, bankInstructions, card, cardProvider };
   });
+  refreshSite();
   backWithNotice("Načini plaćanja su sačuvani.");
+}
+
+export async function saveTaxAction(formData: FormData) {
+  await requireAdmin();
+  const percent = Number(text(formData, "taxPercent").replace(",", "."));
+  if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+    backWithError(SETTINGS_PATH, "Stopa PDV-a je broj od 0 do 100.");
+  }
+  await updateContent((content) => {
+    content.settings.store.legal = text(formData, "legal").slice(0, 1000);
+    content.settings.tax = {
+      enabled: formData.get("taxEnabled") === "on",
+      percent,
+      invoiceEmail: INVOICE_EMAILS.find((value) => value === text(formData, "invoiceEmail")) ?? "none",
+    };
+  });
+  backWithNotice("Račun i PDV su sačuvani.");
+}
+
+export async function saveStatusEmailsAction(formData: FormData) {
+  await requireAdmin();
+  await updateContent((content) => {
+    for (const key of STATUS_EMAILS) {
+      content.settings.mail.statusEmails[key] = {
+        enabled: formData.get(`${key}Enabled`) === "on",
+        subject: text(formData, `${key}Subject`).slice(0, 200) || defaultSettings.mail.statusEmails[key].subject,
+        text: text(formData, `${key}Text`).slice(0, 2000) || defaultSettings.mail.statusEmails[key].text,
+      };
+    }
+  });
+  backWithNotice("Poruke o statusu su sačuvane.");
 }
 
 export async function saveMailAction(formData: FormData) {

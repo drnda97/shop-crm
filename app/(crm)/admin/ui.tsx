@@ -166,3 +166,21 @@ export function Thumb({
     />
   );
 }
+
+/**
+ * Upozorenje tamo gde panel šalje email kupcu, dok email nije povezan: prodavnica šalje poruke
+ * preko SMTP naloga svog domena, koji se upisuje u Podešavanjima.
+ */
+export function MailNotice({ configured, settingsPath }: { configured: boolean; settingsPath: string }) {
+  if (configured) return null;
+  return (
+    <p role="status" className="mb-[16px] rounded-[18px] bg-white px-[18px] py-[14px] text-[15px] shadow-[inset_0_0_0_1.5px_var(--color-gold)]">
+      <strong>Email nije povezan,</strong> pa kupci ne dobijaju potvrde, poruke o statusu ni podsetnike. Upišite SMTP
+      nalog svog domena u{" "}
+      <a href={`${settingsPath}#email`} className="font-display font-bold underline">
+        Podešavanja → Email o porudžbini
+      </a>
+      .
+    </p>
+  );
+}

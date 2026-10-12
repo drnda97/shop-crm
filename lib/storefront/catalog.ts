@@ -15,6 +15,7 @@ import {
 import { getCategories, getCollections, getDiscounts, getProducts, getSettings } from "@/lib/content";
 import { getShopSettings } from "@/lib/storefront/pages";
 import { isExpired } from "@/lib/discounts";
+import { cardProvider } from "@/lib/payments";
 import { enabledPayments, paymentLabels } from "@/lib/settings";
 import type { ShopConfig, ShopProduct } from "@/lib/storefront/products";
 
@@ -64,6 +65,7 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
       ...(onSale && !range.varies ? { oldPrice: product.price as number } : {}),
       priceFrom: range.varies,
       lowStock: lowStockLabel(product),
+      weight: product.weight ?? 0,
       image: product.image ?? null,
       tag: onSale ? `−${salePercent(product)}%` : (tagCollection?.name ?? ""),
       description: product.description,
@@ -96,7 +98,6 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
 
 export async function getShopConfig(): Promise<ShopConfig> {
   const [settings, categories] = await Promise.all([getShopSettings(), getCategories()]);
-  const { shipping } = settings;
   return {
     storeName: settings.store.name,
     logo: settings.logo ?? null,
@@ -107,10 +108,9 @@ export async function getShopConfig(): Promise<ShopConfig> {
       label: category.label,
       parent: category.parent,
     })),
-    shippingPrice: shipping.price,
-    freeFrom: shipping.freeEnabled ? shipping.freeFrom : null,
-    pickup: shipping.pickupEnabled,
-    payments: enabledPayments(settings).map((id) => ({ id, label: paymentLabels[id] })),
+    cartReminder: settings.abandoned.enabled,
+    shipping: settings.shipping.methods,
+    payments: enabledPayments(settings, cardProvider(settings) !== null).map((id) => ({ id, label: paymentLabels[id] })),
   };
 }
 

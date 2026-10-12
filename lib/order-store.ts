@@ -9,14 +9,20 @@ import { isExpired, normalizeCode, pickDiscount, type AppliedDiscount } from "@/
 import { notifyOrder } from "@/lib/order-email";
 import {
   customerKey,
+  orderStatusLabels,
   parseOrder,
   phoneDigits,
   validateCustomer,
   type Order,
+  type OrderCustomer,
+  type OrderEvent,
   type OrderResult,
   type OrderStatus,
 } from "@/lib/orders";
+import { cardProvider } from "@/lib/payments";
 import { enabledPayments, type PaymentMethod, type Settings } from "@/lib/settings";
+import { availableMethods, basePrice } from "@/lib/shipping";
+import { siteUrl } from "@/lib/storefront/pages";
 import { logStock, type StockChange } from "@/lib/stock";
 
 /**
@@ -49,8 +55,16 @@ function toOrder(row: RowDataPacket, items: RowDataPacket[]): Order {
         sku: item.sku,
         qty: item.qty,
         price: item.price,
+        returned: item.returned ?? 0,
       })),
     paymentMethod: row.payment_method,
+    deliveryMethod: row.delivery_method ?? "",
+    pickup: row.pickup === 1,
+    ...(row.tracking_number ? { tracking: { number: row.tracking_number, url: row.tracking_url ?? "" } } : {}),
+    ...(row.paid_at ? { paidAt: (row.paid_at as Date).toISOString() } : {}),
+    ...(row.payment_ref ? { paymentRef: row.payment_ref } : {}),
+    refunded: row.refunded ?? 0,
+    taxPercent: row.tax_percent == null ? null : Number(row.tax_percent),
     subtotal: row.subtotal,
     delivery: row.delivery,
     total: row.total,
@@ -87,6 +101,150 @@ export async function getOrders(): Promise<Order[]> {
   return orders.map((row) => toOrder(row, items));
 }
 
+export async function getOrder(number: string): Promise<Order | null> {
+  if (!/^\d{1,10}$/.test(number)) return null;
+  const db = await getDb();
+  const [orders] = await db.query<RowDataPacket[]>("SELECT * FROM orders WHERE number = ?", [number]);
+  if (orders.length === 0) return null;
+  const [items] = await db.query<RowDataPacket[]>(
+    "SELECT * FROM order_items WHERE order_number = ? ORDER BY position",
+    [number],
+  );
+  return toOrder(orders[0], items);
+}
+
+/* ---------- Istorija porudžbine ---------- */
+
+type Queryable = Pick<PoolConnection, "query">;
+
+/** Dodaje red u istoriju porudžbine: šta se desilo i kada. */
+export async function addOrderEvent(db: Queryable, number: string | number, text: string) {
+  await db.query("INSERT INTO order_events (order_number, at, text) VALUES (?, ?, ?)", [
+    number,
+    new Date(),
+    text.slice(0, 500),
+  ]);
+}
+
+/** Istorija porudžbine, najnovije prvo. */
+export async function getOrderEvents(number: string): Promise<OrderEvent[]> {
+  const [rows] = await (
+    await getDb()
+  ).query<RowDataPacket[]>("SELECT at, text FROM order_events WHERE order_number = ? ORDER BY id DESC", [
+    number,
+  ]);
+  return rows.map((row) => ({ at: (row.at as Date).toISOString(), text: row.text }));
+}
+
+/* ---------- Praćenje, uplata, povraćaj, podaci kupca ---------- */
+
+export async function setOrderTracking(number: string, tracking: { number: string; url: string }) {
+  const db = await getDb();
+  await db.query("UPDATE orders SET tracking_number = ?, tracking_url = ? WHERE number = ?", [
+    tracking.number,
+    tracking.url,
+    number,
+  ]);
+  await addOrderEvent(db, number, tracking.number ? `Upisan broj pošiljke ${tracking.number}` : "Broj pošiljke je uklonjen");
+}
+
+/**
+ * Označava porudžbinu kao plaćenu ili neplaćenu. Vraća false kada se ništa nije promenilo
+ * (npr. procesor je istu uplatu potvrdio dva puta), da se događaj ne upiše dvaput.
+ */
+export async function setOrderPaid(number: string, paid: boolean, note: string, reference = ""): Promise<boolean> {
+  const db = await getDb();
+  // Uslov u upitu: ista potvrda koja stigne dva puta menja porudžbinu samo jednom.
+  const [changed] = paid
+    ? await db.query<ResultSetHeader>(
+        "UPDATE orders SET paid_at = ?, payment_ref = ? WHERE number = ? AND paid_at IS NULL",
+        [new Date(), reference, number],
+      )
+    : await db.query<ResultSetHeader>(
+        "UPDATE orders SET paid_at = NULL WHERE number = ? AND paid_at IS NOT NULL",
+        [number],
+      );
+  if (changed.affectedRows === 0) return false;
+  await addOrderEvent(db, number, note);
+  return true;
+}
+
+/**
+ * Povraćaj: beleži iznos vraćen kupcu i, ako je kupac vratio robu, vraća te komade na stanje.
+ * `returns` su stavke po rednom broju sa brojem vraćenih komada. Sam novac vraća prodavac (ili
+ * procesor kartica); ovde je evidencija. Vraća false kada iznos prelazi ono što je ostalo.
+ */
+export async function refundOrder(
+  number: string,
+  amount: number,
+  reason: string,
+  returns: { position: number; qty: number }[] = [],
+): Promise<boolean> {
+  return withContentLock(async (connection) => {
+    // Uslov u upitu: zbir povraćaja ne može da pređe iznos porudžbine, ni kada stignu dva odjednom.
+    const [changed] = await connection.query<ResultSetHeader>(
+      "UPDATE orders SET refunded = refunded + ? WHERE number = ? AND refunded + ? <= total",
+      [amount, number, amount],
+    );
+    if (changed.affectedRows === 0) return false;
+
+    const [status] = await connection.query<RowDataPacket[]>("SELECT status FROM orders WHERE number = ?", [number]);
+    const stock: StockChange[] = [];
+    const back: string[] = [];
+    for (const entry of returns) {
+      const [rows] = await connection.query<RowDataPacket[]>(
+        "SELECT slug, name, variant, variant_id, qty, returned FROM order_items WHERE order_number = ? AND position = ?",
+        [number, entry.position],
+      );
+      const item = rows[0];
+      const qty = item ? Math.min(entry.qty, item.qty - item.returned) : 0;
+      if (qty < 1) continue;
+      await connection.query(
+        "UPDATE order_items SET returned = returned + ? WHERE order_number = ? AND position = ?",
+        [qty, number, entry.position],
+      );
+      back.push(`${qty} × ${item.variant ? `${item.name} — ${item.variant}` : item.name}`);
+      // Otkazana porudžbina je sve komade već vratila na stanje.
+      if (status[0]?.status === "cancelled") continue;
+      const after = await restock(connection, item.slug, item.variant_id, qty);
+      if (after !== undefined) {
+        stock.push({ slug: item.slug, variantId: item.variant_id, change: qty, qtyAfter: after, reason: `Povraćaj robe, porudžbina #${number}` });
+      }
+    }
+    await logStock(connection, stock);
+    await addOrderEvent(connection, number, back.length > 0 ? `${reason}. Vraćeno na stanje: ${back.join(", ")}` : reason);
+    return true;
+  });
+}
+
+/**
+ * Vraća (qty > 0) ili skida (qty < 0) komade tamo gde se stanje vodi: sa varijante ili sa
+ * proizvoda. Vraća novo stanje, ili undefined kada se broj komada ne vodi.
+ */
+async function restock(connection: PoolConnection, slug: string, variantId: string, qty: number): Promise<number | undefined> {
+  const [table, where, key] = variantId
+    ? ["product_variants", "product_slug = ? AND id = ?", [slug, variantId]]
+    : ["products", "slug = ?", [slug]];
+  const [changed] = await connection.query<ResultSetHeader>(
+    `UPDATE ${table} SET stock_qty = GREATEST(stock_qty + ?, 0) WHERE ${where} AND stock_qty IS NOT NULL`,
+    [qty, ...key],
+  );
+  if (changed.affectedRows === 0) return undefined;
+  const [now] = await connection.query<RowDataPacket[]>(`SELECT stock_qty FROM ${table} WHERE ${where}`, key);
+  return now[0]?.stock_qty;
+}
+
+/** Ispravka podataka kupca na porudžbini (adresa, telefon); kupac se i dalje prepoznaje po novim podacima. */
+export async function setOrderCustomer(number: string, customer: OrderCustomer, key: string) {
+  const db = await getDb();
+  await db.query(
+    `UPDATE orders SET customer_key = ?, customer_name = ?, phone = ?, email = ?, street = ?, city = ?,
+      postal_code = ?, note = ? WHERE number = ?`,
+    [key, customer.name, customer.phone, customer.email, customer.street, customer.city, customer.postalCode, customer.note, number],
+  );
+  await addOrderEvent(db, number, "Izmenjeni podaci kupca");
+}
+
 /** Koliko porudžbina čeka obradu (nove); za oznaku u meniju panela. */
 export async function countNewOrders(): Promise<number> {
   const [rows] = await (
@@ -111,37 +269,28 @@ export async function setOrderStatus(number: string, status: OrderStatus) {
     const isCancelled = status === "cancelled";
     if (wasCancelled !== isCancelled) {
       const [items] = await connection.query<RowDataPacket[]>(
-        "SELECT slug, variant_id, qty FROM order_items WHERE order_number = ?",
+        "SELECT slug, variant_id, qty, returned FROM order_items WHERE order_number = ?",
         [number],
       );
       const changes: StockChange[] = [];
       for (const item of items) {
-        // Stanje se vraća tamo odakle je skinuto: sa varijante, ili sa proizvoda.
-        const [table, where, key] = item.variant_id
-          ? ["product_variants", "product_slug = ? AND id = ?", [item.slug, item.variant_id]]
-          : ["products", "slug = ?", [item.slug]];
-        const [changed] = await connection.query<ResultSetHeader>(
-          `UPDATE ${table} SET stock_qty = ${
-            isCancelled ? "stock_qty + ?" : "GREATEST(stock_qty - ?, 0)"
-          } WHERE ${where} AND stock_qty IS NOT NULL`,
-          [item.qty, ...key],
-        );
-        if (changed.affectedRows === 0) continue;
-        const [now] = await connection.query<RowDataPacket[]>(
-          `SELECT stock_qty FROM ${table} WHERE ${where}`,
-          key,
-        );
+        // Komadi koje je kupac već vratio (povraćaj) su na stanju; menja se samo ostatak.
+        const qty = item.qty - item.returned;
+        if (qty < 1) continue;
+        const after = await restock(connection, item.slug, item.variant_id, isCancelled ? qty : -qty);
+        if (after === undefined) continue;
         changes.push({
           slug: item.slug,
           variantId: item.variant_id,
-          change: isCancelled ? item.qty : -item.qty,
-          qtyAfter: now[0]?.stock_qty ?? null,
+          change: isCancelled ? qty : -qty,
+          qtyAfter: after,
           reason: isCancelled ? `Otkazana porudžbina #${number}` : `Vraćena porudžbina #${number}`,
         });
       }
       await logStock(connection, changes);
     }
     await connection.query("UPDATE orders SET status = ? WHERE number = ?", [status, number]);
+    await addOrderEvent(connection, number, `Status: ${orderStatusLabels[status]}`);
   });
 }
 
@@ -260,9 +409,6 @@ function generateCode(prefix: string): string {
   return code;
 }
 
-/** Početak napomene porudžbine koju kupac preuzima u salonu. */
-export const PICKUP_NOTE = "Preuzimanje u salonu.";
-
 class CodeAlreadyUsed extends Error {}
 class OutOfStock extends Error {}
 
@@ -277,6 +423,8 @@ async function insertOrder(
   weight: number,
   usedCode: ResolvedCode | null,
   settings: Settings,
+  /** Prvi red istorije: odakle je porudžbina stigla. */
+  source: string,
 ): Promise<Order> {
   const discounts = await getDiscounts();
   return withContentLock(async (connection) => {
@@ -302,7 +450,8 @@ async function insertOrder(
     const [result] = await connection.query<ResultSetHeader>(
       `INSERT INTO orders (received_at, status, customer_key, customer_name, phone, email, street,
         city, postal_code, note, payment_method, subtotal, delivery, total, discount_code,
-        discount_percent, discount_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        discount_percent, discount_amount, delivery_method, pickup, tax_percent)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         new Date(order.receivedAt),
         order.status,
@@ -321,9 +470,13 @@ async function insertOrder(
         order.discount?.code ?? null,
         order.discount?.percent ?? null,
         order.discount?.amount ?? 0,
+        order.deliveryMethod,
+        order.pickup,
+        order.taxPercent,
       ],
     );
     const number = result.insertId;
+    await addOrderEvent(connection, number, source);
     await connection.query(
       `INSERT INTO order_items (order_number, position, slug, name, variant, variant_id, sku, qty, price)
        VALUES ?`,
@@ -423,7 +576,7 @@ async function insertOrder(
  * čuva porudžbinu, koja se zatim vidi u admin panelu. Posle upisa šalje email
  * prodavcu i kupcu, prema podešavanjima u panelu (lib/order-email.ts).
  */
-export async function submitOrder(input: unknown): Promise<OrderResult> {
+export async function submitOrder(input: unknown, source = "Porudžbina primljena sa sajta"): Promise<OrderResult> {
   const { customer, items, discountCode, paymentMethod, deliveryMethod } = parseOrder(input);
 
   const errors = validateCustomer(customer);
@@ -432,14 +585,23 @@ export async function submitOrder(input: unknown): Promise<OrderResult> {
   }
 
   const settings = await getSettings();
-  const payments = enabledPayments(settings);
+  const provider = cardProvider(settings);
+  const payments = enabledPayments(settings, provider !== null);
   const payment = payments.find((method) => method === paymentMethod) as PaymentMethod | undefined;
   if (paymentMethod !== "" && !payment) {
     return { ok: false, errors: {}, message: "Izabrani način plaćanja nije dostupan." };
   }
-  const pickup = deliveryMethod === "pickup";
-  if (pickup && !settings.shipping.pickupEnabled) {
-    return { ok: false, errors: {}, message: "Preuzimanje u salonu nije dostupno." };
+  // Način dostave: izabrani, ili prvi koji važi za upisani poštanski broj.
+  const methods = availableMethods(settings.shipping.methods, customer.postalCode);
+  const method =
+    deliveryMethod === ""
+      ? (methods.find((candidate) => candidate.kind === "delivery") ?? methods[0])
+      : methods.find((candidate) =>
+          // "pickup" je oznaka iz prve verzije API-ja: prvo lično preuzimanje u spisku.
+          deliveryMethod === "pickup" ? candidate.kind === "pickup" : candidate.id === deliveryMethod,
+        );
+  if (!method) {
+    return { ok: false, errors: {}, message: "Izabrani način dostave nije dostupan za vašu adresu." };
   }
 
   // Cene i stanje se uzimaju iz proizvoda na serveru, nikad iz onoga što pošalje sajt.
@@ -464,11 +626,10 @@ export async function submitOrder(input: unknown): Promise<OrderResult> {
   const applied = discountCode ? await resolveCode(discountCode, customer, settings) : null;
   if (discountCode && !applied) return codeProblem;
 
-  const { shipping } = settings;
   const pricing = getPricing(lines, {
     discountPercent: applied?.percent,
-    deliveryPrice: pickup ? 0 : shipping.price,
-    freeShippingFrom: shipping.freeEnabled ? shipping.freeFrom : null,
+    deliveryPrice: basePrice(method, getWeight(lines)),
+    freeShippingFrom: method.freeFrom,
   });
   const useCode = applied && pricing.discount > 0 ? applied : null;
 
@@ -479,8 +640,7 @@ export async function submitOrder(input: unknown): Promise<OrderResult> {
         receivedAt: new Date().toISOString(),
         status: "new",
         customerKey: customerKey(customer, settings.store.phonePrefix),
-        // Preuzimanje se upisuje u napomenu, pa ga prodavac vidi u panelu i u emailu.
-        customer: pickup ? { ...customer, note: `${PICKUP_NOTE} ${customer.note}`.trim() } : customer,
+        customer,
         items: lines.map((line) => ({
           slug: line.product.slug,
           name: line.product.name,
@@ -490,8 +650,13 @@ export async function submitOrder(input: unknown): Promise<OrderResult> {
           qty: line.qty,
           // Cena u trenutku poručivanja: akcijska ako akcija važi.
           price: currentPrice(line.product, line.variant) ?? 0,
+          returned: 0,
         })),
         paymentMethod: payment ?? payments[0],
+        deliveryMethod: method.name,
+        pickup: method.kind === "pickup",
+        refunded: 0,
+        taxPercent: settings.tax.enabled ? settings.tax.percent : null,
         subtotal: pricing.subtotal,
         delivery: pricing.delivery,
         total: pricing.total,
@@ -503,6 +668,7 @@ export async function submitOrder(input: unknown): Promise<OrderResult> {
       getWeight(lines),
       useCode,
       settings,
+      source,
     );
   } catch (error) {
     if (error instanceof CodeAlreadyUsed) return codeProblem;
@@ -529,11 +695,29 @@ export async function submitOrder(input: unknown): Promise<OrderResult> {
     }
   });
 
+  // Kartica: procesor daje adresu na kojoj kupac plaća. Ako pokretanje ne uspe, porudžbina
+  // ostaje sačuvana kao neplaćena, a kupac dobija poruku umesto adrese.
+  let paymentUrl: string | undefined;
+  if (order.paymentMethod === "card" && provider) {
+    const started = await provider.start({
+      orderNumber: order.number,
+      amount: order.total,
+      currency: settings.store.currency,
+      customerEmail: order.customer.email,
+      callbackUrl: `${await siteUrl()}/api/v1/payments/${provider.id}`,
+    });
+    if (started.ok) paymentUrl = started.redirectUrl;
+    else await addOrderEvent(await getDb(), order.number, `Plaćanje karticom nije pokrenuto: ${started.error}`);
+  }
+
   return {
     ok: true,
     orderNumber: order.number,
     total: order.total,
     paymentMethod: order.paymentMethod,
+    deliveryMethod: method.name,
+    deliveryNote: method.confirmation,
+    ...(paymentUrl ? { paymentUrl } : {}),
     ...(order.paymentMethod === "bank" && settings.payment.bankInstructions
       ? { paymentInstructions: settings.payment.bankInstructions }
       : {}),
@@ -544,7 +728,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Vrednost proizvoda u porudžbini, posle popusta i bez dostave. */
 function itemsValue(order: Order): number {
-  return order.subtotal - (order.discount?.amount ?? 0);
+  // Novac vraćen kupcu nije prodaja.
+  return Math.max(0, order.subtotal - (order.discount?.amount ?? 0) - order.refunded);
 }
 
 function pieces(order: Order): number {

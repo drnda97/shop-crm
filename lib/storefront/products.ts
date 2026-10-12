@@ -4,6 +4,8 @@
  */
 
 import type { ProductHighlight, ProductOption } from "@/lib/catalog";
+import type { PaymentMethod } from "@/lib/settings";
+import type { ShippingMethod } from "@/lib/shipping";
 import type { Templates } from "@/lib/templates";
 
 export type ShopProduct = {
@@ -31,6 +33,8 @@ export type ShopProduct = {
   image: string | null;
   /** Oznaka na kartici („Novo", „Bestseler", „−15%"), ili prazno. */
   tag: string;
+  /** Težina u gramima (0 kada nije upisana), za dostavu koja se naplaćuje po težini. */
+  weight: number;
   /** Opis na stranici proizvoda. */
   description: string;
   attributes: { title: string; text: string }[];
@@ -76,12 +80,11 @@ export type ShopConfig = {
   texts: Templates;
   /** Kategorije iz CRM-a, složene kao stablo (nadkategorija pa njene podkategorije). */
   categories: ShopCategory[];
-  shippingPrice: number;
-  /** Vrednost korpe od koje je dostava besplatna; null kada je isključena. */
-  freeFrom: number | null;
-  /** Kupac može da izabere preuzimanje u salonu. */
-  pickup: boolean;
-  payments: { id: "cod" | "bank"; label: string }[];
+  /** Kupac koji upiše email na stranici plaćanja, a ne poruči, dobija podsetnik (panel → Napuštene korpe). */
+  cartReminder: boolean;
+  /** Načini dostave iz CRM-a (Podešavanja → Dostava); cenu za korpu računa lib/shipping.ts. */
+  shipping: ShippingMethod[];
+  payments: { id: PaymentMethod; label: string }[];
 };
 
 /** 39900 → „39.900 RSD". */

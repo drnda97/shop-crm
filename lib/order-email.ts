@@ -4,8 +4,9 @@ import nodemailer from "nodemailer";
 import { getSettings, getStoredValue, setStoredValue, uploadPath } from "@/lib/content";
 import { defaultEmailTemplate } from "@/lib/email-template";
 import { formatMoney } from "@/lib/format";
+import { invoiceFileName, invoicePdf } from "@/lib/invoice";
 import { itemName, type Order } from "@/lib/orders";
-import { currencyOf, type Settings } from "@/lib/settings";
+import { currencyOf, STATUS_EMAILS, type Settings, type StatusEmailKey } from "@/lib/settings";
 
 /**
  * Email o porudžbini: prodavcu obaveštenje, kupcu potvrda. Šalje se preko
@@ -46,11 +47,13 @@ type RenderInput = {
   order: Order;
   recipient: Recipient;
   settings: Settings;
+  /** Poruka o promeni statusa: zamenjuje naslov, tekst i naslov emaila; ostatak (stavke, iznosi) ostaje. */
+  notice?: { subject: string; title: string; message: string };
   /** Adresa slike logoa: `cid:` prilog pri slanju, javna putanja u pregledu. */
   logoSrc?: string;
 };
 
-export function renderOrderEmail({ template, order, recipient, settings, logoSrc }: RenderInput) {
+export function renderOrderEmail({ template, order, recipient, settings, logoSrc, notice }: RenderInput) {
   const { customer } = order;
   const { store, colors, payment } = settings;
   const currency = currencyOf(settings);
@@ -65,21 +68,25 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
   }).format(new Date(order.receivedAt));
 
   const bank = order.paymentMethod === "bank";
-  const title = recipient === "seller" ? "Nova porudžbina" : "Hvala, porudžbina je primljena.";
+  const card = order.paymentMethod === "card";
+  const title = notice?.title ?? (recipient === "seller" ? "Nova porudžbina" : "Hvala, porudžbina je primljena.");
   const message =
-    recipient === "seller"
-      ? `Stigla je nova porudžbina. Plaćanje: ${bank ? "uplata na račun" : "pouzećem"}.`
-      : bank
-        ? "Porudžbinu šaljemo kada uplata stigne. Podaci za uplatu su ispod."
-        : "Javićemo vam se da potvrdimo porudžbinu i dan slanja. Ništa ne plaćate sada — iznos plaćate kuriru pri preuzimanju.";
-  const totalLabel = bank ? "Za uplatu" : "Za naplatu, pouzećem";
+    notice?.message ??
+    (recipient === "seller"
+      ? `Stigla je nova porudžbina. Plaćanje: ${card ? "karticom" : bank ? "uplata na račun" : "pouzećem"}. Dostava: ${order.deliveryMethod}.`
+      : card
+        ? "Porudžbinu šaljemo kada uplata karticom bude potvrđena."
+        : bank
+          ? "Porudžbinu šaljemo kada uplata stigne. Podaci za uplatu su ispod."
+          : "Javićemo vam se da potvrdimo porudžbinu i dan slanja. Ništa ne plaćate sada — iznos plaćate pri preuzimanju.");
+  const totalLabel = order.paidAt ? "Plaćeno" : card ? "Za plaćanje karticom" : bank ? "Za uplatu" : "Za naplatu, pouzećem";
   const contact = [store.phone, store.email || settings.mail.sellerEmail]
     .filter(Boolean)
     .join(" · ");
   const address = `${customer.street}, ${customer.postalCode} ${customer.city}`;
 
   // Podaci za uplatu idu samo kupcu, i samo kada je izabrao uplatu na račun.
-  const showBank = bank && recipient === "customer" && payment.bankInstructions !== "";
+  const showBank = bank && !order.paidAt && recipient === "customer" && payment.bankInstructions !== "";
   const paymentBlock = showBank
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:${colors.surface};"><tr><td style="padding:18px 20px;font-size:15px;color:${colors.text};"><div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:${accentText(colors)};padding-bottom:6px;">Podaci za uplatu</div>${escapeHtml(payment.bankInstructions).replace(/\n/g, "<br>")}<div style="padding-top:8px;">Iznos: <strong>${amount(order.total)}</strong> · poziv na broj: <strong>${escapeHtml(order.number)}</strong></div></td></tr></table>`
     : "";
@@ -153,7 +160,7 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
           `Popust ${order.discount.percent}% (kod ${order.discount.code}): −${amount(order.discount.amount)}`,
         ]
       : []),
-    `Dostava: ${amount(order.delivery)}`,
+    `${order.deliveryMethod || "Dostava"}: ${amount(order.delivery)}`,
     `${totalLabel}: ${amount(order.total)}`,
     ...(showBank
       ? ["", "Podaci za uplatu:", payment.bankInstructions, `Poziv na broj: ${order.number}`]
@@ -178,9 +185,10 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
   ].join("\n");
 
   const subject =
-    recipient === "seller"
+    notice?.subject ??
+    (recipient === "seller"
       ? `Nova porudžbina #${order.number} — ${customer.name}`
-      : `Porudžbina #${order.number} je primljena — ${store.name}`;
+      : `Porudžbina #${order.number} je primljena — ${store.name}`);
 
   return { subject, html, text };
 }
@@ -203,10 +211,14 @@ export function sampleOrder(settings: Settings): Order {
       note: "Interfon 5, posle 17 h",
     },
     items: [
-      { slug: "prvi-proizvod", name: "Prvi proizvod", variant: "Plava, M", sku: "", qty: 2, price: 950 * unit },
-      { slug: "drugi-proizvod", name: "Drugi proizvod", variant: "", sku: "", qty: 1, price: 1050 * unit },
+      { slug: "prvi-proizvod", name: "Prvi proizvod", variant: "Plava, M", sku: "", qty: 2, price: 950 * unit, returned: 0 },
+      { slug: "drugi-proizvod", name: "Drugi proizvod", variant: "", sku: "", qty: 1, price: 1050 * unit, returned: 0 },
     ],
     paymentMethod: settings.payment.bank && !settings.payment.cod ? "bank" : "cod",
+    deliveryMethod: settings.shipping.methods[0]?.name ?? "Dostava",
+    pickup: false,
+    refunded: 0,
+    taxPercent: settings.tax.enabled ? settings.tax.percent : null,
     subtotal: 2950 * unit,
     delivery: 450 * unit,
     total: 3105 * unit,
@@ -223,13 +235,8 @@ function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/**
- * Šalje emailove o porudžbini prema podešavanjima. Vraća opis greške, ili
- * null kada je sve poslato. Proba (`test`) šalje obe varijante na adresu prodavca.
- */
-async function send(order: Order, settings: Settings, test: boolean): Promise<string | null> {
-  const { mail } = settings;
-  const transport = nodemailer.createTransport({
+function createTransport({ mail }: Settings) {
+  return nodemailer.createTransport({
     host: mail.smtpHost,
     port: mail.smtpPort,
     // Port 465 šifruje vezu od početka; ostali prelaze na šifrovanu kada server to ponudi.
@@ -239,6 +246,15 @@ async function send(order: Order, settings: Settings, test: boolean): Promise<st
     greetingTimeout: 10_000,
     socketTimeout: 20_000,
   });
+}
+
+/**
+ * Šalje emailove o porudžbini prema podešavanjima. Vraća opis greške, ili
+ * null kada je sve poslato. Proba (`test`) šalje obe varijante na adresu prodavca.
+ */
+async function send(order: Order, settings: Settings, test: boolean): Promise<string | null> {
+  const { mail } = settings;
+  const transport = createTransport(settings);
 
   const template = await getEmailTemplate(settings);
   const logoFile = uploadPath(settings.logo);
@@ -288,9 +304,13 @@ async function send(order: Order, settings: Settings, test: boolean): Promise<st
         html,
         text,
         // Logo ide kao prilog u poruci, pa se vidi i kada program za email blokira slike sa interneta.
-        attachments: logoFile
-          ? [{ filename: path.basename(logoFile), path: logoFile, cid: LOGO_CID }]
-          : [],
+        attachments: [
+          ...(logoFile ? [{ filename: path.basename(logoFile), path: logoFile, cid: LOGO_CID }] : []),
+          // Račun u PDF-u ide kupcu uz potvrdu porudžbine, kada je tako izabrano u Podešavanjima.
+          ...(message.recipient === "customer" && !test && settings.tax.invoiceEmail === "order"
+            ? [await invoiceAttachment(order, settings)]
+            : []),
+        ],
       });
     } catch (error) {
       errors.push(`${message.recipient === "seller" ? "prodavcu" : "kupcu"}: ${errorText(error)}`);
@@ -299,6 +319,82 @@ async function send(order: Order, settings: Settings, test: boolean): Promise<st
   transport.close();
   return errors.length > 0 ? errors.join(" · ") : null;
 }
+
+/** Tekst iz podešavanja sa upisanim podacima porudžbine. */
+export function fillStatusText(text: string, order: Order, storeName: string, extra: Record<string, string> = {}): string {
+  const tracking = order.tracking
+    ? `Broj pošiljke: ${order.tracking.number}${order.tracking.url ? ` — praćenje: ${order.tracking.url}` : ""}.`
+    : "";
+  const values: Record<string, string> = {
+    broj: order.number,
+    ime: order.customer.name.split(" ")[0] ?? "",
+    pracenje: tracking,
+    prodavnica: storeName,
+    ...extra,
+  };
+  return text.replace(/\{([a-z]+)\}/g, (match, key: string) => values[key] ?? match).replace(/[ \t]+$/gm, "").trim();
+}
+
+/**
+ * Email kupcu o porudžbini: promena statusa ili povraćaj novca, ako je ta poruka uključena u
+ * Podešavanjima. `key` je poruka koja se šalje (podrazumevano po statusu porudžbine), a `extra`
+ * dodatni podaci za tekst (npr. iznos povraćaja).
+ * Vraća "sent", "skipped" (nije uključena, nema emaila kupca ili email nije povezan) ili opis greške.
+ */
+export async function notifyStatus(
+  order: Order,
+  key: StatusEmailKey | undefined = STATUS_EMAILS.find((candidate) => candidate === order.status),
+  extra: Record<string, string> = {},
+): Promise<"sent" | "skipped" | string> {
+  const settings = await getSettings();
+  const config = key ? settings.mail.statusEmails[key] : undefined;
+  if (!key || !config?.enabled || !order.customer.email || !isMailConfigured(settings)) return "skipped";
+
+  const { mail, store } = settings;
+  const message = fillStatusText(config.text, order, store.name, extra);
+  const logoFile = uploadPath(settings.logo);
+  const { subject, html, text } = renderOrderEmail({
+    template: await getEmailTemplate(settings),
+    order,
+    recipient: "customer",
+    settings,
+    logoSrc: logoFile ? `cid:${LOGO_CID}` : undefined,
+    notice: { subject: `${fillStatusText(config.subject, order, store.name, extra)} — ${store.name}`, title: orderStatusTitles[key], message },
+  });
+  const transport = createTransport(settings);
+  try {
+    await transport.sendMail({
+      from: { name: mail.fromName || store.name, address: mail.fromEmail || mail.smtpUser },
+      to: order.customer.email,
+      replyTo: mail.sellerEmail || undefined,
+      subject,
+      html,
+      text,
+      attachments: [
+        ...(logoFile ? [{ filename: path.basename(logoFile), path: logoFile, cid: LOGO_CID }] : []),
+        // Račun ide uz poruku da je porudžbina poslata, kada je tako izabrano u Podešavanjima.
+        ...(key === "shipped" && settings.tax.invoiceEmail === "shipped" ? [await invoiceAttachment(order, settings)] : []),
+      ],
+    });
+    return "sent";
+  } catch (error) {
+    return errorText(error);
+  } finally {
+    transport.close();
+  }
+}
+
+async function invoiceAttachment(order: Order, settings: Settings) {
+  return { filename: invoiceFileName(order), content: await invoicePdf(order, settings), contentType: "application/pdf" };
+}
+
+const orderStatusTitles: Record<StatusEmailKey, string> = {
+  confirmed: "Porudžbina je potvrđena.",
+  shipped: "Porudžbina je poslata.",
+  delivered: "Porudžbina je isporučena.",
+  cancelled: "Porudžbina je otkazana.",
+  refunded: "Povraćaj novca.",
+};
 
 export async function notifyOrder(order: Order): Promise<string | null> {
   const settings = await getSettings();

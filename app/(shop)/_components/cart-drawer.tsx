@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { countLabel, formatPrice } from "@/lib/storefront/products";
-import { cartKey, shippingFor, useCart } from "./cart";
+import { cartKey, defaultMethod, shippingFor, useCart } from "./cart";
 import { CheckIcon, Photo } from "./ui";
 
 export function CartDrawer() {
-  const { products, config, items, count, subtotal, closeCart, add, setQty } = useCart();
-  const { isFree, price: shipping, remaining, pct } = shippingFor(config, subtotal);
+  const { products, config, items, count, subtotal, weight, closeCart, add, setQty } = useCart();
+  // Korpa računa dostavu podrazumevanim načinom; kupac ga menja na stranici plaćanja.
+  const { isFree, price: shipping, remaining, pct, freeFrom } = shippingFor(defaultMethod(config), subtotal, weight);
   const texts = config.texts.cart;
   // Predlog do besplatne dostave: proizvod izabran u panelu, inače najjeftiniji iz kataloga.
   // Nudi se samo proizvod bez varijanti, jer se dodaje jednim klikom.
@@ -29,7 +30,7 @@ export function CartDrawer() {
         </button>
       </div>
 
-      <div className="ship" hidden={config.freeFrom === null}>
+      <div className="ship" hidden={freeFrom === null}>
         {!isFree && (
           <div style={{ fontSize: "15px" }}>
             Još <strong>{formatPrice(remaining)}</strong> do besplatne dostave
@@ -90,7 +91,7 @@ export function CartDrawer() {
           );
         })}
 
-        {count > 0 && !isFree && config.freeFrom !== null && upsell && (
+        {count > 0 && !isFree && freeFrom !== null && upsell && (
           <div style={{ padding: "18px 0" }}>
             <div className="lab" style={{ marginBottom: "12px" }}>Dodajte ovo i dostava je besplatna</div>
             <div style={{ display: "flex", gap: "14px", alignItems: "center" }}>

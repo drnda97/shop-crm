@@ -77,9 +77,14 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         title="Porudžbine"
         hint="Najnovije su na vrhu. Otkazivanje vraća komade na stanje kod proizvoda kojima se vodi broj."
         action={
-          <a href={`${ORDERS_PATH}/izvoz`} className={quietButtonClass}>
-            Preuzmi CSV
-          </a>
+          <div className="flex flex-wrap gap-[8px]">
+            <a href={`${ORDERS_PATH}/izvoz`} className={quietButtonClass}>
+              Preuzmi CSV
+            </a>
+            <Link href={`${ORDERS_PATH}/nova`} className={buttonClass}>
+              + Nova porudžbina
+            </Link>
+          </div>
         }
       />
 

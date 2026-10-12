@@ -99,12 +99,27 @@ Ostalo za kasnije:
 
 ### Faza 3 — Porudžbine, plaćanje, dostava
 
-- Plaćanje karticom: opcija u Podešavanja → Plaćanje, isključena dok se ne poveže procesor. U kodu zajednički sloj za procesore (pokretanje plaćanja, povratak kupca, potvrda od banke), tako da onaj ko ima ugovor sa bankom dopiše samo svoj procesor.
-- Dostava: zone, cena po težini ili iznosu, više načina dostave, broj pošiljke i link za praćenje u emailu.
-- PDV i račun u PDF-u.
-- Ručna porudžbina iz panela, izmena porudžbine, povraćaj (delimičan i ceo), istorija događaja na porudžbini.
-- Email kupcu pri svakoj promeni statusa, sa tekstovima koji se menjaju u panelu.
-- Napuštena korpa: podsetnik emailom.
+Prvi deo završen 12. 10. 2026.
+
+- **Načini dostave** (`lib/shipping.ts`, Podešavanja → Dostava): više načina, svaki sa cenom (stalnom ili po težini), pragom za besplatnu dostavu, zonom po poštanskim brojevima i rečenicom posle porudžbine. Lično preuzimanje je jedan od načina. Podešavanja iz prve verzije se prevode sama.
+- **Plaćanje karticom** (`lib/payments.ts`): opcija u Podešavanja → Plaćanje, isključena po podrazumevanom. Zajednički sloj za procesore: pokretanje plaćanja, povratak kupca i potvrda na `/api/v1/payments/{id}`. Dok nijedan procesor nije povezan, kartica se ne nudi kupcu. Uz kod ide probni procesor (`CARD_TEST_PROVIDER=1`) koji ne naplaćuje ništa i služi da se tok proveri.
+- **Stranica porudžbine** u panelu: broj pošiljke i adresa za praćenje, oznaka plaćeno, evidencija povraćaja (ceo ili delimičan), ispravka podataka kupca, istorija događaja.
+- **Poruke o statusu**: email kupcu kada porudžbina postane potvrđena, poslata, isporučena ili otkazana, sa tekstovima koji se menjaju u panelu i brojem pošiljke.
+- **Ručna porudžbina** iz panela, sa istim proverama kao porudžbina sa sajta.
+- **PDV i račun** (`lib/invoice.ts`): stopa i podaci firme u Podešavanjima; račun porudžbine u PDF-u, sa osnovicom i PDV-om. Preuzima se iz porudžbine u panelu i iz naloga kupca, a kupcu po izboru stiže u prilogu emaila (uz potvrdu porudžbine ili uz poruku da je poslata).
+- **Povraćaj**: iznos (ceo ili delimičan) i vraćeni komadi po stavci; vraćeni komadi idu na stanje, kupac dobija email, a procesor kartica koji to ume vraća novac na karticu. Otkazivanje posle povraćaja ne vraća iste komade dva puta.
+- **Napuštena korpa** (`lib/abandoned.ts`, panel → Napuštene korpe): email upisan na stranici plaćanja pamti korpu; posle zadatog broja sati kupac dobija jedan podsetnik sa linkom koji mu vraća korpu i linkom za odjavu. Isključeno dok ga vlasnik ne uključi. Šalje se na svakih desetak minuta dok server radi (`instrumentation.ts`), ili pozivom `/api/v1/cron?key=CRON_SECRET` na hostingu gde server ne radi stalno.
+- **Email nije povezan**: panel to javlja na Pregledu, na stranici porudžbine i uz napuštene korpe, sa linkom na Podešavanja. Svaka prodavnica upisuje SMTP nalog svog domena.
+
+Odlučeno 12. 10. 2026: stavke postojeće porudžbine se ne menjaju (nema izmene proizvoda posle poručivanja).
+
+Ostalo:
+
+- Procesor kartica: nijedan pravi nije dopisan. Dopisuje se kada prva prodavnica dobije ugovor sa bankom.
+- Zahtev za povrat koji kupac sam podnosi iz naloga, i povraćaj kao kod za sledeću kupovinu umesto novca: nije urađeno, čeka odluku.
+- Račun nije fiskalni račun.
+- Zone su po poštanskim brojevima jedne zemlje; dostava u više zemalja traži polje za zemlju pri poručivanju.
+- Test upisa porudžbine u bazu (`submitOrder`) i dalje ne postoji; tok je proveren u pregledaču.
 
 ### Faza 4 — Kupci i marketing
 
@@ -133,7 +148,7 @@ Ostalo za kasnije:
 |---|---|
 | Uređivač stranica | Sekcije sa poljima, kao Shopify; bez slobodnog prevlačenja elemenata. |
 | Više prodavnica | Jedna prodavnica po instalaciji i bazi; postavljanje treba da traje nekoliko minuta. |
-| Plaćanje karticom | Opcija postoji, isključena je po podrazumevanom; procesor se dopisuje kada neko ima ugovor sa bankom. Stripe ne otvara naloge firmama iz Srbije. |
+| Plaćanje karticom | Opcija i sloj za procesore postoje (`lib/payments.ts`), isključeno po podrazumevanom; procesor se dopisuje kada neko ima ugovor sa bankom. Stripe ne otvara naloge firmama iz Srbije. |
 | Licenca | Otvoreno do Faze 6. MIT ako je cilj što više korisnika; AGPL ako ne želite da neko od koda napravi zatvoren plaćeni servis. |
 | Dodaci kao u WordPress-u | Ne u prvoj verziji; webhook-ovi i API, a sistem dodataka tek ako ga korisnici traže. (predlog, nije potvrđeno) |
 | Jezici | Srpski i engleski pred objavljivanje; prevod se priprema u kodu od Faze 1. (predlog, nije potvrđeno) |

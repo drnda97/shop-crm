@@ -183,6 +183,9 @@ function Overview({ account }: { account: Account }) {
               {order.date} · {countLabel(order.count)} · {order.payment}
             </div>
             <div className="muted" style={{ fontSize: "14px" }}>{order.names}</div>
+            <div style={{ fontSize: "14px" }}>
+              <a className="ul" href={`/nalog/racun/${order.number}`} target="_blank" rel="noreferrer">Račun (PDF)</a>
+            </div>
           </div>
         ))}
       </div>

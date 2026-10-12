@@ -41,15 +41,9 @@ export type Templates = {
   };
   checkout: {
     heading: string;
-    deliveryLabel: string;
-    deliveryHint: string;
-    pickupLabel: string;
-    pickupHint: string;
     termsNote: string;
     termsHref: string;
     priceNote: string;
-    thanksDelivery: string;
-    thanksPickup: string;
   };
   cart: {
     emptyHeading: string;
@@ -155,18 +149,12 @@ export const TEMPLATES: Template[] = [
     id: "checkout",
     slug: "placanje",
     label: "Plaćanje",
-    hint: "Stranica na kojoj kupac upisuje podatke i potvrđuje porudžbinu. Cena dostave i načini plaćanja su u Podešavanjima.",
+    hint: "Stranica na kojoj kupac upisuje podatke i potvrđuje porudžbinu. Načini dostave (naziv, cena, zona) i načini plaćanja su u Podešavanjima.",
     fields: [
       { key: "heading", label: "Naslov", kind: "text", initial: "Završite porudžbinu" },
-      { key: "deliveryLabel", label: "Dostava: naziv", kind: "text", initial: "Dostava sa unošenjem i montažom" },
-      { key: "deliveryHint", label: "Dostava: objašnjenje", kind: "text", initial: "5 do 10 radnih dana, termin dogovaramo telefonom" },
-      { key: "pickupLabel", label: "Lično preuzimanje: naziv", kind: "text", initial: "Preuzimanje u salonu" },
-      { key: "pickupHint", label: "Lično preuzimanje: objašnjenje", kind: "text", initial: "[ADRESA SALONA], spremno za 3 radna dana" },
       { key: "termsNote", label: "Rečenica uz uslove kupovine", kind: "text", hint: "Stoji iza „Potvrdom prihvatate uslove kupovine.”", initial: "Povrat je moguć u roku od 30 dana." },
       { key: "termsHref", label: "Adresa uslova kupovine", kind: "link", initial: "/uslovi-kupovine" },
       { key: "priceNote", label: "Napomena ispod ukupnog iznosa", kind: "text", initial: "PDV je uračunat u cenu" },
-      { key: "thanksDelivery", label: "Posle porudžbine: dostava", kind: "textarea", initial: "Isporuka za 5 do 10 radnih dana, termin dogovaramo telefonom." },
-      { key: "thanksPickup", label: "Posle porudžbine: lično preuzimanje", kind: "textarea", initial: "Preuzimanje u salonu: [ADRESA SALONA], spremno za 3 radna dana." },
     ],
   },
   {

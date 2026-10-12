@@ -144,8 +144,15 @@
        * Stavke sa proizvodima i obračun (međuzbir, popust, dostava, ukupno) sa servera.
        * Stavke kojih više nema na stanju se izbacuju iz korpe i vraćaju u `removed`.
        */
-      price: function () {
-        return request("/cart", { items: items, discountCode: discountCode }).then(function (result) {
+      price: function (options) {
+        // options: { deliveryMethod, postalCode } — dostava se računa izabranim načinom za tu adresu.
+        options = options || {};
+        return request("/cart", {
+          items: items,
+          discountCode: discountCode,
+          deliveryMethod: options.deliveryMethod || "",
+          postalCode: options.postalCode || "",
+        }).then(function (result) {
           var removed = result.removedItems || [];
           if (removed.length > 0) {
             items = items.filter(function (item) {
@@ -221,6 +228,8 @@
         return request("/orders", {
           customer: order.customer,
           paymentMethod: order.paymentMethod || "",
+          // Id načina dostave iz store.shipping.methods; bez njega važi prvi za adresu kupca.
+          deliveryMethod: order.deliveryMethod || "",
           items: items,
           discountCode: discountCode,
         }).then(function (result) {

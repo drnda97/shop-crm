@@ -7,7 +7,7 @@ import {
   publicVariant,
   publicStore,
 } from "@/lib/api";
-import { getPricing, toLines } from "@/lib/cart";
+import { getPricing, getWeight, toLines } from "@/lib/cart";
 import { currentPrice, getCollectionProducts, inCategory } from "@/lib/catalog";
 import {
   getCategories,
@@ -20,6 +20,7 @@ import { checkCode, submitOrder } from "@/lib/order-store";
 import { parseItems } from "@/lib/orders";
 import { clientIp, TOO_MANY, tooMany } from "@/lib/rate-limit";
 import type { Settings } from "@/lib/settings";
+import { availableMethods, basePrice } from "@/lib/shipping";
 
 /**
  * Javni API prodavnice — sve što sajtu treba da prikaže proizvode i primi porudžbinu.
@@ -35,7 +36,8 @@ import type { Settings } from "@/lib/settings";
  *   POST /api/v1/cart                  { items, discountCode? } → stavke i obračun
  *                                      stavka: { slug, qty, variant? } — variant je id varijante
  *   POST /api/v1/discounts/check       { code }
- *   POST /api/v1/orders                { customer, items, discountCode?, paymentMethod? }
+ *   POST /api/v1/orders                { customer, items, discountCode?, paymentMethod?, deliveryMethod? }
+ *   GET|POST /api/v1/payments/{id}     potvrda procesora kartica (app/api/v1/payments)
  *
  * Cene i stanje se uvek računaju ovde, na serveru; sajt šalje samo šta je u korpi.
  */
@@ -165,7 +167,10 @@ export async function POST(request: Request, { params }: Context) {
     );
     const code = typeof body.discountCode === "string" ? body.discountCode : "";
     const check = code.trim() === "" ? null : await checkCode(code);
-    const { shipping } = settings;
+    // Dostava: izabrani način (deliveryMethod), ili prvi koji važi za poštanski broj (postalCode).
+    const postalCode = typeof body.postalCode === "string" ? body.postalCode : "";
+    const methods = availableMethods(settings.shipping.methods, postalCode);
+    const method = methods.find((candidate) => candidate.id === body.deliveryMethod) ?? methods[0];
     return reply(request, settings, {
       lines: lines.map((line) => ({
         product: publicProduct(line.product, base),
@@ -182,9 +187,17 @@ export async function POST(request: Request, { params }: Context) {
       discountError: check && !check.ok ? check.message : null,
       pricing: getPricing(lines, {
         discountPercent: check?.ok ? check.discount.percent : undefined,
-        deliveryPrice: shipping.price,
-        freeShippingFrom: shipping.freeEnabled ? shipping.freeFrom : null,
+        deliveryPrice: method ? basePrice(method, getWeight(lines)) : 0,
+        freeShippingFrom: method?.freeFrom ?? null,
       }),
+      /** Način dostave po kom je obračunato, i svi koji važe za poslati poštanski broj. */
+      deliveryMethod: method?.id ?? null,
+      deliveryMethods: methods.map((candidate) => ({
+        id: candidate.id,
+        name: candidate.name,
+        hint: candidate.hint,
+        kind: candidate.kind,
+      })),
     });
   }
 

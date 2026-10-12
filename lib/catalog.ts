@@ -220,6 +220,7 @@ export const RESERVED_SLUGS = [
   "admin",
   "api",
   "kolekcija",
+  "korpa",
   "media",
   "nalog",
   "nova",

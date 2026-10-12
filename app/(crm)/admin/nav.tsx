@@ -39,6 +39,13 @@ const icons = {
       <path d="M2.500 18.500c1-4 4-5.500 7.500-5.500s6.500 1.500 7.500 5.500" />
     </svg>
   ),
+  carts: (
+    <svg {...stroke}>
+      <path d="M2.500 3.500h2.500l2 9h8l1.500-6.500H6" />
+      <circle cx="8" cy="16" r="1.200" />
+      <circle cx="14.500" cy="16" r="1.200" />
+    </svg>
+  ),
   messages: (
     <svg {...stroke}>
       <rect x="2" y="3.500" width="16" height="13" rx="3" />
@@ -150,6 +157,7 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, logout
         { href: base, label: "Pregled", icon: icons.overview, exact: true },
         { href: `${base}/porudzbine`, label: "Porudžbine", icon: icons.orders, badge: waiting },
         { href: `${base}/kupci`, label: "Kupci", icon: icons.customers },
+        { href: `${base}/korpe`, label: "Napuštene korpe", icon: icons.carts },
         { href: `${base}/poruke`, label: "Poruke", icon: icons.messages },
       ],
     },

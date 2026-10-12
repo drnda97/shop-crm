@@ -40,9 +40,11 @@ type OrderCardProps = {
   back: string;
   /** Na stranici kupca se njegovi podaci ne ponavljaju u svakoj porudžbini. */
   hideCustomer?: boolean;
+  /** Kartica je na stranici same porudžbine, pa link „Detalji" nije potreban. */
+  detail?: boolean;
 };
 
-export function OrderCard({ order, currency, date, back, hideCustomer = false }: OrderCardProps) {
+export function OrderCard({ order, currency, date, back, hideCustomer = false, detail = false }: OrderCardProps) {
   const money = (value: number) => formatMoney(value, currency);
 
   return (
@@ -83,7 +85,24 @@ export function OrderCard({ order, currency, date, back, hideCustomer = false }:
           <div>
             {order.customer.postalCode} {order.customer.city}
           </div>
-          <div className="text-muted">{paymentLabels[order.paymentMethod]}</div>
+          <div className="text-muted">
+            {paymentLabels[order.paymentMethod]}
+            {order.paidAt ? " · plaćeno" : order.paymentMethod !== "cod" ? " · čeka uplatu" : ""}
+            {order.refunded > 0 && ` · vraćeno ${money(order.refunded)}`}
+          </div>
+          {order.deliveryMethod && <div className="text-muted">{order.deliveryMethod}</div>}
+          {order.tracking && (
+            <div className="text-muted">
+              Pošiljka:{" "}
+              {order.tracking.url ? (
+                <a href={order.tracking.url} target="_blank" rel="noreferrer" className="underline">
+                  {order.tracking.number}
+                </a>
+              ) : (
+                order.tracking.number
+              )}
+            </div>
+          )}
           {order.customer.note && (
             <div className="mt-[6px] text-muted">Napomena kupca: {order.customer.note}</div>
           )}
@@ -110,7 +129,7 @@ export function OrderCard({ order, currency, date, back, hideCustomer = false }:
           <div
             className={`flex justify-between gap-[12px] text-muted ${order.discount ? "" : "mt-[6px] border-t border-line pt-[6px]"}`}
           >
-            <span>Dostava</span>
+            <span>{order.deliveryMethod || "Dostava"}</span>
             <span>{money(order.delivery)}</span>
           </div>
           <div className="flex justify-between gap-[12px] font-medium">
@@ -153,6 +172,11 @@ export function OrderCard({ order, currency, date, back, hideCustomer = false }:
       </form>
 
       <div className="mt-[12px] flex flex-wrap gap-[8px]">
+        {!detail && (
+          <Link href={`${ADMIN_PATH}/porudzbine/${order.number}`} className={quietButtonClass}>
+            Detalji
+          </Link>
+        )}
         {nextSteps[order.status].map((step) => (
           <form key={step.status} action={setOrderStatusAction}>
             <input type="hidden" name="number" value={order.number} />

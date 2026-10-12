@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { methodPrice, type ShippingMethod } from "@/lib/shipping";
 import type { ShopConfig, ShopProduct } from "@/lib/storefront/products";
 import { createStore } from "./store";
 
@@ -39,6 +40,8 @@ type Cart = {
   items: CartItem[];
   count: number;
   subtotal: number;
+  /** Težina korpe u gramima, za dostavu koja se naplaćuje po težini. */
+  weight: number;
   open: boolean;
   openCart: () => void;
   closeCart: () => void;
@@ -46,6 +49,8 @@ type Cart = {
   add: (item: { slug: string; variant: string; variantId?: string; qty?: number }) => void;
   setQty: (key: string, delta: number) => void;
   clear: () => void;
+  /** Zamenjuje korpu sačuvanom (link iz podsetnika). */
+  restore: (items: { slug: string; variantId?: string; qty: number }[]) => void;
 };
 
 const CartContext = createContext<Cart | null>(null);
@@ -89,6 +94,17 @@ export function CartProvider({ products, config, children }: CartProviderProps) 
 
   const clear = useCallback(() => store.write([]), []);
 
+  const restore = useCallback<Cart["restore"]>(
+    (items) =>
+      store.write(
+        items.flatMap((item) => {
+          const product = products.find((candidate) => candidate.slug === item.slug);
+          return product ? [{ slug: item.slug, variant: product.variant, variantId: item.variantId, qty: item.qty }] : [];
+        }),
+      ),
+    [products],
+  );
+
   const value = useMemo<Cart>(() => {
     // Proizvod ili varijanta koja je u međuvremenu povučena ili rasprodata ispada iz korpe.
     const items = stored.flatMap((item) => {
@@ -108,14 +124,16 @@ export function CartProvider({ products, config, children }: CartProviderProps) 
       items,
       count: items.reduce((sum, i) => sum + i.qty, 0),
       subtotal: items.reduce((sum, i) => sum + i.price * i.qty, 0),
+      weight: items.reduce((sum, i) => sum + (products.find((p) => p.slug === i.slug)?.weight ?? 0) * i.qty, 0),
       open: openOn === pathname,
       openCart,
       closeCart,
       add,
       setQty,
       clear,
+      restore,
     };
-  }, [products, config, stored, openOn, pathname, openCart, closeCart, add, setQty, clear]);
+  }, [products, config, stored, openOn, pathname, openCart, closeCart, add, setQty, clear, restore]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
@@ -126,14 +144,24 @@ export function useCart(): Cart {
   return cart;
 }
 
-/** Dostava za dati iznos (posle popusta), prema podešavanjima iz CRM-a. */
-export function shippingFor(config: ShopConfig, amount: number) {
-  const isFree = config.freeFrom !== null && amount >= config.freeFrom;
+/**
+ * Dostava izabranim načinom za dati iznos (posle popusta) i težinu korpe, i koliko još
+ * nedostaje do besplatne dostave tim načinom.
+ */
+export function shippingFor(method: ShippingMethod | undefined, amount: number, weight: number) {
+  const freeFrom = method?.freeFrom ?? null;
+  const price = method ? methodPrice(method, amount, weight) : 0;
   return {
-    isFree,
-    price: isFree ? 0 : config.shippingPrice,
+    freeFrom,
+    isFree: price === 0,
+    price,
     /** Koliko još do besplatne dostave, i popunjenost trake u procentima. */
-    remaining: config.freeFrom === null ? 0 : Math.max(0, config.freeFrom - amount),
-    pct: config.freeFrom ? Math.min(100, Math.round((amount / config.freeFrom) * 100)) + "%" : "0%",
+    remaining: freeFrom === null ? 0 : Math.max(0, freeFrom - amount),
+    pct: freeFrom ? Math.min(100, Math.round((amount / freeFrom) * 100)) + "%" : "0%",
   };
+}
+
+/** Način dostave koji se podrazumeva dok kupac ne izabere: prva dostava na adresu. */
+export function defaultMethod(config: ShopConfig): ShippingMethod | undefined {
+  return config.shipping.find((method) => method.kind === "delivery") ?? config.shipping[0];
 }

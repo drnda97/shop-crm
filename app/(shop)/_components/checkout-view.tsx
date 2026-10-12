@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition, type CSSProperties, type FormEvent } from "react";
+import { type CSSProperties, type FormEvent, useEffect, useState, useTransition } from "react";
 import { countLabel, formatPrice } from "@/lib/storefront/products";
 import {
   checkPromoAction,
   placeOrderAction,
+  saveCartAction,
   type CheckoutErrors,
   type CheckoutField,
   type PlacedOrder,
 } from "../actions";
+import { availableMethods, methodPrice } from "@/lib/shipping";
 import { cartKey, shippingFor, useCart, type CartItem } from "./cart";
 import { ERROR_STYLE, Field } from "./field";
 import { CheckIcon, Photo } from "./ui";
@@ -29,14 +31,18 @@ const strong: CSSProperties = { fontWeight: 600 };
 const hint: CSSProperties = { fontSize: "15px" };
 
 // Opisi ispod načina plaćanja, iz dizajna. Koji su načini uključeni određuje CRM (Podešavanja → Plaćanje).
-const PAYMENT_HINTS = { cod: "Plaćate pri isporuci", bank: "Podatke za uplatu dobijate na email" };
+const PAYMENT_HINTS = {
+  cod: "Plaćate pri isporuci",
+  bank: "Podatke za uplatu dobijate na email",
+  card: "Posle potvrde vas vodimo na stranicu za plaćanje",
+};
 
 type User = { email: string; firstName: string; lastName: string };
 type Fields = Record<CheckoutField, string>;
-type Totals = { subtotal: number; discount: number; promoCode: string; pickup: boolean; delivery: number; total: number };
+type Totals = { subtotal: number; discount: number; promoCode: string; deliveryMethod: string; delivery: number; total: number };
 
 export function CheckoutView({ user }: { user: User | null }) {
-  const { config, items, count, subtotal, clear } = useCart();
+  const { config, items, count, subtotal, weight, clear } = useCart();
   const texts = config.texts.checkout;
   const [fields, setFields] = useState<Fields>({
     email: user?.email ?? "",
@@ -50,13 +56,29 @@ export function CheckoutView({ user }: { user: User | null }) {
   });
   const [errors, setErrors] = useState<CheckoutErrors>({});
   const [message, setMessage] = useState("");
-  const [pickup, setPickup] = useState(false);
+  const [methodId, setMethodId] = useState("");
   const [payment, setPayment] = useState<string>(config.payments[0].id);
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<{ code: string; percent: number } | null>(null);
   const [promoError, setPromoError] = useState("");
   const [placed, setPlaced] = useState<{ order: PlacedOrder; lines: CartItem[] } | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // Korpa se pamti uz email dok kupac popunjava formu, da dobije podsetnik ako ne poruči.
+  // Šalje se sa zakašnjenjem i samo kada su podsetnici uključeni u panelu.
+  const cartKeys = items.map((item) => `${cartKey(item)}×${item.qty}`).join("|");
+  useEffect(() => {
+    if (!config.cartReminder || placed || count === 0 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email.trim())) return;
+    const timer = setTimeout(() => {
+      void saveCartAction({
+        email: fields.email,
+        firstName: fields.firstName,
+        items: items.map(({ slug, variantId, qty }) => ({ slug, variantId, qty })),
+      });
+    }, 2000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields.email, fields.firstName, cartKeys, config.cartReminder, placed]);
 
   if (placed) return <Confirmation order={placed.order} lines={placed.lines} />;
 
@@ -69,8 +91,11 @@ export function CheckoutView({ user }: { user: User | null }) {
   // proizvoda, a prag za besplatnu dostavu gleda iznos posle popusta. Konačan obračun radi CRM.
   const discount = promo ? Math.round((subtotal * promo.percent) / 100) : 0;
   const paid = subtotal - discount;
-  const ship = shippingFor(config, paid);
-  const delivery = count === 0 || pickup ? 0 : ship.price;
+  // Načini dostave koji važe za upisani poštanski broj; izabran je onaj koji je kupac označio, inače prvi.
+  const methods = availableMethods(config.shipping, fields.zip);
+  const method = methods.find((candidate) => candidate.id === methodId) ?? methods[0];
+  const ship = shippingFor(method, paid, weight);
+  const delivery = count === 0 ? 0 : ship.price;
   const total = paid + delivery;
 
   function applyPromo() {
@@ -95,7 +120,7 @@ export function CheckoutView({ user }: { user: User | null }) {
         items: items.map(({ slug, variantId, qty }) => ({ slug, variantId, qty })),
         promoCode: promo?.code ?? "",
         payment,
-        pickup,
+        delivery: method?.id ?? "",
       });
       if (!result.ok) {
         setErrors(result.errors);
@@ -104,8 +129,13 @@ export function CheckoutView({ user }: { user: User | null }) {
         if (first) document.getElementById(`c-${first}`)?.focus();
         return;
       }
-      setPlaced({ order: result.order, lines: items });
       clear();
+      // Kartica: plaćanje je na stranici procesora; kupac se posle vraća na sajt.
+      if (result.order.paymentUrl) {
+        window.location.assign(result.order.paymentUrl);
+        return;
+      }
+      setPlaced({ order: result.order, lines: items });
       window.scrollTo(0, 0);
     });
   }
@@ -131,6 +161,11 @@ export function CheckoutView({ user }: { user: User | null }) {
             <Field id="c-email" label="Email adresa" type="email" autoComplete="email" placeholder="ime@primer.rs" value={fields.email} onChange={set("email")} error={errors.email} />
             <Field id="c-phone" label="Telefon" type="tel" autoComplete="tel" placeholder="+381 6x xxx xxxx" value={fields.phone} onChange={set("phone")} error={errors.phone} />
           </div>
+          {config.cartReminder && (
+            <p className="muted" style={{ fontSize: "14px" }}>
+              Ako ne završite porudžbinu, na ovu adresu šaljemo jedan podsetnik sa vašom korpom.
+            </p>
+          )}
           {user ? (
             <p className="muted" style={hint}>
               Prijavljeni ste kao {user.firstName} {user.lastName}. Porudžbina će biti u vašem <Link href="/nalog">nalogu</Link>.
@@ -158,25 +193,26 @@ export function CheckoutView({ user }: { user: User | null }) {
 
         <fieldset style={{ ...fieldset, gap: "10px" }}>
           <legend className="display h-s" style={legend}>Način dostave</legend>
-          <label className="opt">
-            <input type="radio" name="ship" checked={!pickup} onChange={() => setPickup(false)} />
-            <span style={{ flex: 1 }}>
-              <strong style={strong}>{texts.deliveryLabel}</strong>
-              <br />
-              <span className="muted" style={hint}>{texts.deliveryHint}</span>
-            </span>
-            <span style={strong}>{ship.price === 0 ? "Besplatno" : formatPrice(ship.price)}</span>
-          </label>
-          {config.pickup && (
-            <label className="opt">
-              <input type="radio" name="ship" checked={pickup} onChange={() => setPickup(true)} />
-              <span style={{ flex: 1 }}>
-                <strong style={strong}>{texts.pickupLabel}</strong>
-                <br />
-                <span className="muted" style={hint}>{texts.pickupHint}</span>
-              </span>
-              <span style={strong}>Besplatno</span>
-            </label>
+          {methods.map((option) => {
+            const price = methodPrice(option, paid, weight);
+            return (
+              <label className="opt" key={option.id}>
+                <input type="radio" name="ship" checked={option.id === method?.id} onChange={() => setMethodId(option.id)} />
+                <span style={{ flex: 1 }}>
+                  <strong style={strong}>{option.name}</strong>
+                  {option.hint && (
+                    <>
+                      <br />
+                      <span className="muted" style={hint}>{option.hint}</span>
+                    </>
+                  )}
+                </span>
+                <span style={strong}>{price === 0 ? "Besplatno" : formatPrice(price)}</span>
+              </label>
+            );
+          })}
+          {methods.length === 0 && (
+            <p role="alert" style={ERROR_STYLE}>Na ovaj poštanski broj trenutno ne isporučujemo. Javite nam se da nađemo rešenje.</p>
           )}
         </fieldset>
 
@@ -254,7 +290,7 @@ export function CheckoutView({ user }: { user: User | null }) {
           )}
         </div>
 
-        {config.freeFrom !== null && (
+        {ship.freeFrom !== null && (
           <div style={{ background: "var(--paper)", borderRadius: "18px", padding: "16px 18px" }}>
             {ship.isFree ? (
               <div style={{ fontSize: "15px", display: "flex", alignItems: "center", gap: "10px" }}>
@@ -274,7 +310,7 @@ export function CheckoutView({ user }: { user: User | null }) {
           </div>
         )}
 
-        <TotalRows subtotal={subtotal} discount={discount} promoCode={promo?.code ?? ""} pickup={pickup} delivery={delivery} total={total} />
+        <TotalRows subtotal={subtotal} discount={discount} promoCode={promo?.code ?? ""} deliveryMethod={method?.name ?? "Dostava"} delivery={delivery} total={total} />
       </aside>
     </div>
   );
@@ -301,7 +337,7 @@ function Lines({ items }: { items: CartItem[] }) {
   );
 }
 
-function TotalRows({ subtotal, discount, promoCode, pickup, delivery, total }: Totals) {
+function TotalRows({ subtotal, discount, promoCode, deliveryMethod, delivery, total }: Totals) {
   const texts = useCart().config.texts.checkout;
   const { priceNote } = texts;
   return (
@@ -317,8 +353,8 @@ function TotalRows({ subtotal, discount, promoCode, pickup, delivery, total }: T
         </div>
       )}
       <div style={row}>
-        <span className="muted">{pickup ? texts.pickupLabel : texts.deliveryLabel}</span>
-        <span>{delivery === 0 ? (pickup ? "Besplatno" : "Besplatna") : formatPrice(delivery)}</span>
+        <span className="muted">{deliveryMethod}</span>
+        <span>{delivery === 0 ? "Besplatno" : formatPrice(delivery)}</span>
       </div>
       <hr className="rule" style={{ margin: "6px 0" }} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -332,7 +368,6 @@ function TotalRows({ subtotal, discount, promoCode, pickup, delivery, total }: T
 
 /** Potvrda posle porudžbine, sa obračunom iz CRM-a. U dizajnu ne postoji, pa je složena od postojećih elemenata. */
 function Confirmation({ order, lines }: { order: PlacedOrder; lines: CartItem[] }) {
-  const texts = useCart().config.texts.checkout;
   return (
     <div className="wrap" style={wrapStyle}>
       <div style={{ flex: "999 1 520px", minWidth: 0, display: "flex", flexDirection: "column", gap: "22px", alignItems: "flex-start" }}>
@@ -344,10 +379,8 @@ function Confirmation({ order, lines }: { order: PlacedOrder; lines: CartItem[] 
         </h1>
         <p className="lead a1">
           Porudžbina broj <strong style={{ color: "var(--ink)" }}>{order.number}</strong> je primljena, {order.firstName}.{" "}
-          {order.pickup
-            ? texts.thanksPickup
-            : texts.thanksDelivery}{" "}
-          {order.paymentMethod === "cod" ? "Plaćate pri isporuci." : "Plaćate uplatom na račun."}
+          {order.deliveryNote}{" "}
+          {order.paymentMethod === "cod" ? "Plaćate pri isporuci." : order.paymentMethod === "bank" ? "Plaćate uplatom na račun." : ""}
         </p>
         {order.paymentInstructions && (
           <div className="panel a2" style={{ padding: "18px 22px", borderRadius: "20px", fontSize: "15.5px", whiteSpace: "pre-wrap" }}>
