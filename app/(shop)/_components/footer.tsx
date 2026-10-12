@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getShopSettings } from "@/lib/storefront/pages";
 import type { CSSProperties } from "react";
+import { CookieLink } from "./analytics";
 
 const column: CSSProperties = { display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-start" };
 
@@ -46,6 +47,7 @@ export async function Footer() {
         <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 32px", justifyContent: "space-between", padding: "26px 0 30px", fontSize: "14px", color: "var(--soft)" }}>
           <span>© {new Date().getFullYear()} {store.name}. Sva prava zadržana.</span>
           {site.footerNote && <span>{site.footerNote}</span>}
+          <CookieLink />
           {site.legalLinks.length > 0 && (
             <span style={{ display: "flex", flexWrap: "wrap", gap: "8px 24px" }}>
               {site.legalLinks.map((link, index) => (

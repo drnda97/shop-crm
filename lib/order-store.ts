@@ -1,11 +1,22 @@
 import { randomInt } from "node:crypto";
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { after } from "next/server";
-import { findStockProblem, getPricing, getWeight, toLines } from "@/lib/cart";
+import { findStockProblem, getPricing, getWeight, toLines, type CartLine, type Pricing } from "@/lib/cart";
 import { currentPrice, variantLabel } from "@/lib/catalog";
-import { getDiscounts, getProducts, getSettings, withContentLock } from "@/lib/content";
+import { getCategories, getDiscounts, getProducts, getSettings, withContentLock } from "@/lib/content";
 import { getDb } from "@/lib/db";
-import { isExpired, normalizeCode, pickDiscount, type AppliedDiscount } from "@/lib/discounts";
+import {
+  applyRule,
+  isExpired,
+  normalizeCode,
+  percentRule,
+  pickDiscount,
+  saving,
+  type AppliedDiscount,
+  type Discount,
+  type DiscountEffect,
+  type DiscountRule,
+} from "@/lib/discounts";
 import { notifyOrder } from "@/lib/order-email";
 import {
   customerKey,
@@ -21,7 +32,7 @@ import {
 } from "@/lib/orders";
 import { cardProvider } from "@/lib/payments";
 import { enabledPayments, type PaymentMethod, type Settings } from "@/lib/settings";
-import { availableMethods, basePrice } from "@/lib/shipping";
+import { availableMethods, basePrice, type ShippingMethod } from "@/lib/shipping";
 import { siteUrl } from "@/lib/storefront/pages";
 import { logStock, type StockChange } from "@/lib/stock";
 
@@ -68,13 +79,16 @@ function toOrder(row: RowDataPacket, items: RowDataPacket[]): Order {
     subtotal: row.subtotal,
     delivery: row.delivery,
     total: row.total,
-    ...(row.discount_code === null
+    // Automatski popust nema kod, pa se popust prepoznaje i po upisanom naslovu.
+    ...(row.discount_code === null && !row.discount_name
       ? {}
       : {
           discount: {
-            code: row.discount_code,
+            code: row.discount_code ?? "",
             percent: row.discount_percent,
             amount: row.discount_amount,
+            label: row.discount_name ?? "",
+            freeShipping: row.discount_shipping === 1,
           },
         }),
     ...(row.issued_code === null
@@ -323,18 +337,48 @@ export async function getCodeUses(): Promise<Record<string, number>> {
   return Object.fromEntries(rows.map((row) => [row.discount_code, Number(row.used)]));
 }
 
-async function countUses(db: PoolConnection | Awaited<ReturnType<typeof getDb>>, code: string) {
+/** Koliko je porudžbina (bez otkazanih) iskoristilo promo kod, odnosno automatski popust. */
+async function countUses(db: Queryable, used: { code: string; discountId: string | null }) {
   const [rows] = await db.query<RowDataPacket[]>(
-    "SELECT COUNT(*) AS used FROM orders WHERE discount_code = ? AND status <> 'cancelled'",
-    [code],
+    used.code
+      ? "SELECT COUNT(*) AS used FROM orders WHERE discount_code = ? AND status <> 'cancelled'"
+      : "SELECT COUNT(*) AS used FROM orders WHERE discount_id = ? AND discount_code IS NULL AND status <> 'cancelled'",
+    [used.code || used.discountId],
   );
-  return Number(rows[0].used);
+  return Number((rows as RowDataPacket[])[0].used);
 }
 
 const CODE_PROBLEM = "Kod nije ispravan ili je već iskorišćen.";
 
-/** Kod koji porudžbina koristi: promo kod (issuedId null) ili kod poslat kupcu. */
-type ResolvedCode = AppliedDiscount & { issuedId: number | null; maxUses: number | null };
+/**
+ * Popust koji porudžbina može da iskoristi: promo kod, kod poslat kupcu (issuedId) ili
+ * automatski popust (bez koda). `rule` kaže šta daje; koliko, zavisi od korpe (applyRule).
+ */
+type ResolvedCode = {
+  code: string;
+  label: string;
+  rule: DiscountRule;
+  issuedId: number | null;
+  maxUses: number | null;
+  discountId: string | null;
+};
+
+function fromDiscount(discount: Discount): ResolvedCode {
+  const { kind, percent, amount, products, categories, threshold } = discount;
+  return {
+    code: discount.trigger === "public" ? discount.code : "",
+    label: discount.name,
+    rule: { kind, percent, amount, products, categories, threshold },
+    issuedId: null,
+    maxUses: discount.maxUses,
+    discountId: discount.id,
+  };
+}
+
+/** Kod poslat kupcu kao nagrada: procenat na celu korpu, za jednu kupovinu. */
+function fromIssued(row: RowDataPacket, withId: boolean): ResolvedCode {
+  return { code: row.code, label: "", rule: percentRule(row.percent), issuedId: withId ? row.id : null, maxUses: null, discountId: null };
+}
 
 /** Aktivan promo kod koji još važi, ili null. */
 async function findPublicCode(code: string, settings: Settings): Promise<ResolvedCode | null> {
@@ -343,10 +387,11 @@ async function findPublicCode(code: string, settings: Settings): Promise<Resolve
       candidate.trigger === "public" && candidate.status === "active" && candidate.code === code,
   );
   if (!discount || isExpired(discount, settings.store.timeZone)) return null;
-  if (discount.maxUses !== null && (await countUses(await getDb(), code)) >= discount.maxUses) {
+  const resolved = fromDiscount(discount);
+  if (discount.maxUses !== null && (await countUses(await getDb(), resolved)) >= discount.maxUses) {
     return null;
   }
-  return { code, percent: discount.percent, issuedId: null, maxUses: discount.maxUses };
+  return resolved;
 }
 
 /** Neiskorišćena slanja datog koda, najstarije prvo. */
@@ -360,7 +405,9 @@ async function findUnusedCodes(code: string): Promise<RowDataPacket[]> {
   return rows;
 }
 
-export type CodeCheck = { ok: true; discount: AppliedDiscount } | { ok: false; message: string };
+export type CodeCheck =
+  | { ok: true; discount: { code: string; label: string } & DiscountRule }
+  | { ok: false; message: string };
 
 /**
  * Provera koda u korpi, gde se još ne zna ko je kupac: prolazi promo kod koji
@@ -368,15 +415,19 @@ export type CodeCheck = { ok: true; discount: AppliedDiscount } | { ok: false; m
  * ovom kupcu proverava se pri poručivanju (resolveCode).
  */
 export async function checkCode(input: unknown): Promise<CodeCheck> {
-  const code = typeof input === "string" ? normalizeCode(input) : "";
-  if (code === "" || code.length > 32) return { ok: false, message: CODE_PROBLEM };
-
-  const promo = await findPublicCode(code, await getSettings());
-  if (promo) return { ok: true, discount: { code: promo.code, percent: promo.percent } };
-  const rows = await findUnusedCodes(code);
-  return rows.length > 0
-    ? { ok: true, discount: { code: rows[0].code, percent: rows[0].percent } }
+  const found = await findCartCode(input);
+  return found
+    ? { ok: true, discount: { code: found.code, label: found.label, ...found.rule } }
     : { ok: false, message: CODE_PROBLEM };
+}
+
+async function findCartCode(input: unknown): Promise<ResolvedCode | null> {
+  const code = typeof input === "string" ? normalizeCode(input) : "";
+  if (code === "" || code.length > 32) return null;
+  const promo = await findPublicCode(code, await getSettings());
+  if (promo) return promo;
+  const rows = await findUnusedCodes(code);
+  return rows.length > 0 ? fromIssued(rows[0], false) : null;
 }
 
 /** Kod poslat kao nagrada važi samo za kupca kome je poslat: isti email ili isti broj telefona. */
@@ -396,7 +447,81 @@ async function resolveCode(
       (candidate.phone !== "" &&
         phoneDigits(candidate.phone, prefix) === phoneDigits(customer.phone, prefix)),
   );
-  return row ? { code: row.code, percent: row.percent, issuedId: row.id, maxUses: null } : null;
+  return row ? fromIssued(row, true) : null;
+}
+
+export type Quote = {
+  pricing: Pricing;
+  /** Popust koji je primenjen: kod kupca ili automatski popust, onaj koji kupcu više štedi. */
+  discount: AppliedDiscount | null;
+  /** Upisani kod postoji, ali ne važi za ovu korpu (ispod najmanjeg iznosa, ili nema proizvoda na koje se odnosi). */
+  codeError: string | null;
+};
+
+type InternalQuote = Quote & { used: ResolvedCode | null };
+
+/**
+ * Obračun korpe sa popustom: upisani kod se poredi sa automatskim popustima koji važe, i
+ * primenjuje se onaj sa većom uštedom (pri istoj, kod kupca). Popusti se ne sabiraju.
+ */
+async function quoteLines(
+  lines: CartLine[],
+  code: ResolvedCode | null,
+  method: ShippingMethod | undefined,
+  settings: Settings,
+): Promise<InternalQuote> {
+  const [discounts, categories] = await Promise.all([getDiscounts(), getCategories()]);
+  const delivery = { deliveryPrice: method ? basePrice(method, getWeight(lines)) : 0, freeShippingFrom: method?.freeFrom ?? null };
+  // Dostava bez ikakvog popusta: toliko kupac štedi popustom koji je čini besplatnom.
+  const plain = getPricing(lines, delivery);
+
+  const candidates: { used: ResolvedCode; effect: DiscountEffect }[] = [];
+  const codeEffect = code ? applyRule(code.rule, lines, categories) : null;
+  if (code && codeEffect) candidates.push({ used: code, effect: codeEffect });
+  const db = await getDb();
+  for (const discount of discounts) {
+    if (discount.trigger !== "auto" || discount.status !== "active" || isExpired(discount, settings.store.timeZone)) continue;
+    const used = fromDiscount(discount);
+    const effect = applyRule(used.rule, lines, categories);
+    if (!effect) continue;
+    if (discount.maxUses !== null && (await countUses(db, used)) >= discount.maxUses) continue;
+    candidates.push({ used, effect });
+  }
+
+  let best: { used: ResolvedCode; effect: DiscountEffect } | null = null;
+  for (const candidate of candidates) {
+    if (!best || saving(candidate.effect, plain.delivery) > saving(best.effect, plain.delivery)) best = candidate;
+  }
+  // Popust koji ništa ne štedi (npr. besplatna dostava kada je dostava već besplatna) se ne beleži.
+  if (best && saving(best.effect, plain.delivery) === 0) best = null;
+
+  const pricing = getPricing(lines, { ...delivery, discount: best?.effect });
+  return {
+    pricing,
+    used: best?.used ?? null,
+    discount: best
+      ? {
+          code: best.used.code,
+          label: best.used.label,
+          percent: best.used.rule.kind === "percent" ? best.used.rule.percent : null,
+          amount: pricing.discount,
+          freeShipping: best.effect.freeShipping,
+        }
+      : null,
+    codeError: code && !codeEffect ? "Kod ne važi za ovu korpu: proverite najmanji iznos i proizvode na koje se odnosi." : null,
+  };
+}
+
+/** Obračun korpe za sajt i API: stavke, upisani kod, način dostave. */
+export async function quoteCart(
+  lines: CartLine[],
+  codeInput: unknown,
+  method: ShippingMethod | undefined,
+): Promise<Quote> {
+  const typed = typeof codeInput === "string" && codeInput.trim() !== "";
+  const code = typed ? await findCartCode(codeInput) : null;
+  const { pricing, discount, codeError } = await quoteLines(lines, code, method, await getSettings());
+  return { pricing, discount, codeError: typed && !code ? CODE_PROBLEM : codeError };
 }
 
 // Bez slova i cifara koje se lako pomešaju (0/O, 1/I/L).
@@ -442,7 +567,7 @@ async function insertOrder(
     // Promo kod sa ograničenim brojem korišćenja: pod zaključavanjem, da dve
     // porudžbine u istom trenutku ne potroše isto poslednje mesto.
     if (usedCode && usedCode.issuedId === null && usedCode.maxUses !== null) {
-      if ((await countUses(connection, usedCode.code)) >= usedCode.maxUses) {
+      if ((await countUses(connection, usedCode)) >= usedCode.maxUses) {
         throw new CodeAlreadyUsed();
       }
     }
@@ -450,8 +575,9 @@ async function insertOrder(
     const [result] = await connection.query<ResultSetHeader>(
       `INSERT INTO orders (received_at, status, customer_key, customer_name, phone, email, street,
         city, postal_code, note, payment_method, subtotal, delivery, total, discount_code,
-        discount_percent, discount_amount, delivery_method, pickup, tax_percent)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        discount_percent, discount_amount, delivery_method, pickup, tax_percent, discount_name,
+        discount_id, discount_shipping)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         new Date(order.receivedAt),
         order.status,
@@ -467,12 +593,16 @@ async function insertOrder(
         order.subtotal,
         order.delivery,
         order.total,
-        order.discount?.code ?? null,
+        // Automatski popust nema kod; prepoznaje se po naslovu i id-u.
+        order.discount?.code || null,
         order.discount?.percent ?? null,
         order.discount?.amount ?? 0,
         order.deliveryMethod,
         order.pickup,
         order.taxPercent,
+        order.discount ? order.discount.label : null,
+        usedCode?.discountId ?? null,
+        order.discount?.freeShipping ?? false,
       ],
     );
     const number = result.insertId;
@@ -626,12 +756,12 @@ export async function submitOrder(input: unknown, source = "Porudžbina primljen
   const applied = discountCode ? await resolveCode(discountCode, customer, settings) : null;
   if (discountCode && !applied) return codeProblem;
 
-  const pricing = getPricing(lines, {
-    discountPercent: applied?.percent,
-    deliveryPrice: basePrice(method, getWeight(lines)),
-    freeShippingFrom: method.freeFrom,
-  });
-  const useCode = applied && pricing.discount > 0 ? applied : null;
+  // Kod kupca ili automatski popust, onaj koji više štedi. Kod koji ne važi za ovu korpu se
+  // javlja kupcu, da ne ostane u uverenju da je popust dobio.
+  const quoted = await quoteLines(lines, applied, method, settings);
+  if (quoted.codeError) return { ok: false, errors: {}, message: quoted.codeError };
+  const { pricing } = quoted;
+  const useCode = quoted.used;
 
   let order: Order;
   try {
@@ -660,9 +790,7 @@ export async function submitOrder(input: unknown, source = "Porudžbina primljen
         subtotal: pricing.subtotal,
         delivery: pricing.delivery,
         total: pricing.total,
-        ...(useCode
-          ? { discount: { code: useCode.code, percent: useCode.percent, amount: pricing.discount } }
-          : {}),
+        ...(quoted.discount ? { discount: quoted.discount } : {}),
       },
       lines.map((line) => ({ slug: line.product.slug, variantId: line.variant?.id, qty: line.qty })),
       getWeight(lines),

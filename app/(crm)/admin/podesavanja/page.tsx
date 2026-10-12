@@ -15,6 +15,7 @@ import {
   saveStoreAction,
   sendTestEmailAction,
   uploadTemplateAction,
+  saveAnalyticsAction,
   saveStatusEmailsAction,
   saveTaxAction,
 } from "../actions";
@@ -49,7 +50,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   await requireAdmin();
   const { greska, ok } = await searchParams;
   // Lozinka za SMTP se namerno ne šalje u formu.
-  const { store, logo, favicon, mail, shipping, payment, tax } = await getSettings();
+  const { store, logo, favicon, mail, shipping, payment, tax, analytics } = await getSettings();
   const providers = PAYMENT_PROVIDERS.map((provider) => ({ id: provider.id, label: provider.label, ready: provider.ready() }));
   const previewPath = `${ADMIN_PATH}/podesavanja/pregled`;
   const decimals = store.currencyDecimals;
@@ -274,6 +275,30 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               <div>
                 <button type="submit" className={buttonClass}>
                   Sačuvaj plaćanje
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className={sectionClass}>
+            <h2 className={sectionTitle}>Analitika</h2>
+            <p className={sectionHint}>
+              Merenje poseta i kupovina. Kodovi se učitavaju tek kada posetilac pristane u traci za
+              kolačiće, koja se prikazuje čim upišete bar jednu oznaku. Bez oznaka sajt ne koristi
+              kolačiće za praćenje i traka se ne prikazuje.
+            </p>
+            <form action={saveAnalyticsAction} className="flex flex-col gap-[16px]">
+              <label className={labelClass}>
+                Google Analytics 4 — oznaka merenja
+                <input name="ga4" defaultValue={analytics.ga4} placeholder="G-XXXXXXXXXX" autoComplete="off" className={inputClass} />
+              </label>
+              <label className={labelClass}>
+                Meta (Facebook) Pixel ID
+                <input name="metaPixel" defaultValue={analytics.metaPixel} placeholder="123456789012345" autoComplete="off" inputMode="numeric" className={inputClass} />
+              </label>
+              <div>
+                <button type="submit" className={buttonClass}>
+                  Sačuvaj analitiku
                 </button>
               </div>
             </form>

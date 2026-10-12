@@ -4,14 +4,16 @@ import Link from "next/link";
 import { type CSSProperties, type FormEvent, useEffect, useState, useTransition } from "react";
 import { countLabel, formatPrice } from "@/lib/storefront/products";
 import {
-  checkPromoAction,
   placeOrderAction,
+  quoteAction,
   saveCartAction,
+  type CartQuote,
   type CheckoutErrors,
   type CheckoutField,
   type PlacedOrder,
 } from "../actions";
 import { availableMethods, methodPrice } from "@/lib/shipping";
+import { track } from "./analytics";
 import { cartKey, shippingFor, useCart, type CartItem } from "./cart";
 import { ERROR_STYLE, Field } from "./field";
 import { CheckIcon, Photo } from "./ui";
@@ -37,21 +39,21 @@ const PAYMENT_HINTS = {
   card: "Posle potvrde vas vodimo na stranicu za plaćanje",
 };
 
-type User = { email: string; firstName: string; lastName: string };
+type User = { email: string; firstName: string; lastName: string; phone?: string; street?: string; city?: string; postalCode?: string };
 type Fields = Record<CheckoutField, string>;
-type Totals = { subtotal: number; discount: number; promoCode: string; deliveryMethod: string; delivery: number; total: number };
+type Totals = { subtotal: number; discount: number; discountText: string; deliveryMethod: string; delivery: number; total: number };
 
 export function CheckoutView({ user }: { user: User | null }) {
   const { config, items, count, subtotal, weight, clear } = useCart();
   const texts = config.texts.checkout;
   const [fields, setFields] = useState<Fields>({
     email: user?.email ?? "",
-    phone: "",
+    phone: user?.phone ?? "",
     firstName: user?.firstName ?? "",
     lastName: user?.lastName ?? "",
-    address: "",
-    city: "",
-    zip: "",
+    address: user?.street ?? "",
+    city: user?.city ?? "",
+    zip: user?.postalCode ?? "",
     note: "",
   });
   const [errors, setErrors] = useState<CheckoutErrors>({});
@@ -59,8 +61,9 @@ export function CheckoutView({ user }: { user: User | null }) {
   const [methodId, setMethodId] = useState("");
   const [payment, setPayment] = useState<string>(config.payments[0].id);
   const [promoInput, setPromoInput] = useState("");
-  const [promo, setPromo] = useState<{ code: string; percent: number } | null>(null);
-  const [promoError, setPromoError] = useState("");
+  // Kod koji je kupac primenio, i obračun sa servera (cene, popust, dostava) za trenutnu korpu.
+  const [promoCode, setPromoCode] = useState("");
+  const [quote, setQuote] = useState<CartQuote | null>(null);
   const [placed, setPlaced] = useState<{ order: PlacedOrder; lines: CartItem[] } | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -80,6 +83,28 @@ export function CheckoutView({ user }: { user: User | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.email, fields.firstName, cartKeys, config.cartReminder, placed]);
 
+  // Obračun sa servera pri svakoj izmeni korpe, koda, načina dostave ili poštanskog broja.
+  const zip = fields.zip.trim();
+  const deliveryId = availableMethods(config.shipping, zip).find((candidate) => candidate.id === methodId)?.id ?? "";
+  useEffect(() => {
+    if (placed || count === 0) return;
+    let stale = false;
+    const timer = setTimeout(async () => {
+      const next = await quoteAction({
+        items: items.map(({ slug, variantId, qty }) => ({ slug, variantId, qty })),
+        promoCode,
+        delivery: deliveryId,
+        zip,
+      });
+      if (!stale && next) setQuote(next);
+    }, 250);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartKeys, promoCode, deliveryId, zip, placed]);
+
   if (placed) return <Confirmation order={placed.order} lines={placed.lines} />;
 
   const set = (name: CheckoutField) => (event: { target: { value: string } }) => {
@@ -87,27 +112,20 @@ export function CheckoutView({ user }: { user: User | null }) {
     if (errors[name]) setErrors({ ...errors, [name]: undefined });
   };
 
-  // Pregled pre potvrde, po istim pravilima kao u CRM-u: popust se oduzima od zbira
-  // proizvoda, a prag za besplatnu dostavu gleda iznos posle popusta. Konačan obračun radi CRM.
-  const discount = promo ? Math.round((subtotal * promo.percent) / 100) : 0;
-  const paid = subtotal - discount;
   // Načini dostave koji važe za upisani poštanski broj; izabran je onaj koji je kupac označio, inače prvi.
   const methods = availableMethods(config.shipping, fields.zip);
   const method = methods.find((candidate) => candidate.id === methodId) ?? methods[0];
+  // Obračun radi server (kod, automatski popust, dostava). Dok odgovor ne stigne, prikazuje se
+  // obračun bez popusta, po istim pravilima za dostavu.
+  const discount = count === 0 ? 0 : (quote?.discount ?? 0);
+  const paid = subtotal - discount;
   const ship = shippingFor(method, paid, weight);
-  const delivery = count === 0 ? 0 : ship.price;
+  const delivery = count === 0 ? 0 : (quote?.delivery ?? ship.price);
   const total = paid + delivery;
+  const promoError = promoCode ? (quote?.codeError ?? "") : "";
 
   function applyPromo() {
-    if (!promoInput.trim()) {
-      setPromo(null);
-      return setPromoError("Upišite promo kod.");
-    }
-    startTransition(async () => {
-      const result = await checkPromoAction(promoInput);
-      setPromo(result.ok ? { code: result.code, percent: result.percent } : null);
-      setPromoError(result.ok ? "" : result.message);
-    });
+    setPromoCode(promoInput.trim());
   }
 
   function submit(event: FormEvent) {
@@ -118,7 +136,7 @@ export function CheckoutView({ user }: { user: User | null }) {
       const result = await placeOrderAction({
         customer: fields,
         items: items.map(({ slug, variantId, qty }) => ({ slug, variantId, qty })),
-        promoCode: promo?.code ?? "",
+        promoCode,
         payment,
         delivery: method?.id ?? "",
       });
@@ -135,6 +153,7 @@ export function CheckoutView({ user }: { user: User | null }) {
         window.location.assign(result.order.paymentUrl);
         return;
       }
+      track("purchase", { value: result.order.total, currency: "RSD", id: result.order.number });
       setPlaced({ order: result.order, lines: items });
       window.scrollTo(0, 0);
     });
@@ -283,16 +302,16 @@ export function CheckoutView({ user }: { user: User | null }) {
             </button>
           </div>
           {promoError && <p role="alert" style={{ ...ERROR_STYLE, marginTop: "8px" }}>{promoError}</p>}
-          {promo && (
+          {quote?.discountText && (
             <p role="status" className="muted" style={{ fontSize: "14px", marginTop: "8px" }}>
-              Kod {promo.code} je primenjen: {promo.percent}% popusta.
+              Primenjeno: {quote.discountText}.
             </p>
           )}
         </div>
 
         {ship.freeFrom !== null && (
           <div style={{ background: "var(--paper)", borderRadius: "18px", padding: "16px 18px" }}>
-            {ship.isFree ? (
+            {delivery === 0 ? (
               <div style={{ fontSize: "15px", display: "flex", alignItems: "center", gap: "10px" }}>
                 <CheckIcon />
                 <span>
@@ -310,7 +329,7 @@ export function CheckoutView({ user }: { user: User | null }) {
           </div>
         )}
 
-        <TotalRows subtotal={subtotal} discount={discount} promoCode={promo?.code ?? ""} deliveryMethod={method?.name ?? "Dostava"} delivery={delivery} total={total} />
+        <TotalRows subtotal={subtotal} discount={discount} discountText={quote?.discountText ?? ""} deliveryMethod={method?.name ?? "Dostava"} delivery={delivery} total={total} />
       </aside>
     </div>
   );
@@ -337,7 +356,7 @@ function Lines({ items }: { items: CartItem[] }) {
   );
 }
 
-function TotalRows({ subtotal, discount, promoCode, deliveryMethod, delivery, total }: Totals) {
+function TotalRows({ subtotal, discount, discountText, deliveryMethod, delivery, total }: Totals) {
   const texts = useCart().config.texts.checkout;
   const { priceNote } = texts;
   return (
@@ -346,10 +365,10 @@ function TotalRows({ subtotal, discount, promoCode, deliveryMethod, delivery, to
         <span className="muted">Međuzbir</span>
         <span>{formatPrice(subtotal)}</span>
       </div>
-      {discount > 0 && (
+      {(discount > 0 || discountText) && (
         <div style={row}>
-          <span className="muted">Popust ({promoCode})</span>
-          <span>−{formatPrice(discount)}</span>
+          <span className="muted">{discountText || "Popust"}</span>
+          <span>{discount > 0 ? `−${formatPrice(discount)}` : ""}</span>
         </div>
       )}
       <div style={row}>

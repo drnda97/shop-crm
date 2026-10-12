@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ADMIN_PATH } from "@/lib/admin-auth";
-import { getSettings } from "@/lib/content";
-import { triggerLabels, type Discount, type DiscountTrigger } from "@/lib/discounts";
+import { categoryTree } from "@/lib/catalog";
+import { getCategories, getProducts, getSettings } from "@/lib/content";
+import { kindLabels, triggerLabels, type Discount, type DiscountKind, type DiscountTrigger } from "@/lib/discounts";
 import { fromMinor } from "@/lib/format";
 import { saveDiscountAction } from "../actions";
 import {
@@ -28,12 +29,14 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
   const backPath = `${ADMIN_PATH}/popusti`;
   const { store } = await getSettings();
   // Prag je iznos (u valuti prodavnice) ili težina u gramima, prema vrsti popusta.
-  const threshold =
-    discount?.trigger === "amount"
-      ? fromMinor(discount.threshold, store.currencyDecimals)
-      : discount?.trigger === "weight"
-        ? String(discount.threshold)
-        : "";
+  const threshold = !discount?.threshold
+    ? ""
+    : discount.trigger === "weight"
+      ? String(discount.threshold)
+      : fromMinor(discount.threshold, store.currencyDecimals);
+  const [allProducts, allCategories] = await Promise.all([getProducts(), getCategories()]);
+  const products = allProducts.map(({ slug, name }) => ({ slug, name }));
+  const categories = categoryTree(allCategories);
 
   return (
     <>
@@ -89,19 +92,45 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
                 />
               </label>
               <label className={labelClass}>
-                Popust (%) *
+                Šta popust daje
+                <select name="kind" defaultValue={discount?.kind ?? "percent"} className={inputClass}>
+                  {(Object.keys(kindLabels) as DiscountKind[]).map((kind) => (
+                    <option key={kind} value={kind}>
+                      {kindLabels[kind]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className={fieldRowClass}>
+              <label className={labelClass}>
+                Procenat (%)
                 <input
                   name="percent"
                   type="number"
                   min="1"
                   max="100"
                   step="1"
-                  required
-                  defaultValue={discount?.percent}
+                  defaultValue={discount?.percent || ""}
+                  className={inputClass}
+                />
+              </label>
+              <label className={labelClass}>
+                Fiksni iznos ({store.currency})
+                <input
+                  name="amount"
+                  type="number"
+                  min="0"
+                  step="any"
+                  defaultValue={discount?.amount ? fromMinor(discount.amount, store.currencyDecimals) : ""}
                   className={inputClass}
                 />
               </label>
             </div>
+            <p className="mt-[-8px] text-[14px] text-muted">
+              Upisuje se polje koje odgovara izboru „Šta popust daje”; besplatna dostava ne traži
+              nijedno. Nagrade su uvek procenat na celu korpu.
+            </p>
             <p className="mt-[-8px] text-[14px] text-muted">
               Slova bez kvačica, cifre i crtica. Za promo kod je obavezan. Kod nagrade može ostati
               prazan — tada svaki kupac dobija svoj nasumičan kod (npr. {store.codePrefix || "KOD"}
@@ -122,7 +151,11 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
           </section>
           <div className={stackClass}>
             <section className={panelClass}>
-              <h2 className={panelTitleClass}>Samo za promo kod</h2>
+              <h2 className={panelTitleClass}>Promo kod i automatski popust</h2>
+              <p className="mt-[-8px] text-[14px] text-muted">
+                Automatski popust važi bez koda čim korpa ispuni uslov. Kada važe i kod kupca i
+                automatski popust, primenjuje se onaj koji kupcu više štedi; popusti se ne sabiraju.
+              </p>
 
               <div className={fieldRowClass}>
                 <label className={labelClass}>
@@ -147,12 +180,53 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
                   />
                 </label>
               </div>
+              {categories.length > 0 && (
+                <label className={labelClass}>
+                  Samo za kategorije
+                  <select
+                    name="categories"
+                    multiple
+                    size={Math.min(6, categories.length)}
+                    defaultValue={discount?.categories ?? []}
+                    className={`${inputClass} h-auto py-[8px]`}
+                  >
+                    {categories.map(({ category, depth }) => (
+                      <option key={category.id} value={category.id}>
+                        {"\u00a0\u00a0".repeat(depth)}
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {products.length > 0 && (
+                <label className={labelClass}>
+                  Samo za proizvode
+                  <select
+                    name="products"
+                    multiple
+                    size={Math.min(8, products.length)}
+                    defaultValue={discount?.products ?? []}
+                    className={`${inputClass} h-auto py-[8px]`}
+                  >
+                    {products.map((product) => (
+                      <option key={product.slug} value={product.slug}>
+                        {product.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <p className="mt-[-8px] text-[14px] text-muted">
+                Bez izbora popust važi za celu korpu. Više stavki birate uz Ctrl (na Mac-u Cmd).
+                Kategorija obuhvata i svoje podkategorije.
+              </p>
             </section>
             <section className={panelClass}>
-              <h2 className={panelTitleClass}>Samo za nagrade</h2>
+              <h2 className={panelTitleClass}>Uslov</h2>
 
               <label className={labelClass}>
-                Prag: iznos ({store.currency}) ili težina (g), prema vrsti
+                Najmanji iznos korpe ({store.currency}); kod nagrada prag: iznos ili težina (g)
                 <input
                   name="threshold"
                   type="number"
@@ -163,8 +237,9 @@ export async function DiscountForm({ discount, error }: DiscountFormProps) {
                 />
               </label>
               <p className="mt-[-8px] text-[14px] text-muted">
-                Za nagradu posle prve porudžbine prag se ne upisuje. Vrednost porudžbine je zbir
-                proizvoda posle popusta, bez dostave. U težinu ulaze samo proizvodi sa upisanom
+                Za promo kod i automatski popust: zbir korpe od kog popust važi (prazno: uvek). Za
+                nagradu posle prve porudžbine prag se ne upisuje. Kod nagrada je vrednost porudžbine
+                zbir proizvoda posle popusta, bez dostave, a u težinu ulaze samo proizvodi sa upisanom
                 težinom.
               </p>
             </section>

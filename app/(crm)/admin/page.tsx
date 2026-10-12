@@ -4,6 +4,8 @@ import { hasPrice, isSoldOut, lowStockUnits, soldOutVariants } from "@/lib/catal
 import { getProducts, getSettings } from "@/lib/content";
 import { formatMoney, formatOrderCount, formatPieces } from "@/lib/format";
 import { isMailConfigured } from "@/lib/order-email";
+import { getOpenReturns } from "@/lib/returns";
+import { countPendingReviews } from "@/lib/reviews";
 import { getOrders, getSalesStats } from "@/lib/order-store";
 import { currencyOf } from "@/lib/settings";
 import { dateFormats, StatusBadge } from "./order-ui";
@@ -53,10 +55,12 @@ export default async function DashboardPage() {
   // Prijavu ovde rešava layout (prikazuje formu), pa se neprijavljenom samo ne daje sadržaj.
   if (!(await isAdmin())) return null;
 
-  const [orders, products, settings] = await Promise.all([
+  const [orders, products, settings, openReturns, pendingReviews] = await Promise.all([
     getOrders(),
     getProducts(),
     getSettings(),
+    getOpenReturns(),
+    countPendingReviews(),
   ]);
   const currency = currencyOf(settings);
   const money = (value: number | null) => formatMoney(value, currency);
@@ -98,6 +102,14 @@ export default async function DashboardPage() {
     stats.waiting > 0 && {
       text: `Čeka na obradu: ${formatOrderCount(stats.waiting)}`,
       href: `${ADMIN_PATH}/porudzbine?status=new`,
+    },
+    openReturns.length > 0 && {
+      text: `Zahtevi za povrat koji čekaju odgovor: ${openReturns.map((request) => `#${request.orderNumber}`).join(", ")}`,
+      href: `${ADMIN_PATH}/porudzbine/${openReturns[0].orderNumber}`,
+    },
+    pendingReviews > 0 && {
+      text: `Utisci koji čekaju odobrenje: ${pendingReviews}`,
+      href: `${ADMIN_PATH}/utisci`,
     },
     withoutPrice.length > 0 && {
       text: `Bez upisane cene, pa ne mogu da se poruče: ${names(withoutPrice)}`,

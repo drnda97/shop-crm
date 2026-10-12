@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formatPrice, type ShopProduct } from "@/lib/storefront/products";
 import { useCart } from "./cart";
 import { Photo } from "./ui";
+import { WishButton } from "./wishlist";
 
 export function ProductCard({ product: p }: { product: ShopProduct }) {
   const { add } = useCart();
@@ -14,6 +15,7 @@ export function ProductCard({ product: p }: { product: ShopProduct }) {
       <Link className="ph card-media" href={href} aria-label={p.name}>
         {p.image && <Photo src={p.image} alt="" sizes="(max-width: 640px) 100vw, (max-width: 1000px) 50vw, 320px" />}
         {p.tag && <span className={p.oldPrice ? "tag sale" : "tag"}>{p.tag}</span>}
+        <WishButton slug={p.slug} name={p.name} floating />
       </Link>
       <div className="card-body">
         <div className="card-cat">{p.category}</div>

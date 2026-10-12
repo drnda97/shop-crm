@@ -285,6 +285,96 @@ export const MIGRATIONS: Migration[] = [
       );
     },
   },
+  {
+    id: 13,
+    name: "popusti: fiksni iznos, besplatna dostava, proizvodi i kategorije, automatski popust",
+    up: async (connection) => {
+      await connection.query(
+        `ALTER TABLE discounts
+          ADD COLUMN kind VARCHAR(20) NOT NULL DEFAULT 'percent',
+          ADD COLUMN amount INT NOT NULL DEFAULT 0,
+          ADD COLUMN products TEXT NULL,
+          ADD COLUMN categories TEXT NULL`,
+      );
+      // Uz porudžbinu: naslov popusta (automatski popust nema kod) i njegov id, za brojanje korišćenja.
+      await connection.query(
+        `ALTER TABLE orders
+          ADD COLUMN discount_name VARCHAR(255) NULL,
+          ADD COLUMN discount_id VARCHAR(191) NULL,
+          ADD COLUMN discount_shipping TINYINT(1) NOT NULL DEFAULT 0`,
+      );
+    },
+  },
+  {
+    id: 14,
+    name: "kupci: adresa i nova lozinka, zahtevi za povrat, utisci, slanje novosti",
+    up: async (connection) => {
+      const tail = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+      await connection.query(
+        `ALTER TABLE shop_users
+          ADD COLUMN phone VARCHAR(64) NOT NULL DEFAULT '',
+          ADD COLUMN street VARCHAR(255) NOT NULL DEFAULT '',
+          ADD COLUMN city VARCHAR(255) NOT NULL DEFAULT '',
+          ADD COLUMN postal_code VARCHAR(16) NOT NULL DEFAULT ''`,
+      );
+      // Zahtev za novu lozinku: u bazi je heš žetona iz linka, sa rokom važenja.
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS password_resets (
+          token_hash CHAR(64) NOT NULL PRIMARY KEY,
+          user_id INT NOT NULL,
+          expires_at DATETIME(3) NOT NULL,
+          KEY password_resets_user (user_id)
+        ) ${tail}`,
+      );
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS return_requests (
+          id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          order_number INT NOT NULL,
+          created_at DATETIME(3) NOT NULL,
+          items TEXT NOT NULL,
+          reason TEXT NOT NULL,
+          status VARCHAR(20) NOT NULL DEFAULT 'new',
+          answer TEXT NULL,
+          resolved_at DATETIME(3) NULL,
+          KEY return_requests_order (order_number),
+          KEY return_requests_status (status)
+        ) ${tail}`,
+      );
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS reviews (
+          id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          product_slug VARCHAR(191) NOT NULL,
+          user_id INT NOT NULL,
+          name VARCHAR(100) NOT NULL,
+          rating TINYINT NOT NULL,
+          body TEXT NOT NULL,
+          created_at DATETIME(3) NOT NULL,
+          status VARCHAR(20) NOT NULL DEFAULT 'pending',
+          verified TINYINT(1) NOT NULL DEFAULT 0,
+          UNIQUE KEY reviews_user_product (user_id, product_slug),
+          KEY reviews_product (product_slug, status)
+        ) ${tail}`,
+      );
+      // Novosti: žeton za link za odjavu u svakoj poruci, i evidencija poslatih poruka.
+      await connection.query(
+        `ALTER TABLE shop_subscribers
+          ADD COLUMN token CHAR(48) NULL,
+          ADD COLUMN unsubscribed TINYINT(1) NOT NULL DEFAULT 0`,
+      );
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS campaigns (
+          id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          subject VARCHAR(255) NOT NULL,
+          body TEXT NOT NULL,
+          created_at DATETIME(3) NOT NULL,
+          recipients INT NOT NULL DEFAULT 0,
+          sent INT NOT NULL DEFAULT 0,
+          failed INT NOT NULL DEFAULT 0,
+          finished_at DATETIME(3) NULL
+        ) ${tail}`,
+      );
+    },
+  },
 ];
 
 // GET_LOCK važi za ceo MySQL server, pa ime sadrži i bazu (najviše 64 znaka).

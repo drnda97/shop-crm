@@ -1,5 +1,6 @@
 import path from "node:path";
 import PDFDocument from "pdfkit";
+import { discountText } from "@/lib/discounts";
 import { formatMoney } from "@/lib/format";
 import { includedTax, itemName, type Order } from "@/lib/orders";
 import { currencyOf, paymentLabels, type Settings } from "@/lib/settings";
@@ -92,7 +93,7 @@ export function invoicePdf(order: Order, settings: Settings): Promise<Buffer> {
   // Zbir
   const sums: [string, string, boolean?][] = [
     ["Međuzbir", money(order.subtotal)],
-    ...(order.discount ? ([[`Popust ${order.discount.percent}% (${order.discount.code})`, `−${money(order.discount.amount)}`]] as [string, string][]) : []),
+    ...(order.discount ? ([[discountText(order.discount), `−${money(order.discount.amount)}`]] as [string, string][]) : []),
     [order.deliveryMethod || "Dostava", money(order.delivery)],
     ...(vat === null ? [] : ([["Osnovica", money(order.total - vat)], [`PDV ${percent}%`, money(vat)]] as [string, string][])),
     ["Ukupno", money(order.total), true],

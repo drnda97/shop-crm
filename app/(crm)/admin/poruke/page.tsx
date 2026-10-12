@@ -1,27 +1,36 @@
-import { requireAdmin } from "@/lib/admin-auth";
+import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
+import { isMailReady } from "@/lib/mail";
+import { getCampaigns } from "@/lib/newsletter";
 import { getMessages, getSubscribers } from "@/lib/storefront/inbox";
-import { deleteMessageAction } from "../actions";
+import { deleteMessageAction, sendCampaignAction } from "../actions";
 import { ConfirmButton } from "../confirm-button";
 import { dateFormats } from "../order-ui";
-import { cardClass, PageHeader, quietButtonClass, rowClass } from "../ui";
+import { buttonClass, cardClass, inputClass, labelClass, MailNotice, PageHeader, quietButtonClass, rowClass } from "../ui";
 
 const sectionTitle = "mb-[14px] text-[22px]";
 
-export default async function MessagesPage() {
+type MessagesPageProps = { searchParams: Promise<{ greska?: string; ok?: string }> };
+
+export default async function MessagesPage({ searchParams }: MessagesPageProps) {
   await requireAdmin();
-  const [messages, subscribers, settings] = await Promise.all([
+  const [{ greska, ok }, messages, subscribers, settings, campaigns] = await Promise.all([
+    searchParams,
     getMessages(),
     getSubscribers(),
     getSettings(),
+    getCampaigns(),
   ]);
+  const active = subscribers.filter((subscriber) => !subscriber.unsubscribed);
   const { orderDate } = dateFormats(settings.store);
 
   return (
     <>
       <PageHeader
         title="Poruke"
-        hint="Poruke iz kontakt forme na sajtu i adrese prijavljene na novosti. Na poruku odgovarate iz svog programa za email."
+        hint="Poruke iz kontakt forme na sajtu i novosti: poruka svim prijavljenima. Na poruku iz kontakt forme odgovarate iz svog programa za email."
+        error={greska}
+        notice={ok}
       />
 
       <section className="mb-[32px]">
@@ -57,19 +66,67 @@ export default async function MessagesPage() {
       </section>
 
       <section>
-        <h2 className={sectionTitle}>Prijavljeni na novosti ({subscribers.length})</h2>
-        <div className={cardClass}>
-          {subscribers.length === 0 ? (
-            <p className="text-[15px] text-muted">Još nema prijavljenih.</p>
-          ) : (
-            subscribers.map((subscriber) => (
-              <div key={subscriber.email} className={`${rowClass} justify-between text-[15px]`}>
-                <span>{subscriber.email}</span>
-                <span className="text-[13px] text-muted">{orderDate(subscriber.createdAt)}</span>
-              </div>
-            ))
-          )}
+        <div className="mb-[14px] flex flex-wrap items-center justify-between gap-[12px]">
+          <h2 className="text-[22px]">Novosti ({active.length} prijavljenih)</h2>
+          <a href={`${ADMIN_PATH}/poruke/izvoz`} className={quietButtonClass}>
+            Preuzmi CSV
+          </a>
         </div>
+        <MailNotice configured={isMailReady(settings)} settingsPath={`${ADMIN_PATH}/podesavanja`} />
+        <div className="grid items-start gap-[16px] xl:grid-cols-2">
+          <form action={sendCampaignAction} className={`${cardClass} flex flex-col gap-[14px]`}>
+            <h3 className="text-[18px]">Nova poruka</h3>
+            <label className={labelClass}>
+              Naslov
+              <input name="subject" required maxLength={200} className={inputClass} />
+            </label>
+            <label className={labelClass}>
+              Tekst — prazan red razdvaja pasuse
+              <textarea name="body" required maxLength={10000} className={`${inputClass} min-h-[180px]`} />
+            </label>
+            <div>
+              <ConfirmButton question={`Poslati poruku na ${active.length} adresa?`} className={buttonClass}>
+                Pošalji svima
+              </ConfirmButton>
+            </div>
+            <p className="text-[14px] text-muted">
+              Poruka ide svakom prijavljenom posebno, sa linkom za odjavu na dnu. Šalje se preko vašeg SMTP
+              naloga, pa proverite koliko poruka na sat vaš hosting dozvoljava.
+            </p>
+          </form>
+          <div className={cardClass}>
+            <h3 className="mb-[8px] text-[18px]">Poslate poruke</h3>
+            {campaigns.length === 0 ? (
+              <p className="text-[15px] text-muted">Još nema poslatih poruka.</p>
+            ) : (
+              campaigns.map((campaign) => (
+                <div key={campaign.id} className="border-t border-line py-[10px] text-[15px] first:border-t-0">
+                  <div className="font-display font-bold">{campaign.subject}</div>
+                  <div className="text-[13.5px] text-muted">
+                    {orderDate(campaign.createdAt)} · poslato {campaign.sent} od {campaign.recipients}
+                    {campaign.failed > 0 && ` · neuspelo ${campaign.failed}`}
+                    {!campaign.finished && " · slanje u toku"}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        <details className={`${cardClass} mt-[16px]`}>
+          <summary className="cursor-pointer font-display text-[15px] font-bold">Spisak adresa ({subscribers.length})</summary>
+          <div className="mt-[10px]">
+            {subscribers.map((subscriber) => (
+              <div key={subscriber.email} className={`${rowClass} justify-between text-[15px]`}>
+                <span className={subscriber.unsubscribed ? "text-muted line-through" : undefined}>{subscriber.email}</span>
+                <span className="text-[13px] text-muted">
+                  {subscriber.unsubscribed ? "odjavljen · " : ""}
+                  {orderDate(subscriber.createdAt)}
+                </span>
+              </div>
+            ))}
+            {subscribers.length === 0 && <p className="text-[15px] text-muted">Još nema prijavljenih.</p>}
+          </div>
+        </details>
       </section>
     </>
   );

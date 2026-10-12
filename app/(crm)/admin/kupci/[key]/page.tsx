@@ -6,7 +6,8 @@ import { getCustomerNote, getCustomers } from "@/lib/customers";
 import { formatMoney, formatOrderCount } from "@/lib/format";
 import { getOrders } from "@/lib/order-store";
 import { currencyOf } from "@/lib/settings";
-import { saveCustomerNoteAction } from "../../actions";
+import { eraseCustomerAction, saveCustomerNoteAction } from "../../actions";
+import { ConfirmButton } from "../../confirm-button";
 import { OrderCard } from "../../order-card";
 import { dateFormats } from "../../order-ui";
 import {
@@ -15,6 +16,7 @@ import {
   inputClass,
   labelClass,
   PageHeader,
+  quietButtonClass,
   textLinkClass,
 } from "../../ui";
 
@@ -104,6 +106,25 @@ export default async function CustomerPage({ params, searchParams }: CustomerPag
               Sačuvaj belešku
             </button>
           </div>
+        </form>
+      </div>
+
+      <div className={`${cardClass} mt-[16px] flex flex-wrap items-center gap-[12px]`}>
+        <div className="min-w-[240px] grow text-[15px]">
+          <div className="font-display font-bold">Podaci na zahtev kupca</div>
+          <div className="text-[14px] text-muted">
+            Izvoz daje sve što prodavnica čuva o kupcu. Brisanje uklanja nalog, poruke, prijavu na novosti i
+            belešku, a iz porudžbina ime, kontakt i adresu; same porudžbine ostaju kao evidencija prodaje.
+          </div>
+        </div>
+        <a href={`${ADMIN_PATH}/kupci/${customer.key}/podaci`} className={quietButtonClass}>
+          Izvezi podatke
+        </a>
+        <form action={eraseCustomerAction}>
+          <input type="hidden" name="key" value={customer.key} />
+          <ConfirmButton question={`Obrisati podatke kupca „${customer.name}"? Ne može da se vrati.`} className={quietButtonClass}>
+            Obriši podatke
+          </ConfirmButton>
         </form>
       </div>
 

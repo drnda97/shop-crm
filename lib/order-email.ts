@@ -4,6 +4,7 @@ import nodemailer from "nodemailer";
 import { getSettings, getStoredValue, setStoredValue, uploadPath } from "@/lib/content";
 import { defaultEmailTemplate } from "@/lib/email-template";
 import { formatMoney } from "@/lib/format";
+import { discountText } from "@/lib/discounts";
 import { invoiceFileName, invoicePdf } from "@/lib/invoice";
 import { itemName, type Order } from "@/lib/orders";
 import { currencyOf, STATUS_EMAILS, type Settings, type StatusEmailKey } from "@/lib/settings";
@@ -100,7 +101,7 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
     discountBlock = `<p style="margin:16px 0 0;font-size:15px;">Kupcu je uz potvrdu poslat kod <strong>${escapeHtml(issued.code)}</strong> za ${issued.percent}% popusta pri sledećoj kupovini.</p>`;
   }
   const discountRow = order.discount
-    ? `<tr><td style="padding:2px 0;">Popust ${order.discount.percent}% (kod ${escapeHtml(order.discount.code)})</td><td align="right" style="padding:2px 0;white-space:nowrap;">−${amount(order.discount.amount)}</td></tr>`
+    ? `<tr><td style="padding:2px 0;">${escapeHtml(discountText(order.discount))}</td><td align="right" style="padding:2px 0;white-space:nowrap;">−${amount(order.discount.amount)}</td></tr>`
     : "";
 
   // Sve što dolazi od kupca prolazi kroz escapeHtml; gotov HTML su {{stavke}}, {{logo}},
@@ -157,7 +158,7 @@ export function renderOrderEmail({ template, order, recipient, settings, logoSrc
     `Međuzbir: ${amount(order.subtotal)}`,
     ...(order.discount
       ? [
-          `Popust ${order.discount.percent}% (kod ${order.discount.code}): −${amount(order.discount.amount)}`,
+          `${discountText(order.discount)}: −${amount(order.discount.amount)}`,
         ]
       : []),
     `${order.deliveryMethod || "Dostava"}: ${amount(order.delivery)}`,
@@ -222,7 +223,7 @@ export function sampleOrder(settings: Settings): Order {
     subtotal: 2950 * unit,
     delivery: 450 * unit,
     total: 3105 * unit,
-    discount: { code: "PRIMER10", percent: 10, amount: 295 * unit },
+    discount: { code: "PRIMER10", percent: 10, amount: 295 * unit, label: "", freeShipping: false },
     issuedCode: { code: "HVALA15", percent: 15, title: "Hvala na porudžbini" },
   };
 }

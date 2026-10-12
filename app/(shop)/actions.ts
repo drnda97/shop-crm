@@ -1,18 +1,33 @@
 "use server";
 
 import { headers } from "next/headers";
-import { checkCode, getOrders, submitOrder } from "@/lib/order-store";
-import { validateCustomer, type OrderErrors } from "@/lib/orders";
+import { toLines } from "@/lib/cart";
+import { getProducts } from "@/lib/content";
+import { discountText } from "@/lib/discounts";
+import { addOrderEvent, getOrder, getOrders, quoteCart, submitOrder } from "@/lib/order-store";
+import { availableMethods } from "@/lib/shipping";
+import { itemName, orderStatusLabels, validateCustomer, type Order, type OrderErrors } from "@/lib/orders";
 import { clientIp, TOO_MANY, tooMany as countAttempt } from "@/lib/rate-limit";
 import type { PaymentMethod } from "@/lib/settings";
 import {
   checkUser,
+  createPasswordReset,
   createUser,
+  deleteUser,
   endSession,
   getCurrentUser,
+  getUserOrders,
   linkOrder,
+  resetPassword,
+  saveAddress,
   startSession,
+  type ShopAddress,
 } from "@/lib/storefront/auth";
+import { getDb } from "@/lib/db";
+import { isMailReady, sendMails, simpleEmail } from "@/lib/mail";
+import { unsubscribeNewsletter } from "@/lib/newsletter";
+import { addReturnRequest, getOrderReturns, returnStatusLabels } from "@/lib/returns";
+import { saveReview } from "@/lib/reviews";
 import { clearCart, saveCart, unsubscribeCart } from "@/lib/abandoned";
 import { getShopProducts, getWelcomeCode } from "@/lib/storefront/catalog";
 import { getShopSettings, siteUrl } from "@/lib/storefront/pages";
@@ -91,6 +106,190 @@ export async function logoutAction() {
   await endSession();
 }
 
+const MAIL_OFF = "Slanje emaila trenutno nije dostupno. Javite nam se preko kontakt forme.";
+
+/**
+ * Zahtev za novu lozinku. Odgovor je isti bez obzira na to da li nalog postoji, da forma ne
+ * otkrije koje su adrese registrovane.
+ */
+export async function requestResetAction(input: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const email = asEmail(input);
+  if (!email) return { ok: false, error: "Upišite ispravnu email adresu." };
+  if (await tooMany("reset", 5)) return { ok: false, error: TOO_MANY };
+  const settings = await getShopSettings();
+  if (!isMailReady(settings)) return { ok: false, error: MAIL_OFF };
+  const reset = await createPasswordReset(email);
+  if (reset) {
+    const url = `${await siteUrl()}/nalog/lozinka/${reset.token}`;
+    const { errors } = await sendMails(settings, [
+      {
+        to: reset.user.email,
+        subject: `Nova lozinka — ${settings.store.name}`,
+        ...simpleEmail(settings, {
+          message: `Zdravo ${reset.user.firstName}, tražili ste novu lozinku za svoj nalog. Link važi jedan sat.\n\nAko to niste bili vi, ne morate ništa da radite: lozinka ostaje ista.`,
+          button: { label: "Postavite novu lozinku", url },
+        }),
+      },
+    ]);
+    if (errors.length > 0) console.error(`[nova lozinka] ${errors[0]}`);
+  }
+  return { ok: true };
+}
+
+export async function resetPasswordAction(token: string, password: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (await tooMany("reset-set", 10)) return { ok: false, error: TOO_MANY };
+  if (typeof password !== "string" || password.length < 8) return { ok: false, error: "Lozinka mora imati najmanje 8 karaktera." };
+  if (password.length > 200) return { ok: false, error: "Lozinka je predugačka." };
+  const done = await resetPassword(asText(token, 100), password);
+  return done ? { ok: true } : { ok: false, error: "Link više ne važi. Zatražite novi." };
+}
+
+export type AddressErrors = Partial<Record<keyof ShopAddress, string>>;
+
+/** Adresa za dostavu uz nalog; popunjava formu pri sledećoj porudžbini. Prazna polja su dozvoljena. */
+export async function saveAddressAction(input: ShopAddress): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Prijavite se ponovo." };
+  await saveAddress(user.id, {
+    phone: asText(input?.phone, 64),
+    street: asText(input?.street),
+    city: asText(input?.city),
+    postalCode: asText(input?.postalCode, 16),
+  });
+  return { ok: true };
+}
+
+/** Kupac briše svoj nalog. Porudžbine ostaju prodavcu; njihovo brisanje kupac traži od prodavca. */
+export async function deleteAccountAction(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+  await deleteUser(user.id);
+  await endSession();
+}
+
+/* ---------- Praćenje porudžbine i povrat ---------- */
+
+export type OrderView = {
+  number: string;
+  date: string;
+  status: string;
+  deliveryMethod: string;
+  tracking: { number: string; url: string } | null;
+  total: number;
+  refunded: number;
+  items: { position: number; name: string; qty: number; returnable: number }[];
+  /** Može da se zatraži povrat: porudžbina je poslata ili isporučena, ima šta da se vrati i nema zahteva koji čeka. */
+  canReturn: boolean;
+  returns: { date: string; status: string; items: string; answer: string }[];
+};
+
+/**
+ * Porudžbina za kupca: po broju i email adresi sa kojom je poručena, ili po nalogu sa kog je
+ * poručena. Pogrešan broj i pogrešna adresa daju isti odgovor.
+ */
+async function findCustomerOrder(number: string, email: string): Promise<Order | null> {
+  const order = await getOrder(asText(number, 12).replace(/^#/, ""));
+  if (!order) return null;
+  const user = await getCurrentUser();
+  if (user && (await getUserOrders(user.id)).some((candidate) => candidate.number === order.number)) return order;
+  const given = asEmail(email);
+  return given && order.customer.email.toLowerCase() === given ? order : null;
+}
+
+async function toOrderView(order: Order): Promise<OrderView> {
+  const [settings, returns] = await Promise.all([getShopSettings(), getOrderReturns(order.number)]);
+  const date = new Intl.DateTimeFormat(settings.store.locale, { dateStyle: "long", timeZone: settings.store.timeZone });
+  const items = order.items.map((item, position) => ({ position, name: itemName(item), qty: item.qty, returnable: item.qty - item.returned }));
+  return {
+    number: order.number,
+    date: date.format(new Date(order.receivedAt)),
+    status: orderStatusLabels[order.status],
+    deliveryMethod: order.deliveryMethod,
+    tracking: order.tracking ?? null,
+    total: order.total,
+    refunded: order.refunded,
+    items,
+    canReturn:
+      (order.status === "shipped" || order.status === "delivered") &&
+      items.some((item) => item.returnable > 0) &&
+      !returns.some((request) => request.status === "new"),
+    returns: returns.map((request) => ({
+      date: date.format(new Date(request.createdAt)),
+      status: returnStatusLabels[request.status],
+      items: request.items.map((item) => `${item.qty} × ${item.name}`).join(", "),
+      answer: request.answer,
+    })),
+  };
+}
+
+const NOT_FOUND = "Nismo našli porudžbinu sa tim brojem i email adresom.";
+
+export async function trackOrderAction(input: { number: string; email: string }): Promise<{ ok: true; order: OrderView } | { ok: false; error: string }> {
+  if (await tooMany("track", 20)) return { ok: false, error: TOO_MANY };
+  const order = await findCustomerOrder(input?.number, input?.email);
+  return order ? { ok: true, order: await toOrderView(order) } : { ok: false, error: NOT_FOUND };
+}
+
+/** Zahtev za povrat: šta kupac vraća i zašto. Prodavac odgovara iz panela, a kupac odgovor dobija emailom. */
+export async function returnRequestAction(input: {
+  number: string;
+  email: string;
+  items: { position: number; qty: number }[];
+  reason: string;
+}): Promise<{ ok: true; order: OrderView } | { ok: false; error: string }> {
+  if (await tooMany("return", 10)) return { ok: false, error: TOO_MANY };
+  const order = await findCustomerOrder(input?.number, input?.email);
+  if (!order) return { ok: false, error: NOT_FOUND };
+  const view = await toOrderView(order);
+  if (!view.canReturn) return { ok: false, error: "Za ovu porudžbinu trenutno ne može da se zatraži povrat." };
+
+  const reason = asText(input.reason, 1000);
+  if (reason.length < 5) return { ok: false, error: "Napišite zašto vraćate proizvod." };
+  const items = (Array.isArray(input.items) ? input.items : []).flatMap((entry) => {
+    const item = view.items.find((candidate) => candidate.position === entry?.position);
+    const qty = Math.min(Math.round(Number(entry?.qty) || 0), item?.returnable ?? 0);
+    return item && qty > 0 ? [{ name: item.name, qty }] : [];
+  });
+  if (items.length === 0) return { ok: false, error: "Označite šta vraćate." };
+
+  await addReturnRequest(order.number, items, reason);
+  await addOrderEvent(await getDb(), order.number, `Kupac je zatražio povrat: ${items.map((item) => `${item.qty} × ${item.name}`).join(", ")}`);
+  return { ok: true, order: await toOrderView(order) };
+}
+
+/* ---------- Utisci ---------- */
+
+/** Utisak o proizvodu: piše ga prijavljen kupac, a na sajtu se vidi kada ga prodavac odobri. */
+export async function reviewAction(input: { slug: string; rating: number; text: string }): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Prijavite se da biste ostavili utisak." };
+  if (await tooMany("review", 10)) return { ok: false, error: TOO_MANY };
+  const rating = Math.round(Number(input?.rating));
+  if (!(rating >= 1 && rating <= 5)) return { ok: false, error: "Izaberite ocenu od 1 do 5." };
+  const body = asText(input.text, 2000);
+  if (body.length < 10) return { ok: false, error: "Napišite bar jednu rečenicu." };
+  const product = (await getProducts()).find((candidate) => candidate.slug === input.slug && candidate.active);
+  if (!product) return { ok: false, error: "Proizvod više ne postoji." };
+
+  const orders = await getUserOrders(user.id);
+  await saveReview({
+    productSlug: product.slug,
+    userId: user.id,
+    // Na sajtu se vidi ime i početno slovo prezimena.
+    name: `${user.firstName} ${user.lastName.slice(0, 1)}.`.trim(),
+    rating,
+    body,
+    verified: orders.some((order) => order.status !== "cancelled" && order.items.some((item) => item.slug === product.slug)),
+  });
+  return { ok: true };
+}
+
+/** Odjava od novosti, sa linka u emailu. */
+export async function unsubscribeNewsletterAction(token: string): Promise<boolean> {
+  if (await tooMany("unsubscribe", 30)) return false;
+  return unsubscribeNewsletter(token);
+}
+
 /* ---------- Novosti i kontakt ---------- */
 
 export async function subscribeAction(
@@ -129,12 +328,45 @@ export async function contactAction(input: {
 
 /* ---------- Plaćanje ---------- */
 
-export async function checkPromoAction(
-  code: string,
-): Promise<{ ok: true; code: string; percent: number } | { ok: false; message: string }> {
-  if (await tooMany("promo", 40)) return { ok: false, message: TOO_MANY };
-  const check = await checkCode(code);
-  return check.ok ? { ok: true, ...check.discount } : { ok: false, message: "Ovaj kod ne važi." };
+export type CartQuote = {
+  subtotal: number;
+  discount: number;
+  /** Kako se popust ispisuje („Popust 10% (kod LETO10)"), ili prazno kada ga nema. */
+  discountText: string;
+  delivery: number;
+  total: number;
+  /** Poruka kada upisani kod ne važi. */
+  codeError: string;
+};
+
+/**
+ * Obračun za stranicu plaćanja: cene, popust (upisani kod ili automatski) i dostava izabranim
+ * načinom. Računa server, po istim pravilima po kojima se porudžbina upisuje.
+ */
+export async function quoteAction(input: {
+  items: { slug: string; variantId?: string; qty: number }[];
+  promoCode: string;
+  delivery: string;
+  zip: string;
+}): Promise<CartQuote | null> {
+  if (await tooMany("quote", 240)) return null;
+  const items = (Array.isArray(input?.items) ? input.items.slice(0, 100) : []).flatMap((item) => {
+    const qty = Number(item?.qty);
+    if (typeof item?.slug !== "string" || !Number.isInteger(qty) || qty < 1) return [];
+    return [{ slug: item.slug, qty, ...(typeof item.variantId === "string" ? { variant: item.variantId } : {}) }];
+  });
+  const [products, settings] = await Promise.all([getProducts(), getShopSettings()]);
+  const methods = availableMethods(settings.shipping.methods, asText(input.zip, 16));
+  const method = methods.find((candidate) => candidate.id === input.delivery) ?? methods[0];
+  // Proveru koda ograničava isti brojač kao i ranije: nagađanje kodova kroz obračun ne prolazi.
+  const code = asText(input.promoCode, 64);
+  if (code && (await tooMany("promo", 40))) return null;
+  const { pricing, discount, codeError } = await quoteCart(toLines(items, products), code, method);
+  return {
+    ...pricing,
+    discountText: discount ? discountText(discount) : "",
+    codeError: codeError ?? "",
+  };
 }
 
 /**
@@ -172,7 +404,8 @@ export type PlacedOrder = {
   firstName: string;
   subtotal: number;
   discount: number;
-  promoCode: string;
+  /** Kako se popust ispisuje („Popust 10% (kod LETO10)"), ili prazno. */
+  discountText: string;
   delivery: number;
   total: number;
   /** Naziv načina dostave i rečenica o isporuci (Podešavanja → Dostava). */
@@ -257,7 +490,11 @@ export async function placeOrderAction(
   if (!result.ok) return { ok: false, errors: fromCrm(result.errors), message: result.message };
 
   const user = await getCurrentUser();
-  if (user) await linkOrder(user.id, result.orderNumber);
+  if (user) {
+    await linkOrder(user.id, result.orderNumber);
+    // Adresa iz porudžbine ostaje uz nalog, za sledeću kupovinu.
+    await saveAddress(user.id, { phone: crmCustomer.phone, street: crmCustomer.street, city: crmCustomer.city, postalCode: crmCustomer.postalCode });
+  }
   // Kupac je poručio, pa mu podsetnik za korpu ne treba.
   await clearCart(crmCustomer.email);
 
@@ -269,7 +506,7 @@ export async function placeOrderAction(
       firstName,
       subtotal: saved?.subtotal ?? result.total,
       discount: saved?.discount?.amount ?? 0,
-      promoCode: saved?.discount?.code ?? "",
+      discountText: saved?.discount ? discountText(saved.discount) : "",
       delivery: saved?.delivery ?? 0,
       total: result.total,
       deliveryMethod: result.deliveryMethod,

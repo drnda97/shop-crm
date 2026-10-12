@@ -8,7 +8,7 @@ import {
   type Product,
   type Variant,
 } from "@/lib/catalog";
-import { discountAmount } from "@/lib/discounts";
+import type { DiscountEffect } from "@/lib/discounts";
 
 /** Stavka korpe kako je šalje sajt. `variant` je id varijante, kod proizvoda koji ih imaju. */
 export type CartItem = { slug: string; qty: number; variant?: string };
@@ -81,15 +81,15 @@ export function getWeight(lines: CartLine[]): number {
 export type Pricing = {
   /** Zbir proizvoda. */
   subtotal: number;
-  /** Popust; 0 kada kod nije upisan. */
+  /** Popust oduzet od proizvoda; 0 kada ga nema ili kada je popust besplatna dostava. */
   discount: number;
   delivery: number;
   total: number;
 };
 
 type PricingOptions = {
-  /** Procenat popusta iz koda koji je kupac upisao. */
-  discountPercent?: number;
+  /** Popust koji je server primenio (kod ili automatski): iznos sa proizvoda i besplatna dostava. */
+  discount?: DiscountEffect | null;
   deliveryPrice: number;
   /** Vrednost od koje je dostava besplatna; null kada je besplatna dostava isključena. */
   freeShippingFrom: number | null;
@@ -101,9 +101,11 @@ type PricingOptions = {
  */
 export function getPricing(lines: CartLine[], options: PricingOptions): Pricing {
   const subtotal = getSubtotal(lines);
-  const discount = options.discountPercent ? discountAmount(subtotal, options.discountPercent) : 0;
+  const discount = Math.min(options.discount?.amount ?? 0, subtotal);
   const paid = subtotal - discount;
-  const free = options.freeShippingFrom !== null && paid >= options.freeShippingFrom;
+  const free =
+    options.discount?.freeShipping === true ||
+    (options.freeShippingFrom !== null && paid >= options.freeShippingFrom);
   const delivery = free ? 0 : options.deliveryPrice;
   return { subtotal, discount, delivery, total: paid + delivery };
 }

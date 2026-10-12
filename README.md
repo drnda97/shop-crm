@@ -25,12 +25,14 @@ Prvo otvorite **Podešavanja**: naziv prodavnice, valuta i zapis iznosa (celi iz
 |---|---|
 | Pregled | prodaja i porudžbine za 30 dana, najprodavaniji proizvodi, gradovi, stvari koje traže pažnju |
 | Porudžbine | pretraga, statusi (nova → potvrđena → poslata → isporučena, otkazana) sa emailom kupcu, broj pošiljke, oznaka plaćeno, povraćaj novca i robe, ispravka podataka kupca, istorija, račun u PDF-u, ručni unos porudžbine, izvoz u CSV |
-| Kupci | svi kupci sa brojem porudžbina i potrošnjom, istorija porudžbina kupca, beleška o kupcu, izvoz u CSV |
+| Kupci | svi kupci sa brojem porudžbina i potrošnjom, istorija porudžbina kupca, beleška o kupcu, izvoz u CSV; izvoz i brisanje podataka kupca na njegov zahtev |
 | Napuštene korpe | korpe kupaca koji su upisali email, a nisu poručili; podsetnik emailom (isključen dok ga ne uključite) |
-| Poruke | poruke iz kontakt forme prodavnice i adrese prijavljene na novosti |
+| Poruke | poruke iz kontakt forme prodavnice; novosti: poruka svim prijavljenima, izvoz adresa |
+| Utisci | utisci kupaca o proizvodima, sa odobravanjem |
+| Izveštaji | prodaja za izabrani period po danima, proizvodima, plaćanju, dostavi i popustima; izvoz u CSV |
 | Proizvodi | cena i akcija, šifra, stanje (ručno ili po broju komada) sa istorijom promena, oznaka „pri kraju", slike, opcije i varijante (cena, šifra, stanje i slika po varijanti), slični proizvodi, podaci za pretraživače, nacrt/objavljen, redosled; izmena više proizvoda odjednom; uvoz i izvoz u CSV-u |
 | Kategorije, Kolekcije | kategorije sa podkategorijama, proizvod može biti u više njih; kolekcija je ručno složena grupa |
-| Popusti | promo kodovi (sa brojem korišćenja i rokom) i nagrade: kod koji kupac dobija emailom posle porudžbine |
+| Popusti | promo kodovi i automatski popusti (procenat, fiksni iznos ili besplatna dostava; cela korpa ili izabrani proizvodi i kategorije; broj korišćenja i rok) i nagrade: kod koji kupac dobija emailom posle porudžbine |
 | Stranice | stranice sajta složene od sekcija, sa pregledom pre čuvanja; naslov i opis za pretraživače |
 | Izgled sajta | boje i fontovi; glavni meni, podnožje, traka sa obaveštenjem; tekstovi i fotografije na stranicama kolekcije, proizvoda, naloga, plaćanja i korpe — sve sa pregledom pre čuvanja |
 | Slike | biblioteka ubačenih slika; fotografije se čuvaju kao WebP u više širina |
@@ -71,7 +73,7 @@ Sajt koji ne koristi `sdk.js` (npr. server u PHP-u ili Next.js-u) zove API direk
 | `GET /api/v1/categories` · `/collections` · `/collections/{id}` | kategorije (sa `parent` za podkategorije) i kolekcije |
 | `GET /api/v1/pages` · `/pages/{slug}` | objavljene stranice; stranica ima `sections` (vrsta i sadržaj svake sekcije), i `body` i `images` izvedene iz njih |
 | `POST /api/v1/cart` `{ items, discountCode?, deliveryMethod?, postalCode? }` | stavke i obračun: međuzbir, popust, dostava, ukupno; stavka je `{ slug, qty, variant? }`; vraća i načine dostave koji važe za poštanski broj |
-| `POST /api/v1/discounts/check` `{ code }` | da li kod važi |
+| `POST /api/v1/discounts/check` `{ code }` | da li kod važi i šta daje (procenat, iznos ili besplatna dostava); koliko štedi za konkretnu korpu vraća `/cart` |
 | `POST /api/v1/orders` `{ customer, items, discountCode?, paymentMethod?, deliveryMethod? }` | upis porudžbine (201) ili greške (422); za karticu vraća `paymentUrl` na koji sajt šalje kupca |
 
 Iznosi u API-ju su celi brojevi u najmanjim jedinicama valute (uz `currency.decimals` iz `/store`): 1250 je 1.250 RSD, odnosno 12,50 € kada valuta ima dve decimale. `shop.formatPrice(iznos, store.currency)` ih ispisuje.
@@ -82,7 +84,7 @@ Cene, stanje, popust i dostava se uvek računaju u CRM-u; sajt šalje samo šta 
 
 ## Email
 
-Prodavnica šalje poruke (potvrda porudžbine, promena statusa, povraćaj, podsetnik za korpu) preko SMTP naloga koji upišete u Podešavanja → Email o porudžbini. To je nalog vašeg domena, npr. `prodaja@mojsajt.rs` kod hostinga na kom je domen. Dok nije upisan, porudžbine rade normalno, ali poruke ne idu; panel to javlja na Pregledu i na stranici porudžbine.
+Prodavnica šalje poruke (potvrda porudžbine, promena statusa, povraćaj, podsetnik za korpu) preko SMTP naloga koji upišete u Podešavanja → Email o porudžbini. To je nalog vašeg domena, npr. `prodaja@mojsajt.rs` kod hostinga na kom je domen. Dok nije upisan, porudžbine rade normalno, ali poruke ne idu (ni link za novu lozinku kupca); panel to javlja na Pregledu i na stranici porudžbine.
 
 Podsetnici za napuštene korpe se šalju na svakih desetak minuta dok server radi. Na hostingu gde server ne radi stalno, raspored hostinga treba da poziva `/api/v1/cron?key=…`, sa ključem iz promenljive `CRON_SECRET`.
 
@@ -126,7 +128,10 @@ Skripta dodaje samo ono čega nema, pa postojeći sadržaj ne dira.
 | Načini plaćanja i podaci za uplatu | Podešavanja → Plaćanje |
 | Promo kod pri plaćanju | Popusti |
 | Kontakt forma i prijava na novosti | Poruke |
-| Nalozi kupaca | tabele `shop_users` i `shop_sessions`; kupac u nalogu vidi porudžbine napravljene dok je bio prijavljen |
+| Nalozi kupaca | tabele `shop_users` i `shop_sessions`; kupac u nalogu vidi porudžbine napravljene dok je bio prijavljen, čuva adresu, preuzima račun i traži povrat |
+| Praćenje porudžbine bez naloga, zahtev za povrat | `/pracenje`; zahtevi stižu na stranicu porudžbine u panelu |
+| Utisci na stranici proizvoda | Utisci (odobravanje) |
+| Traka za kolačiće, Google Analytics, Meta Pixel | Podešavanja → Analitika |
 
 Izabrana varijanta (npr. „Grafit, Orah") stoji uz stavku porudžbine u panelu i u emailu, a stanje se skida sa te varijante.
 
@@ -161,8 +166,11 @@ U bazi su lični podaci kupaca i lozinka email naloga, pa kopije ne treba držat
 | Istorija stanja | `lib/stock.ts` |
 | Uvoz i izvoz proizvoda | `lib/product-import.ts`, `lib/csv.ts`, `lib/remote-image.ts` |
 | Obračun korpe | `lib/cart.ts` |
-| Kupci | `lib/customers.ts` |
-| Email | `lib/order-email.ts`, `lib/email-template.ts` |
+| Kupci, podaci na zahtev | `lib/customers.ts`, `lib/privacy.ts` |
+| Popusti | `lib/discounts.ts` |
+| Zahtevi za povrat, utisci, novosti | `lib/returns.ts`, `lib/reviews.ts`, `lib/newsletter.ts` |
+| Izveštaji | `lib/reports.ts` |
+| Email | `lib/order-email.ts`, `lib/email-template.ts`, `lib/mail.ts` (ostale poruke) |
 | Račun u PDF-u | `lib/invoice.ts` |
 | Napuštene korpe i poslovi po rasporedu | `lib/abandoned.ts`, `instrumentation.ts`, `app/api/v1/cron/` |
 | Javni API | `app/api/v1/[...path]/route.ts`, `lib/api.ts` |

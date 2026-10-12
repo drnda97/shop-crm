@@ -80,6 +80,8 @@ export type ShopConfig = {
   texts: Templates;
   /** Kategorije iz CRM-a, složene kao stablo (nadkategorija pa njene podkategorije). */
   categories: ShopCategory[];
+  /** Oznake za merenje poseta (Podešavanja → Analitika); učitavaju se samo uz pristanak posetioca. */
+  analytics: { ga4: string; metaPixel: string };
   /** Kupac koji upiše email na stranici plaćanja, a ne poruči, dobija podsetnik (panel → Napuštene korpe). */
   cartReminder: boolean;
   /** Načini dostave iz CRM-a (Podešavanja → Dostava); cenu za korpu računa lib/shipping.ts. */

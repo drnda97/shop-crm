@@ -121,14 +121,29 @@ Ostalo:
 - Zone su po poštanskim brojevima jedne zemlje; dostava u više zemalja traži polje za zemlju pri poručivanju.
 - Test upisa porudžbine u bazu (`submitOrder`) i dalje ne postoji; tok je proveren u pregledaču.
 
-### Faza 4 — Kupci i marketing
+### Faza 4 — Kupci i marketing ✅
 
-- Nalog kupca: zaboravljena lozinka, sačuvane adrese, praćenje porudžbine bez naloga.
-- Utisci o proizvodima sa odobravanjem, lista želja.
-- Popusti: fiksni iznos, besplatna dostava, popust na proizvod ili kategoriju, automatski popust bez koda.
-- Novosti: izvoz prijavljenih adresa i slanje poruke iz panela.
-- Izveštaji po periodu, GA4 i Meta Pixel, traka za saglasnost za kolačiće.
-- Izvoz i brisanje podataka kupca na zahtev.
+Završeno 12. 10. 2026.
+
+- **Popusti** (`lib/discounts.ts`): procenat, fiksni iznos ili besplatna dostava; na celu korpu ili samo na izabrane proizvode i kategorije; najmanji iznos korpe; automatski popust bez koda. Kada važe i kod kupca i automatski popust, primenjuje se onaj koji kupcu više štedi (ne sabiraju se). Obračun na stranici plaćanja radi server.
+- **Nalog kupca**: zaboravljena lozinka (link emailom, važi sat vremena i jednom), adresa za dostavu uz nalog koja popunjava plaćanje, brisanje naloga. Dugme za prijavu Google nalogom, koje nije radilo, je uklonjeno.
+- **Praćenje porudžbine** bez naloga (`/pracenje`): po broju i email adresi.
+- **Zahtev za povrat** (`lib/returns.ts`): kupac sa stranice za praćenje bira šta vraća i zašto; prodavac na stranici porudžbine odobrava ili odbija, a kupac odgovor dobija emailom. Povraćaj novca se zatim upisuje na istoj stranici.
+- **Utisci** (`lib/reviews.ts`, panel → Utisci): piše ih prijavljen kupac, vide se posle odobrenja; ocena ulazi u podatke za Google.
+- **Lista želja**: čuva se u pregledaču, kao korpa.
+- **Novosti** (`lib/newsletter.ts`): poruka svim prijavljenima iz panela, sa linkom za odjavu; izvoz adresa u CSV.
+- **Izveštaji** (`lib/reports.ts`, panel → Izveštaji): prodaja za izabrani period po danima, proizvodima, načinima plaćanja i dostave i popustima; izvoz u CSV.
+- **Analitika**: Google Analytics 4 i Meta Pixel, učitavaju se tek uz pristanak u traci za kolačiće. Bez upisanih oznaka nema ni trake ni kolačića za praćenje.
+- **Podaci kupca na zahtev** (`lib/privacy.ts`): izvoz svega što se čuva o kupcu, i brisanje (porudžbine ostaju bez imena, kontakta i adrese).
+
+Ostalo:
+
+- Lista želja nije vezana za nalog: na drugom uređaju je prazna.
+- Utisak može da ostavi samo prijavljen kupac; kupac bez naloga ne može.
+- Popusti se ne sabiraju, i nagrade posle porudžbine su i dalje samo procenat na celu korpu.
+- Meta Pixel nije isproban sa pravim nalogom; Google Analytics je proveren samo do učitavanja skripte.
+- Novosti idu preko SMTP naloga prodavnice, poruku po poruku; za spiskove od više hiljada adresa treba servis za slanje.
+- Povraćaj kao kod za sledeću kupovinu umesto novca nije urađen.
 
 ### Faza 5 — Panel za više ljudi
 

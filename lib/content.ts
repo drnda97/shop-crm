@@ -146,7 +146,11 @@ async function loadContent(db: Pool | PoolConnection): Promise<Content> {
       id: row.id,
       name: row.name,
       code: row.code,
+      kind: row.kind ?? "percent",
       percent: row.percent,
+      amount: row.amount ?? 0,
+      products: JSON.parse(row.products ?? "[]"),
+      categories: JSON.parse(row.categories ?? "[]"),
       status: row.status,
       trigger: row.trigger_type,
       threshold: row.threshold,
@@ -275,7 +279,7 @@ async function storeContent(connection: PoolConnection, content: Content) {
   await insertRows(
     connection,
     `INSERT INTO discounts (id, position, name, code, percent, status, trigger_type, threshold,
-      max_uses, expires_at) VALUES ?`,
+      max_uses, expires_at, kind, amount, products, categories) VALUES ?`,
     content.discounts.map((discount, index) => [
       discount.id,
       index,
@@ -287,6 +291,10 @@ async function storeContent(connection: PoolConnection, content: Content) {
       discount.threshold,
       discount.maxUses,
       discount.expiresAt,
+      discount.kind,
+      discount.amount,
+      JSON.stringify(discount.products),
+      JSON.stringify(discount.categories),
     ]),
   );
   await connection.query(

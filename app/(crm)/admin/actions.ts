@@ -48,6 +48,7 @@ import {
   normalizeCode,
   triggerLabels,
   type Discount,
+  type DiscountKind,
   type DiscountTrigger,
 } from "@/lib/discounts";
 import { formatMoney, toMinor } from "@/lib/format";
@@ -79,6 +80,12 @@ import { findProvider } from "@/lib/payments";
 import { currencyOf, defaultSettings, INVOICE_EMAILS, mergeSettings, STATUS_EMAILS } from "@/lib/settings";
 import { normalizeMethods } from "@/lib/shipping";
 import { sendDueReminders } from "@/lib/abandoned";
+import { baseUrl } from "@/lib/api";
+import { isMailReady, publicBase, sendMails, simpleEmail } from "@/lib/mail";
+import { createCampaign, getRecipients, sendCampaign } from "@/lib/newsletter";
+import { eraseCustomer } from "@/lib/privacy";
+import { resolveReturn } from "@/lib/returns";
+import { deleteReview, setReviewStatus } from "@/lib/reviews";
 import { mergeSite } from "@/lib/site";
 import { IMPORT_KEY } from "./import-key";
 import type { VariantRow } from "./variants-editor";
@@ -718,30 +725,49 @@ export async function saveDiscountAction(formData: FormData) {
   if (code !== "" && discounts.some((item) => item.code === code && item.id !== existing?.id)) {
     backWithError(formPath, "Taj kod već koristi drugi popust. Svaki popust mora imati svoj kod.");
   }
-  const percent = Number(text(formData, "percent"));
-  if (!Number.isInteger(percent) || percent < 1 || percent > 100) {
-    backWithError(formPath, "Popust je ceo broj od 1 do 100.");
+  // Promo kod i automatski popust biraju šta daju; nagrade su uvek procenat na celu korpu.
+  const cartDiscount = trigger === "public" || trigger === "auto";
+  const kindValue = text(formData, "kind");
+  const kind: DiscountKind = cartDiscount && (kindValue === "amount" || kindValue === "shipping") ? kindValue : "percent";
+  const decimals = settings.store.currencyDecimals;
+
+  let percent = 0;
+  let amount = 0;
+  if (kind === "percent") {
+    percent = Number(text(formData, "percent"));
+    if (!Number.isInteger(percent) || percent < 1 || percent > 100) {
+      backWithError(formPath, "Popust je ceo broj od 1 do 100.");
+    }
+  } else if (kind === "amount") {
+    const value = toMinor(text(formData, "amount"), decimals);
+    if (value === null || Number.isNaN(value) || value < 1) {
+      backWithError(formPath, "Upišite iznos popusta.");
+    }
+    amount = value;
   }
 
-  // Prag: iznos za „amount" (u valuti prodavnice), grami za „weight"; ostali ga nemaju.
+  // Prag: najmanji iznos korpe za promo kod i automatski popust; iznos za „amount" i grami za
+  // „weight" kod nagrada.
   let threshold = 0;
-  if (trigger === "amount") {
-    const amount = toMinor(text(formData, "threshold"), settings.store.currencyDecimals);
-    if (amount === null || Number.isNaN(amount) || amount < 1) {
-      backWithError(formPath, "Upišite iznos od kog se nagrada šalje.");
-    }
-    threshold = amount;
-  } else if (trigger === "weight") {
+  if (trigger === "weight") {
     threshold = Number(text(formData, "threshold"));
     if (!Number.isInteger(threshold) || threshold < 1) {
       backWithError(formPath, "Upišite težinu u gramima od koje se nagrada šalje.");
     }
+  } else if (trigger !== "first") {
+    const value = toMinor(text(formData, "threshold"), decimals);
+    if (Number.isNaN(value) || (trigger === "amount" && (value === null || value < 1))) {
+      backWithError(formPath, trigger === "amount" ? "Upišite iznos od kog se nagrada šalje." : "Najmanji iznos korpe je broj, npr. 5000.");
+    }
+    threshold = value ?? 0;
   }
 
-  // Ograničenja važe samo za promo kod.
+  // Ograničenja i izbor proizvoda važe samo za promo kod i automatski popust.
   let maxUses: number | null = null;
   let expiresAt: string | null = null;
-  if (trigger === "public") {
+  let scopeProducts: string[] = [];
+  let scopeCategories: string[] = [];
+  if (cartDiscount) {
     const uses = optionalCount(formData, "maxUses");
     if (uses === false || uses === 0) {
       backWithError(formPath, "Broj korišćenja je ceo broj veći od nule, ili prazno.");
@@ -749,9 +775,15 @@ export async function saveDiscountAction(formData: FormData) {
     maxUses = uses;
     const expires = text(formData, "expiresAt");
     if (expires !== "" && !/^\d{4}-\d{2}-\d{2}$/.test(expires)) {
-      backWithError(formPath, "Proverite datum do kog kod važi.");
+      backWithError(formPath, "Proverite datum do kog popust važi.");
     }
     expiresAt = expires || null;
+    if (kind !== "shipping") {
+      const [products, categories] = await Promise.all([getProducts(), getCategories()]);
+      const picked = (name: string) => formData.getAll(name).filter((value): value is string => typeof value === "string");
+      scopeProducts = picked("products").filter((slug) => products.some((product) => product.slug === slug));
+      scopeCategories = picked("categories").filter((id) => categories.some((category) => category.id === id));
+    }
   }
 
   const discount: Discount = {
@@ -760,8 +792,12 @@ export async function saveDiscountAction(formData: FormData) {
       (uniqueSlug(name, ["novi", ...discounts.map((item) => item.id)]) ||
         `popust-${Date.now().toString(36)}`),
     name,
-    code,
+    code: trigger === "auto" ? "" : code,
+    kind,
     percent,
+    amount,
+    products: scopeProducts,
+    categories: scopeCategories,
     status: text(formData, "status") === "active" ? "active" : "draft",
     trigger,
     threshold,
@@ -773,6 +809,7 @@ export async function saveDiscountAction(formData: FormData) {
       ? content.discounts.map((item) => (item.id === discount.id ? discount : item))
       : [...content.discounts, discount];
   });
+  refreshSite();
   redirect(DISCOUNTS_PATH);
 }
 
@@ -1153,6 +1190,115 @@ export async function saveCustomerNoteAction(formData: FormData) {
     await setCustomerNote(key, text(formData, "note").slice(0, 5000));
   }
   redirect(`${ADMIN_PATH}/kupci/${key}?ok=${encodeURIComponent("Beleška je sačuvana.")}`);
+}
+
+/* ---------- Zahtevi za povrat ---------- */
+
+/** Odgovor na zahtev kupca za povrat. Kupac ga dobija emailom; sam povraćaj se upisuje kada roba stigne. */
+export async function resolveReturnAction(formData: FormData) {
+  await requireAdmin();
+  const number = text(formData, "number");
+  const id = wholeNumber(formData, "id");
+  const approved = text(formData, "decision") === "approve";
+  const answer = text(formData, "answer").slice(0, 1000);
+  if (!approved && answer === "") backWithError(orderPath(number), "Uz odbijanje napišite kupcu razlog.");
+  const request = id === null ? null : await resolveReturn(id, approved ? "approved" : "rejected", answer);
+  if (!request) backWithError(orderPath(number), "Zahtev je već rešen.");
+
+  await addOrderEvent(await getDb(), request.orderNumber, `Zahtev za povrat je ${approved ? "odobren" : "odbijen"}${answer ? `: ${answer}` : ""}`);
+  after(async () => {
+    const [order, settings] = await Promise.all([getOrder(request.orderNumber), getSettings()]);
+    if (!order?.customer.email) return;
+    const { errors } = await sendMails(settings, [
+      {
+        to: order.customer.email,
+        subject: `Povrat za porudžbinu #${order.number} — ${settings.store.name}`,
+        ...simpleEmail(settings, {
+          message: [
+            approved
+              ? `Zdravo ${order.customer.name.split(" ")[0]}, vaš zahtev za povrat za porudžbinu #${order.number} je odobren.`
+              : `Zdravo ${order.customer.name.split(" ")[0]}, vaš zahtev za povrat za porudžbinu #${order.number} nažalost nije odobren.`,
+            `Zatraženo: ${request.items.map((item) => `${item.qty} × ${item.name}`).join(", ")}.`,
+            answer,
+          ].filter(Boolean).join("\n\n"),
+        }),
+      },
+    ]);
+    if (errors.length > 0) await addOrderEvent(await getDb(), order.number, `Email o zahtevu za povrat nije poslat: ${errors[0]}`);
+  });
+  refresh();
+  redirect(orderPath(request.orderNumber));
+}
+
+/* ---------- Utisci ---------- */
+
+const REVIEWS_PATH = `${ADMIN_PATH}/utisci`;
+
+export async function reviewStatusAction(formData: FormData) {
+  await requireAdmin();
+  const id = wholeNumber(formData, "id");
+  const status = text(formData, "status");
+  if (id !== null && (status === "approved" || status === "rejected" || status === "pending")) await setReviewStatus(id, status);
+  refreshSite();
+  redirect(REVIEWS_PATH);
+}
+
+export async function deleteReviewAction(formData: FormData) {
+  await requireAdmin();
+  const id = wholeNumber(formData, "id");
+  if (id !== null) await deleteReview(id);
+  refreshSite();
+  redirect(REVIEWS_PATH);
+}
+
+/* ---------- Podaci kupca na zahtev ---------- */
+
+/** Briše podatke kupca na njegov zahtev. Porudžbine ostaju bez imena, kontakta i adrese. */
+export async function eraseCustomerAction(formData: FormData) {
+  await requireAdmin();
+  const key = text(formData, "key");
+  const count = await eraseCustomer(key);
+  refresh();
+  redirect(`${ADMIN_PATH}/kupci?ok=${encodeURIComponent(count > 0 ? `Podaci kupca su obrisani. Porudžbina bez ličnih podataka: ${count}.` : "Kupac više ne postoji.")}`);
+}
+
+/* ---------- Novosti ---------- */
+
+const MESSAGES_PATH = `${ADMIN_PATH}/poruke`;
+
+/** Poruka svim prijavljenima na novosti. Slanje ide u pozadini; tok se vidi na stranici Poruke. */
+export async function sendCampaignAction(formData: FormData) {
+  await requireAdmin();
+  const subject = text(formData, "subject").slice(0, 200);
+  const body = text(formData, "body").slice(0, 10000);
+  if (!subject || body.length < 10) backWithError(MESSAGES_PATH, "Upišite naslov i tekst poruke.");
+  const settings = await getSettings();
+  if (!isMailReady(settings)) backWithError(MESSAGES_PATH, "Email nije povezan. Upišite SMTP nalog u Podešavanjima.");
+  const recipients = await getRecipients();
+  if (recipients.length === 0) backWithError(MESSAGES_PATH, "Nema prijavljenih na novosti.");
+  // Link za odjavu u poruci mora da vodi na javnu adresu sajta.
+  const base = publicBase(settings, baseUrl(new Request("http://localhost", { headers: await headers() })));
+
+  const id = await createCampaign(subject, body, recipients.length);
+  after(() => sendCampaign(id, base));
+  refresh();
+  redirect(`${MESSAGES_PATH}?ok=${encodeURIComponent(`Poruka se šalje na ${recipients.length} adresa.`)}`);
+}
+
+/* ---------- Analitika ---------- */
+
+export async function saveAnalyticsAction(formData: FormData) {
+  await requireAdmin();
+  const ga4 = text(formData, "ga4").toUpperCase();
+  const metaPixel = text(formData, "metaPixel");
+  // Oznake idu u kod stranice, pa prolazi samo njihov tačan oblik.
+  if (ga4 !== "" && !/^G-[A-Z0-9]{4,20}$/.test(ga4)) backWithError(SETTINGS_PATH, "GA4 oznaka izgleda ovako: G-XXXXXXXXXX.");
+  if (metaPixel !== "" && !/^\d{5,20}$/.test(metaPixel)) backWithError(SETTINGS_PATH, "Meta Pixel ID je broj, npr. 123456789012345.");
+  await updateContent((content) => {
+    content.settings.analytics = { ga4, metaPixel };
+  });
+  refreshSite();
+  backWithNotice("Analitika je sačuvana.");
 }
 
 /* ---------- Napuštene korpe ---------- */

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { itemName, orderStatusLabels } from "@/lib/orders";
 import { paymentLabels } from "@/lib/settings";
-import { getCurrentUser, getUserOrders } from "@/lib/storefront/auth";
+import { getAddress, getCurrentUser, getUserOrders } from "@/lib/storefront/auth";
 import { getWelcomeCode } from "@/lib/storefront/catalog";
 import { getShopSettings } from "@/lib/storefront/pages";
 import { AccountPanel, type Account } from "../_components/account-panel";
@@ -15,10 +15,11 @@ export const metadata: Metadata = { title: "Prijava i registracija", robots: { i
 async function loadAccount(): Promise<Account | null> {
   const user = await getCurrentUser();
   if (!user) return null;
-  const [orders, settings, welcomeCode] = await Promise.all([
+  const [orders, settings, welcomeCode, address] = await Promise.all([
     getUserOrders(user.id),
     getShopSettings(),
     getWelcomeCode(),
+    getAddress(user.id),
   ]);
   const date = new Intl.DateTimeFormat(settings.store.locale, {
     day: "numeric",
@@ -30,6 +31,7 @@ async function loadAccount(): Promise<Account | null> {
     firstName: user.firstName,
     email: user.email,
     welcomeCode,
+    address,
     orders: orders.map((order) => ({
       number: order.number,
       date: date.format(new Date(order.receivedAt)),

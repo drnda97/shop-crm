@@ -12,7 +12,7 @@ export type ShopMessage = {
   body: string;
 };
 
-export type Subscriber = { email: string; createdAt: string };
+export type Subscriber = { email: string; createdAt: string; unsubscribed: boolean };
 
 export async function addMessage(message: Omit<ShopMessage, "id" | "createdAt">) {
   await (
@@ -56,5 +56,9 @@ export async function getSubscribers(): Promise<Subscriber[]> {
   const [rows] = await (
     await getDb()
   ).query<RowDataPacket[]>("SELECT * FROM shop_subscribers ORDER BY created_at DESC");
-  return rows.map((row) => ({ email: row.email, createdAt: (row.created_at as Date).toISOString() }));
+  return rows.map((row) => ({
+    email: row.email,
+    createdAt: (row.created_at as Date).toISOString(),
+    unsubscribed: row.unsubscribed === 1,
+  }));
 }

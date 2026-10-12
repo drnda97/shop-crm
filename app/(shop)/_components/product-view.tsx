@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { formatPrice, type ShopProduct } from "@/lib/storefront/products";
+import { track } from "./analytics";
 import { useCart } from "./cart";
 import { Icon, Photo } from "./ui";
+import { WishButton } from "./wishlist";
 
 /**
  * Gornji deo stranice proizvoda: galerija, opcije, količina i dodavanje u korpu.
@@ -134,12 +136,16 @@ export function ProductView({ product }: { product: ShopProduct }) {
             className="btn gold"
             style={{ flex: "1 1 240px" }}
             disabled={!canAdd}
-            onClick={() =>
-              add({ slug: product.slug, variant: variant?.label ?? product.variant, variantId: variant?.id, qty: amount })
-            }
+            onClick={() => {
+              add({ slug: product.slug, variant: variant?.label ?? product.variant, variantId: variant?.id, qty: amount });
+              track("add_to_cart", { value: price * amount, currency: "RSD" });
+            }}
           >
             {canAdd ? `Dodaj u korpu, ${formatPrice(price * amount)}` : "Nema na stanju"}
           </button>
+          <span style={{ display: "flex", alignItems: "center", height: "58px" }}>
+            <WishButton slug={product.slug} name={product.name} />
+          </span>
         </div>
 
         {texts.notes.length > 0 && (

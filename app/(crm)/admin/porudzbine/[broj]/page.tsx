@@ -7,8 +7,10 @@ import { isMailConfigured } from "@/lib/order-email";
 import { getOrder, getOrderEvents } from "@/lib/order-store";
 import { itemName, refundable } from "@/lib/orders";
 import { currencyOf } from "@/lib/settings";
+import { getOrderReturns, returnStatusLabels } from "@/lib/returns";
 import {
   refundOrderAction,
+  resolveReturnAction,
   saveOrderCustomerAction,
   saveTrackingAction,
   setOrderPaidAction,
@@ -38,7 +40,12 @@ type OrderPageProps = {
 export default async function OrderPage({ params, searchParams }: OrderPageProps) {
   await requireAdmin();
   const [{ broj }, { greska }] = await Promise.all([params, searchParams]);
-  const [order, events, settings] = await Promise.all([getOrder(broj), getOrderEvents(broj), getSettings()]);
+  const [order, events, settings, returns] = await Promise.all([
+    getOrder(broj),
+    getOrderEvents(broj),
+    getSettings(),
+    /^\d{1,10}$/.test(broj) ? getOrderReturns(broj) : [],
+  ]);
   if (!order) notFound();
 
   const currency = currencyOf(settings);
@@ -61,6 +68,43 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
 
       <div className="flex flex-col gap-[16px]">
         <OrderCard order={order} currency={currency} date={orderDate(order.receivedAt)} back={path} detail />
+
+        {returns.map((request) => (
+          <div key={request.id} className={`${cardClass} flex flex-col gap-[10px]`}>
+            <div className="flex flex-wrap items-baseline justify-between gap-[8px]">
+              <h2 className={panelTitleClass}>Zahtev za povrat · {returnStatusLabels[request.status]}</h2>
+              <span className="text-[14px] text-muted">{orderDate(request.createdAt)}</span>
+            </div>
+            <p className="text-[15px]">
+              <strong>{request.items.map((item) => `${item.qty} × ${item.name}`).join(", ")}</strong>
+            </p>
+            <p className="text-[15px] whitespace-pre-wrap">{request.reason}</p>
+            {request.status === "new" ? (
+              <form action={resolveReturnAction} className="flex flex-col gap-[12px] border-t border-line pt-[12px]">
+                <input type="hidden" name="number" value={order.number} />
+                <input type="hidden" name="id" value={request.id} />
+                <label className={labelClass}>
+                  Odgovor kupcu (kako da pošalje robu, ili zašto zahtev nije odobren)
+                  <textarea name="answer" maxLength={1000} className={`${inputClass} min-h-[80px]`} />
+                </label>
+                <div className="flex flex-wrap gap-[8px]">
+                  <button type="submit" name="decision" value="approve" className={buttonClass}>
+                    Odobri
+                  </button>
+                  <button type="submit" name="decision" value="reject" className={quietButtonClass}>
+                    Odbij
+                  </button>
+                </div>
+                <p className="text-[14px] text-muted">
+                  Kupac odgovor dobija emailom. Odobrenje ne vraća novac: kada roba stigne, upišite povraćaj
+                  ispod.
+                </p>
+              </form>
+            ) : (
+              request.answer && <p className="text-[15px] text-muted">Odgovor: {request.answer}</p>
+            )}
+          </div>
+        ))}
 
         <div className="grid items-start gap-[16px] xl:grid-cols-2">
           <form action={saveTrackingAction} className={panelClass}>

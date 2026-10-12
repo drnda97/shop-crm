@@ -79,8 +79,11 @@ export type Order = {
   subtotal: number;
   delivery: number;
   total: number;
-  /** Popust iskorišćen u ovoj porudžbini. */
-  discount?: { code: string; percent: number; amount: number };
+  /**
+   * Popust iskorišćen u ovoj porudžbini: kod (prazno kod automatskog popusta), procenat (null
+   * kada popust nije procenat), iznos oduzet od proizvoda, naslov i da li je dao besplatnu dostavu.
+   */
+  discount?: { code: string; percent: number | null; amount: number; label: string; freeShipping: boolean };
   /** Kod poslat kupcu uz ovu porudžbinu, za sledeću kupovinu. */
   issuedCode?: { code: string; percent: number; title: string };
   /** Zašto email o porudžbini nije poslat; nema ga kada je sve prošlo. */

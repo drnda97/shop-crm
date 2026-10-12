@@ -46,6 +46,11 @@ export function Header({ overlay = false }: { overlay?: boolean }) {
                 <path d="M13.500 13.500L18.500 18.500"></path>
               </svg>
             </Link>
+            <Link className="icon-btn hide-s" href="/lista-zelja" aria-label="Lista želja">
+              <svg width="20" height="18" viewBox="0 0 20 18" fill="none" stroke="currentColor" strokeWidth="1.600" strokeLinejoin="round">
+                <path d="M10 16.500S1.500 11.700 1.500 6.200A4.200 4.200 0 0110 4.300a4.200 4.200 0 018.500 1.900C18.500 11.700 10 16.500 10 16.500z"></path>
+              </svg>
+            </Link>
             <Link className="icon-btn" href="/nalog" aria-label="Nalog">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.600" strokeLinecap="round">
                 <circle cx="10" cy="6.500" r="3.800"></circle>
@@ -63,6 +68,8 @@ export function Header({ overlay = false }: { overlay?: boolean }) {
               {config.menu.map((item, index) => (
                 <Link href={item.href} key={index}>{item.label}</Link>
               ))}
+              <Link href="/lista-zelja">Lista želja</Link>
+              <Link href="/pracenje">Praćenje porudžbine</Link>
               <Link href="/nalog">Moj nalog</Link>
             </nav>
           </div>

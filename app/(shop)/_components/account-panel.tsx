@@ -6,6 +6,8 @@ import { useState, useTransition, type CSSProperties, type FormEvent } from "rea
 import { countLabel, formatPrice } from "@/lib/storefront/products";
 import { loginAction, logoutAction, registerAction, type RegisterErrors } from "../actions";
 import { useCart } from "./cart";
+import type { ShopAddress } from "@/lib/storefront/auth";
+import { AddressForm, DeleteAccount } from "./account-extras";
 import { ERROR_STYLE, Field } from "./field";
 
 /** Prijavljeni kupac, kako ga stranica naloga pročita iz CRM-a. */
@@ -14,6 +16,8 @@ export type Account = {
   email: string;
   /** Kod dobrodošlice, dok je aktivan u CRM-u. */
   welcomeCode: string | null;
+  /** Adresa sačuvana uz nalog; popunjava formu pri poručivanju. */
+  address: ShopAddress;
   orders: {
     number: string;
     date: string;
@@ -85,13 +89,10 @@ function LoginForm({ toReg }: { toReg: () => void }) {
         <label style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", cursor: "pointer" }}>
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} style={{ ...checkStyle, margin: 0 }} /> Zapamti me
         </label>
-        <Link className="ul keep" href="/kontakt">Zaboravljena lozinka?</Link>
+        <Link className="ul keep" href="/nalog/lozinka">Zaboravljena lozinka?</Link>
       </div>
       {error && <p role="alert" style={ERROR_STYLE}>{error}</p>}
       <button className="btn full" type="submit" disabled={pending}>Prijavi se</button>
-      <button className="btn ghost full" type="button" onClick={() => setError("Prijava Google nalogom još nije povezana. Prijavite se email adresom.")}>
-        Nastavi sa Google nalogom
-      </button>
       <p className="muted" style={{ fontSize: "15px", textAlign: "center" }}>
         Nemate nalog?{" "}
         <button className="txt-btn" type="button" onClick={toReg} style={{ color: "var(--ink)", fontSize: "15px" }}>
@@ -183,11 +184,17 @@ function Overview({ account }: { account: Account }) {
               {order.date} · {countLabel(order.count)} · {order.payment}
             </div>
             <div className="muted" style={{ fontSize: "14px" }}>{order.names}</div>
-            <div style={{ fontSize: "14px" }}>
+            <div style={{ fontSize: "14px", display: "flex", flexWrap: "wrap", gap: "4px 18px" }}>
+              <Link className="ul" href={`/pracenje?broj=${order.number}`}>Praćenje i povrat</Link>
               <a className="ul" href={`/nalog/racun/${order.number}`} target="_blank" rel="noreferrer">Račun (PDF)</a>
             </div>
           </div>
         ))}
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <h2 className="display h-s">Adresa za dostavu</h2>
+        <AddressForm address={account.address} />
       </div>
 
       <Link className="btn full" href="/kolekcija">Nastavite kupovinu</Link>
@@ -204,6 +211,9 @@ function Overview({ account }: { account: Account }) {
       >
         Odjavi se
       </button>
+      <div style={{ textAlign: "center" }}>
+        <DeleteAccount />
+      </div>
     </div>
   );
 }

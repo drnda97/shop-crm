@@ -46,6 +46,16 @@ const icons = {
       <circle cx="14.500" cy="16" r="1.200" />
     </svg>
   ),
+  reviews: (
+    <svg {...stroke}>
+      <path d="M10 2.500l2.300 4.700 5.200.700-3.800 3.600.900 5.200L10 14.200l-4.600 2.500.900-5.200L2.500 7.900l5.200-.700z" />
+    </svg>
+  ),
+  reports: (
+    <svg {...stroke}>
+      <path d="M3 17V9.500M8 17V4M13 17v-6M17.500 17V7" />
+    </svg>
+  ),
   messages: (
     <svg {...stroke}>
       <rect x="2" y="3.500" width="16" height="13" rx="3" />
@@ -159,6 +169,8 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, logout
         { href: `${base}/kupci`, label: "Kupci", icon: icons.customers },
         { href: `${base}/korpe`, label: "Napuštene korpe", icon: icons.carts },
         { href: `${base}/poruke`, label: "Poruke", icon: icons.messages },
+        { href: `${base}/utisci`, label: "Utisci", icon: icons.reviews },
+        { href: `${base}/izvestaji`, label: "Izveštaji", icon: icons.reports },
       ],
     },
     {

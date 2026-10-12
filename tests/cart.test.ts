@@ -60,7 +60,7 @@ describe("obračun", () => {
   });
 
   it("popust se oduzima od zbira proizvoda, ne od dostave", () => {
-    expect(getPricing(lines, { ...shipping, discountPercent: 10 })).toEqual({
+    expect(getPricing(lines, { ...shipping, discount: { amount: 2000, freeShipping: false } })).toEqual({
       subtotal: 20000,
       discount: 2000,
       delivery: 500,
@@ -71,7 +71,7 @@ describe("obračun", () => {
   it("prag besplatne dostave gleda iznos posle popusta", () => {
     const free = { deliveryPrice: 500, freeShippingFrom: 20000 };
     expect(getPricing(lines, free).delivery).toBe(0);
-    expect(getPricing(lines, { ...free, discountPercent: 10 }).delivery).toBe(500);
+    expect(getPricing(lines, { ...free, discount: { amount: 2000, freeShipping: false } }).delivery).toBe(500);
   });
 
   it("težina ne računa proizvode bez upisane težine", () => {

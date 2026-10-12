@@ -159,6 +159,14 @@
 .card-cat{font-size:14px;color:var(--soft)}
 .card-name{font-family:var(--display);font-weight:700;font-size:19px;line-height:1.3;letter-spacing:-.01em;text-decoration:none;display:block}
 .chip{min-height:44px;padding:0 20px;border-radius:999px;border:0;background:var(--mist);cursor:pointer;font:600 15px var(--display);transition:background .4s var(--ease),color .4s var(--ease)}
+.wish{width:44px;height:44px;border-radius:50%;border:0;background:var(--mist);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .4s var(--ease),color .4s var(--ease)}
+.wish:hover{background:var(--mist-2)}
+.wish[aria-pressed="true"]{color:var(--gold-d)}
+.wish.float{position:absolute;top:12px;right:12px;background:color-mix(in srgb,var(--paper) 94%,transparent)}
+.consent{position:fixed;left:16px;right:16px;bottom:16px;z-index:60;max-width:760px;margin:0 auto;background:var(--paper);color:var(--ink);border-radius:24px;box-shadow:var(--shadow);padding:20px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;font:400 15px/1.5 var(--sans)}
+.consent p{margin:0;flex:1 1 320px}
+.consent-actions{display:flex;flex-wrap:wrap;gap:10px}
+.consent .btn{min-height:48px;padding:0 22px;font-size:15px}
 a.chip{display:inline-flex;align-items:center;text-decoration:none}
 .chip:hover{background:var(--mist-2)}
 .chip.on{background:var(--ink)}

@@ -13,6 +13,12 @@ import type { Order } from "@/lib/orders";
 
 export type ShopUser = { id: number; email: string; firstName: string; lastName: string };
 
+/** Adresa za dostavu sačuvana uz nalog; popunjava formu pri sledećoj porudžbini. */
+export type ShopAddress = { phone: string; street: string; city: string; postalCode: string };
+
+/** Koliko važi link za novu lozinku. */
+const RESET_MINUTES = 60;
+
 const COOKIE_NAME = "demoshop-session";
 const DAY_SECONDS = 60 * 60 * 24;
 /** Sa „Zapamti me" prijava važi 30 dana; bez toga do zatvaranja pregledača, a najduže jedan dan. */
@@ -132,4 +138,67 @@ export async function getUserOrders(userId: number): Promise<Order[]> {
   if (rows.length === 0) return [];
   const numbers = new Set(rows.map((row) => String(row.order_number)));
   return (await getOrders()).filter((order) => numbers.has(order.number)).reverse();
+}
+
+export async function getAddress(userId: number): Promise<ShopAddress> {
+  const [rows] = await (
+    await getDb()
+  ).query<RowDataPacket[]>("SELECT phone, street, city, postal_code FROM shop_users WHERE id = ?", [userId]);
+  const row = rows[0];
+  return { phone: row?.phone ?? "", street: row?.street ?? "", city: row?.city ?? "", postalCode: row?.postal_code ?? "" };
+}
+
+export async function saveAddress(userId: number, address: ShopAddress) {
+  await (
+    await getDb()
+  ).query("UPDATE shop_users SET phone = ?, street = ?, city = ?, postal_code = ? WHERE id = ?", [
+    address.phone.slice(0, 64),
+    address.street.slice(0, 255),
+    address.city.slice(0, 255),
+    address.postalCode.slice(0, 16),
+    userId,
+  ]);
+}
+
+/**
+ * Pravi žeton za novu lozinku za nalog sa tom adresom; null kada naloga nema. Žeton važi sat
+ * vremena i jednom; raniji žetoni istog naloga prestaju da važe.
+ */
+export async function createPasswordReset(email: string): Promise<{ token: string; user: ShopUser } | null> {
+  const db = await getDb();
+  const [rows] = await db.query<RowDataPacket[]>("SELECT * FROM shop_users WHERE email = ?", [email]);
+  if (rows.length === 0) return null;
+  const token = randomBytes(32).toString("base64url");
+  await db.query("DELETE FROM password_resets WHERE user_id = ? OR expires_at < ?", [rows[0].id, new Date()]);
+  await db.query("INSERT INTO password_resets (token_hash, user_id, expires_at) VALUES (?, ?, ?)", [
+    tokenHash(token),
+    rows[0].id,
+    new Date(Date.now() + RESET_MINUTES * 60_000),
+  ]);
+  return { token, user: toUser(rows[0]) };
+}
+
+/** Postavlja novu lozinku po žetonu iz linka. Odjavljuje nalog sa svih uređaja. false: žeton ne važi. */
+export async function resetPassword(token: string, password: string): Promise<boolean> {
+  const db = await getDb();
+  const [rows] = await db.query<RowDataPacket[]>(
+    "SELECT user_id FROM password_resets WHERE token_hash = ? AND expires_at > ?",
+    [tokenHash(token), new Date()],
+  );
+  if (rows.length === 0) return false;
+  const userId = rows[0].user_id;
+  await db.query("UPDATE shop_users SET pass_hash = ? WHERE id = ?", [hashPassword(password), userId]);
+  await db.query("DELETE FROM password_resets WHERE user_id = ?", [userId]);
+  await db.query("DELETE FROM shop_sessions WHERE user_id = ?", [userId]);
+  return true;
+}
+
+/** Briše nalog kupca i sve što je vezano samo za nalog. Porudžbine ostaju prodavcu (evidencija prodaje). */
+export async function deleteUser(userId: number) {
+  const db = await getDb();
+  for (const table of ["shop_sessions", "shop_user_orders", "password_resets"]) {
+    await db.query(`DELETE FROM ${table} WHERE user_id = ?`, [userId]);
+  }
+  await db.query("UPDATE reviews SET name = 'Kupac', user_id = 0 WHERE user_id = ?", [userId]).catch(() => {});
+  await db.query("DELETE FROM shop_users WHERE id = ?", [userId]);
 }

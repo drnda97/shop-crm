@@ -7,7 +7,7 @@ import {
   publicVariant,
   publicStore,
 } from "@/lib/api";
-import { getPricing, getWeight, toLines } from "@/lib/cart";
+import { toLines } from "@/lib/cart";
 import { currentPrice, getCollectionProducts, inCategory } from "@/lib/catalog";
 import {
   getCategories,
@@ -16,11 +16,11 @@ import {
   getProducts,
   getSettings,
 } from "@/lib/content";
-import { checkCode, submitOrder } from "@/lib/order-store";
+import { checkCode, quoteCart, submitOrder } from "@/lib/order-store";
 import { parseItems } from "@/lib/orders";
 import { clientIp, TOO_MANY, tooMany } from "@/lib/rate-limit";
 import type { Settings } from "@/lib/settings";
-import { availableMethods, basePrice } from "@/lib/shipping";
+import { availableMethods } from "@/lib/shipping";
 
 /**
  * Javni API prodavnice — sve što sajtu treba da prikaže proizvode i primi porudžbinu.
@@ -165,12 +165,12 @@ export async function POST(request: Request, { params }: Context) {
           (line) => line.product.slug === item.slug && (line.variant?.id ?? undefined) === item.variant,
         ),
     );
-    const code = typeof body.discountCode === "string" ? body.discountCode : "";
-    const check = code.trim() === "" ? null : await checkCode(code);
     // Dostava: izabrani način (deliveryMethod), ili prvi koji važi za poštanski broj (postalCode).
     const postalCode = typeof body.postalCode === "string" ? body.postalCode : "";
     const methods = availableMethods(settings.shipping.methods, postalCode);
     const method = methods.find((candidate) => candidate.id === body.deliveryMethod) ?? methods[0];
+    // Popust: upisani kod ili automatski popust, onaj koji kupcu više štedi.
+    const quoted = await quoteCart(lines, body.discountCode, method);
     return reply(request, settings, {
       lines: lines.map((line) => ({
         product: publicProduct(line.product, base),
@@ -183,13 +183,10 @@ export async function POST(request: Request, { params }: Context) {
       removedItems: removed.map((item) => ({ slug: item.slug, variant: item.variant ?? null })),
       /** Isto, samo oznake proizvoda — oblik iz prve verzije API-ja. */
       removed: [...new Set(removed.map((item) => item.slug))],
-      discount: check?.ok ? check.discount : null,
-      discountError: check && !check.ok ? check.message : null,
-      pricing: getPricing(lines, {
-        discountPercent: check?.ok ? check.discount.percent : undefined,
-        deliveryPrice: method ? basePrice(method, getWeight(lines)) : 0,
-        freeShippingFrom: method?.freeFrom ?? null,
-      }),
+      /** Primenjen popust: { code, label, percent, amount, freeShipping }; `code` je prazan kod automatskog popusta. */
+      discount: quoted.discount,
+      discountError: quoted.codeError,
+      pricing: quoted.pricing,
       /** Način dostave po kom je obračunato, i svi koji važe za poslati poštanski broj. */
       deliveryMethod: method?.id ?? null,
       deliveryMethods: methods.map((candidate) => ({

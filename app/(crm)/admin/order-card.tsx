@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ADMIN_PATH } from "@/lib/admin-auth";
+import { discountText } from "@/lib/discounts";
 import { formatMoney, type Currency } from "@/lib/format";
 import { itemName, type Order, type OrderStatus } from "@/lib/orders";
 import { paymentLabels } from "@/lib/settings";
@@ -120,9 +121,7 @@ export function OrderCard({ order, currency, date, back, hideCustomer = false, d
           ))}
           {order.discount && (
             <div className="mt-[6px] flex justify-between gap-[12px] border-t border-line pt-[6px] text-muted">
-              <span>
-                Popust {order.discount.percent}% (kod {order.discount.code})
-              </span>
+              <span>{discountText(order.discount)}</span>
               <span>−{money(order.discount.amount)}</span>
             </div>
           )}

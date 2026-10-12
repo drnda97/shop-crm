@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getShopConfig, getShopProducts } from "@/lib/storefront/catalog";
 import { getShopSettings, siteUrl } from "@/lib/storefront/pages";
 import { themeVars } from "@/lib/theme";
+import { Analytics } from "./_components/analytics";
 import { CartProvider } from "./_components/cart";
 import { fontVariables } from "./fonts";
 import { Reveal } from "./_components/reveal";
@@ -49,6 +50,7 @@ export default async function ShopLayout({ children }: { children: ReactNode }) 
         )}
         <CartProvider products={products} config={config}>
           {children}
+          <Analytics />
         </CartProvider>
         <Reveal />
       </body>

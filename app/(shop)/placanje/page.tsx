@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/storefront/auth";
+import { getAddress, getCurrentUser } from "@/lib/storefront/auth";
 import { getShopSettings } from "@/lib/storefront/pages";
 import { CheckoutView } from "../_components/checkout-view";
 import { DS_STYLE } from "../_components/ui";
@@ -9,6 +9,8 @@ export const metadata: Metadata = { title: "Plaćanje", robots: { index: false, 
 
 export default async function CheckoutPage() {
   const [user, settings] = await Promise.all([getCurrentUser(), getShopSettings()]);
+  // Adresa sačuvana uz nalog popunjava formu.
+  const address = user ? await getAddress(user.id) : null;
   const { name } = settings.store;
 
   return (
@@ -40,7 +42,7 @@ export default async function CheckoutPage() {
       </header>
 
       <CheckoutView
-        user={user ? { email: user.email, firstName: user.firstName, lastName: user.lastName } : null}
+        user={user ? { email: user.email, firstName: user.firstName, lastName: user.lastName, ...address } : null}
         key={user?.email ?? ""}
       />
     </div>

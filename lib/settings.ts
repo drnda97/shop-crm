@@ -82,6 +82,13 @@ export type TaxSettings = {
 export const INVOICE_EMAILS = ["none", "order", "shipped"] as const;
 export type InvoiceEmail = (typeof INVOICE_EMAILS)[number];
 
+export type AnalyticsSettings = {
+  /** Google Analytics 4: oznaka merenja, „G-XXXXXXXXXX". Prazno: isključeno. */
+  ga4: string;
+  /** Meta (Facebook) Pixel ID: broj. Prazno: isključeno. */
+  metaPixel: string;
+};
+
 export type AbandonedCartSettings = {
   /** Podsetnik kupcu koji je upisao email na stranici plaćanja, a nije poručio. Isključeno dok vlasnik ne odluči. */
   enabled: boolean;
@@ -181,6 +188,8 @@ export type Settings = {
   payment: PaymentSettings;
   tax: TaxSettings;
   abandoned: AbandonedCartSettings;
+  /** Merenje poseta; učitava se samo uz pristanak posetioca (traka za kolačiće). */
+  analytics: AnalyticsSettings;
   mail: MailSettings;
 };
 
@@ -208,6 +217,7 @@ export const defaultSettings: Settings = {
   payment: { cod: true, bank: false, bankInstructions: "", card: false, cardProvider: "" },
   tax: { enabled: false, percent: 20, invoiceEmail: "none" },
   abandoned: defaultAbandoned,
+  analytics: { ga4: "", metaPixel: "" },
   mail: {
     notifySeller: true,
     notifyCustomer: true,
@@ -263,6 +273,10 @@ export function mergeSettings(saved: Partial<Settings>): Settings {
       enabled: saved.tax?.enabled === true,
       percent: Number.isFinite(saved.tax?.percent) ? Math.min(Math.max(Number(saved.tax?.percent), 0), 100) : 20,
       invoiceEmail: INVOICE_EMAILS.find((value) => value === saved.tax?.invoiceEmail) ?? "none",
+    },
+    analytics: {
+      ga4: /^G-[A-Z0-9]{4,20}$/.test(saved.analytics?.ga4 ?? "") ? (saved.analytics?.ga4 as string) : "",
+      metaPixel: /^\d{5,20}$/.test(saved.analytics?.metaPixel ?? "") ? (saved.analytics?.metaPixel as string) : "",
     },
     abandoned: {
       ...defaultAbandoned,

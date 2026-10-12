@@ -49,7 +49,7 @@ export async function GET() {
       order.items.map((item) => `${item.qty} × ${itemName(item)}`).join(", "),
       amount(order.subtotal),
       amount(order.discount?.amount ?? 0),
-      order.discount?.code ?? "",
+      order.discount ? order.discount.code || order.discount.label : "",
       amount(order.delivery),
       amount(order.total),
       paymentLabels[order.paymentMethod],

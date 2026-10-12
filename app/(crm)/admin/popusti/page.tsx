@@ -14,6 +14,7 @@ type DiscountsPageProps = { searchParams: Promise<{ greska?: string }> };
 /** Uslov pravila rečima, npr. „posle porudžbine od 3.000 RSD". */
 function describeTrigger(discount: Discount, currency: Currency): string {
   if (discount.trigger === "public") return "promo kod za sve kupce";
+  if (discount.trigger === "auto") return "automatski, bez koda";
   if (discount.trigger === "first") return "nagrada posle prve porudžbine kupca";
   return discount.trigger === "amount"
     ? `nagrada posle porudžbine od ${formatMoney(discount.threshold, currency)}`
@@ -49,13 +50,19 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
           const expired = isExpired(discount, settings.store.timeZone);
           const count = counts[discount.id] ?? { sent: 0, used: 0 };
           const usage =
-            discount.trigger === "public"
+            discount.trigger === "auto"
+              ? `${discount.maxUses === null ? "bez ograničenja" : `najviše ${discount.maxUses} porudžbina`}${discount.expiresAt ? ` · važi do ${discount.expiresAt}` : ""}`
+              : discount.trigger === "public"
               ? `iskorišćeno: ${uses[discount.code] ?? 0}${discount.maxUses === null ? "" : ` od ${discount.maxUses}`}${discount.expiresAt ? ` · važi do ${discount.expiresAt}` : ""}`
               : `poslato kodova: ${count.sent} · iskorišćeno: ${count.used}`;
           return (
             <div key={discount.id} className={rowClass}>
               <div className="w-[72px] shrink-0 font-display text-[28px] leading-none font-bold tracking-[-0.03em]">
-                {discount.percent}%
+                {discount.kind === "shipping"
+                  ? "dostava"
+                  : discount.kind === "amount"
+                    ? formatMoney(discount.amount, currency)
+                    : `${discount.percent}%`}
               </div>
               <div className="min-w-[180px] grow">
                 <div className="flex flex-wrap items-center gap-[8px] font-display text-[17px] font-bold">

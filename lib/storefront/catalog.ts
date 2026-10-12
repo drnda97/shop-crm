@@ -108,6 +108,7 @@ export async function getShopConfig(): Promise<ShopConfig> {
       label: category.label,
       parent: category.parent,
     })),
+    analytics: settings.analytics,
     cartReminder: settings.abandoned.enabled,
     shipping: settings.shipping.methods,
     payments: enabledPayments(settings, cardProvider(settings) !== null).map((id) => ({ id, label: paymentLabels[id] })),

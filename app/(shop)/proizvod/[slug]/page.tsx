@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getProductReviews, ratingSummary } from "@/lib/reviews";
+import { getCurrentUser } from "@/lib/storefront/auth";
 import { getShopProducts } from "@/lib/storefront/catalog";
 import { getShopSettings, siteUrl } from "@/lib/storefront/pages";
 import { Footer } from "../../_components/footer";
 import { Header } from "../../_components/header";
 import { ProductCard } from "../../_components/product-card";
 import { ProductView } from "../../_components/product-view";
+import { Reviews } from "../../_components/reviews";
 import { ArrowSmallIcon, DS_STYLE, Photo } from "../../_components/ui";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -43,7 +46,14 @@ export default async function ProductPage({ params }: Props) {
   ].slice(0, 4);
 
   // Podaci o proizvodu za pretraživače (schema.org), da rezultat pretrage prikaže cenu i dostupnost.
-  const [settings, base] = await Promise.all([getShopSettings(), siteUrl()]);
+  const [settings, base, reviews, user] = await Promise.all([
+    getShopSettings(),
+    siteUrl(),
+    getProductReviews(product.slug),
+    getCurrentUser(),
+  ]);
+  const rating = ratingSummary(reviews);
+  const reviewDate = new Intl.DateTimeFormat(settings.store.locale, { dateStyle: "medium", timeZone: settings.store.timeZone });
   const texts = settings.templates.product;
   const { highlight } = product;
   const structured = {
@@ -52,6 +62,8 @@ export default async function ProductPage({ params }: Props) {
     name: product.name,
     ...(product.description ? { description: product.description } : {}),
     ...(product.image ? { image: [product.image, ...product.gallery].map((src) => `${base}${src}`) } : {}),
+    // Ocena se navodi samo kada ima odobrenih utisaka.
+    ...(rating ? { aggregateRating: { "@type": "AggregateRating", ratingValue: rating.average, reviewCount: rating.count } } : {}),
     offers: {
       "@type": "Offer",
       url: `${base}/proizvod/${product.slug}`,
@@ -126,6 +138,23 @@ export default async function ProductPage({ params }: Props) {
       )}
 
       {/* PREPORUKE */}
+      {/* UTISCI */}
+      <section style={{ paddingTop: "clamp(72px, 9vw, 136px)" }}>
+        <Reviews
+          slug={product.slug}
+          summary={rating}
+          loggedIn={user !== null}
+          reviews={reviews.map((review) => ({
+            id: review.id,
+            name: review.name,
+            rating: review.rating,
+            body: review.body,
+            date: reviewDate.format(new Date(review.createdAt)),
+            verified: review.verified,
+          }))}
+        />
+      </section>
+
       {related.length > 0 && (
         <section className="sec">
           <div className="wrap" style={{ display: "flex", flexDirection: "column", gap: "clamp(28px, 3.6vw, 48px)" }}>
