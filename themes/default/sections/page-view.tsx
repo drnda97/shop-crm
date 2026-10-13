@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import type { Section } from "@/lib/sections";
-import { getShopProducts } from "@/lib/storefront/catalog";
 import { getShopSettings } from "@/lib/storefront/pages";
 import { Footer } from "../components/footer";
 import { Header } from "../components/header";
@@ -21,7 +20,7 @@ type PageViewProps = {
 
 /** Stranica sajta: zaglavlje, sekcije redom iz panela, podnožje. */
 export async function PageView({ sections, query }: PageViewProps) {
-  const [settings, products] = await Promise.all([getShopSettings(), getShopProducts()]);
+  const settings = await getShopSettings();
   // Glavni baner na vrhu nosi zaglavlje preko svoje fotografije.
   const heroFirst = sections[0]?.type === "hero";
 
@@ -39,7 +38,7 @@ export async function PageView({ sections, query }: PageViewProps) {
     switch (section.type) {
       case "hero":
         // Kartica prednosti prelazi preko banera, pa između njih nema razmaka.
-        return <blocks.Hero {...props} bottom={next === "features" ? "0" : props.bottom} withHeader={index === 0} products={products} />;
+        return <blocks.Hero {...props} bottom={next === "features" ? "0" : props.bottom} withHeader={index === 0} />;
       case "features":
         return <blocks.Features {...props} overlap={sections[index - 1]?.type === "hero"} />;
       case "tiles":

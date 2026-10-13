@@ -15,20 +15,21 @@ export type ShellProps = {
   /** Traka sa obaveštenjem iz panela; prazno: nema je. */
   announcement: string;
   announcementHref: string;
-  products: ComponentProps<typeof CartProvider>["products"];
+  /** Predlog u korpi do besplatne dostave, ili null. */
+  upsell: ComponentProps<typeof CartProvider>["upsell"];
   config: ComponentProps<typeof CartProvider>["config"];
   children: ReactNode;
 };
 
 /** Ono što je isto na svakoj stranici, unutar <body>: traka, korpa, merenje poseta. */
-export async function Shell({ lang, prefix, custom, announcement, announcementHref, products, config, children }: ShellProps) {
+export async function Shell({ lang, prefix, custom, announcement, announcementHref, upsell, config, children }: ShellProps) {
   const to = await getShopPath();
   return (
     <ShopI18n lang={lang} prefix={prefix} custom={custom}>
       {announcement && (
         <div className="announce">{announcementHref ? <Link href={to(announcementHref)}>{announcement}</Link> : announcement}</div>
       )}
-      <CartProvider products={products} config={config}>
+      <CartProvider upsell={upsell} config={config}>
         {children}
         <Analytics />
       </CartProvider>

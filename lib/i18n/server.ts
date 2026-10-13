@@ -9,7 +9,7 @@ import { translateDeep } from "@/lib/i18n/walk";
 import { langPrefix, localPath } from "@/lib/routes";
 import { LANG_HEADER } from "@/lib/storefront/preview-names";
 import { getTranslations } from "@/lib/translations";
-import { themeDict } from "@theme/i18n";
+import { getTheme } from "@/themes/pages";
 
 /**
  * Prevod na serveru. Prodavnica ima glavni jezik i, po želji, dodatne koje kupac bira na
@@ -41,7 +41,9 @@ export const getPanelLang = cache(async (): Promise<Lang> => (await getSettings(
 
 /** Prevod poruka kupcu na dati jezik: rečnici iz koda, pa prevodi upisani u panelu. */
 export async function shopT(lang: Lang): Promise<T> {
-  return makeT(lang, shopDict, themeDict, { [lang]: await getTranslations(lang) });
+  // Srpski je izvorni tekst, pa mu rečnik teme ne treba (i ne čita se koja je tema izabrana).
+  const [themeDict, own] = await Promise.all([lang === "sr" ? {} : getTheme().then((theme) => theme.dict), getTranslations(lang)]);
+  return makeT(lang, shopDict, themeDict, { [lang]: own });
 }
 
 /** Za stranice teme i poruke koje vidi kupac. */

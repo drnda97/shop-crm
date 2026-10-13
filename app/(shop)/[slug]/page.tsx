@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { HOME_SLUG } from "@/lib/catalog";
 import { getSitePage, inPreview } from "@/lib/storefront/pages";
-import { ContentPage } from "@theme/pages/content";
+import { ContentPage } from "@/themes/pages";
 
 type Props = {
   params: Promise<{ slug: string }>;

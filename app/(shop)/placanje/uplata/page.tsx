@@ -1,6 +1,6 @@
 import { getShopT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
-import { PaymentResultPage } from "@theme/pages/payment-result";
+import { PaymentResultPage } from "@/themes/pages";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getShopT())("Plaćanje karticom"), robots: { index: false, follow: false } };

@@ -12,6 +12,7 @@ import {
   publicVariant,
   publicStore,
 } from "@/lib/api";
+import { getVisiblePosts } from "@/lib/blog";
 import { toLines } from "@/lib/cart";
 import { currentPrice, getCollectionProducts, inCategory } from "@/lib/catalog";
 import {
@@ -24,6 +25,7 @@ import {
 import { checkCode, quoteCart, submitOrder } from "@/lib/order-store";
 import { parseItems } from "@/lib/orders";
 import { clientIp, TOO_MANY, tooMany } from "@/lib/rate-limit";
+import { parseRichText, plainText } from "@/lib/rich-text";
 import type { Settings } from "@/lib/settings";
 import { availableMethods } from "@/lib/shipping";
 
@@ -42,6 +44,8 @@ import { availableMethods } from "@/lib/shipping";
  *   GET  /api/v1/sections              vrste sekcija i njihova polja
  *   GET  /api/v1/pages
  *   GET  /api/v1/pages/{slug}
+ *   GET  /api/v1/blog                  objavljeni članci, najnoviji prvi (?tag=…)
+ *   GET  /api/v1/blog/{slug}           članak sa tekstom (body) i tekstom razloženim na delove (blocks)
  *   POST /api/v1/cart                  { items, discountCode? } → stavke i obračun
  *                                      stavka: { slug, qty, variant? } — variant je id varijante
  *   POST /api/v1/discounts/check       { code }
@@ -102,9 +106,17 @@ export async function OPTIONS(request: Request) {
   return new Response(null, { status: 204, headers: corsHeaders(request, await getSettings()) });
 }
 
+/** Javni API radi samo kada ga vlasnik uključi (panel → Integracije). */
+function apiOff(request: Request, settings: Settings): Response | null {
+  if (settings.access.publicApi) return null;
+  return Response.json({ error: "API is disabled" }, { status: 403, headers: { ...corsHeaders(request, settings), "Cache-Control": "no-store" } });
+}
+
 export async function GET(request: Request, { params }: Context) {
   const [resource, id, extra] = (await params).path;
   const settings = await getSettings();
+  const off = apiOff(request, settings);
+  if (off) return off;
   const base = baseUrl(request);
   if (extra !== undefined) return notFound(request, settings);
 
@@ -120,6 +132,32 @@ export async function GET(request: Request, { params }: Context) {
 
   if (resource === "site" && !id) return reply(request, settings, { site: publicSite(settings, base) });
   if (resource === "sections" && !id) return reply(request, settings, { sections: publicSectionTypes() });
+
+  if (resource === "blog") {
+    const absolute = (src: string) => (src ? `${base}${src}` : null);
+    const posts = await getVisiblePosts();
+    const card = (post: (typeof posts)[number]) => ({
+      slug: post.slug,
+      title: post.title,
+      excerpt: post.excerpt || plainText(post.body, 180),
+      image: absolute(post.image),
+      imageAlt: post.imageAlt,
+      author: post.author,
+      tags: post.tags,
+      publishedAt: post.publishedAt,
+    });
+    if (id) {
+      const post = posts.find((candidate) => candidate.slug === id);
+      if (!post) return notFound(request, settings);
+      return reply(request, settings, {
+        post: { ...card(post), body: post.body, blocks: parseRichText(post.body), seoTitle: post.seoTitle, seoDescription: post.seoDescription },
+      });
+    }
+    const tag = new URL(request.url).searchParams.get("tag")?.toLowerCase();
+    return reply(request, settings, {
+      posts: posts.filter((post) => !tag || post.tags.some((candidate) => candidate.toLowerCase() === tag)).map(card),
+    });
+  }
 
   if (resource === "products") {
     // Nacrti se ne vide: za sajt je to isto kao da proizvod ne postoji.
@@ -191,6 +229,8 @@ export async function GET(request: Request, { params }: Context) {
 export async function POST(request: Request, { params }: Context) {
   const route = (await params).path.join("/");
   const settings = await getSettings();
+  const off = apiOff(request, settings);
+  if (off) return off;
   const body = ((await readJson(request)) ?? {}) as Record<string, unknown>;
 
   if (route === "cart") {

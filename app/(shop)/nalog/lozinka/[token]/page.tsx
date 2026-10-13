@@ -1,6 +1,6 @@
 import { getShopT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
-import { NewPasswordPage } from "@theme/pages/simple";
+import { NewPasswordPage } from "@/themes/pages";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getShopT())("Nova lozinka"), robots: { index: false, follow: false } };

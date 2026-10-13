@@ -139,7 +139,7 @@ export function ProductView({ product }: { product: ShopProduct }) {
             style={{ flex: "1 1 240px" }}
             disabled={!canAdd}
             onClick={() => {
-              add({ slug: product.slug, variant: variant?.label ?? product.variant, variantId: variant?.id, qty: amount });
+              add({ slug: product.slug, variant: variant?.label ?? product.variant, variantId: variant?.id, qty: amount, product });
               track("add_to_cart", { value: price * amount, currency: "RSD" });
             }}
           >

@@ -4,10 +4,9 @@ import { useT } from "@/lib/i18n/client";
 import { useState, useTransition, type FormEvent } from "react";
 import { contactAction, type ContactErrors } from "@/app/(shop)/actions";
 import { ERROR_STYLE, Field } from "./field";
-import { CONTACT_TOPICS, type ContactTopic } from "@/lib/storefront/topics";
 import { ArrowIcon } from "./ui";
 
-export function ContactForm({ initialTopic }: { initialTopic: ContactTopic }) {
+export function ContactForm({ topics, initialTopic }: { topics: string[]; initialTopic: string }) {
   const t = useT();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -51,7 +50,7 @@ export function ContactForm({ initialTopic }: { initialTopic: ContactTopic }) {
       <div className="f">
         <label htmlFor="k-topic">{t("Tema")}</label>
         <select id="k-topic" value={topic} onChange={(e) => setTopic(e.target.value)}>
-          {CONTACT_TOPICS.map((item) => (
+          {topics.map((item) => (
             <option key={item} value={item}>{t(item)}</option>
           ))}
         </select>

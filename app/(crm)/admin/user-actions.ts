@@ -9,6 +9,7 @@ import {
   beginTotp,
   checkAdminPassword,
   createAdmin,
+  createAdminReset,
   createFirstOwner,
   createSession,
   deleteAdmin,
@@ -18,13 +19,17 @@ import {
   needsSetup,
   PASSWORD_MIN,
   requireAdmin,
+  resetAdminPassword,
   roleLabels,
+  setAdminEmail,
   setAdminPassword,
   updateAdmin,
   type Role,
 } from "@/lib/admin-auth";
 import { audit } from "@/lib/audit";
-import { updateContent } from "@/lib/content";
+import { getSettings, updateContent } from "@/lib/content";
+import { getPanelT } from "@/lib/i18n/server";
+import { isMailReady, publicBase, sendMails, simpleEmail } from "@/lib/mail";
 import {
   createApiKey,
   createWebhook,
@@ -64,6 +69,63 @@ function passwordProblem(password: string): string | null {
   return null;
 }
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Adresa korisnika panela: prazna, ispravna, ili null kada nije ispravna. */
+function userEmail(formData: FormData): string | null {
+  const value = text(formData, "email").toLowerCase().slice(0, 191);
+  return value === "" || EMAIL_PATTERN.test(value) ? value : null;
+}
+
+/* ---------- Zaboravljena lozinka ---------- */
+
+export type ForgotState = { error?: string; sent?: boolean };
+
+/** Šalje link za novu lozinku. Odgovor je isti i kada korisnika nema, da forma ne otkriva ko postoji. */
+export async function forgotPasswordAction(_previous: ForgotState, formData: FormData): Promise<ForgotState> {
+  const requestHeaders = await headers();
+  if (tooMany("admin-forgot", clientIp(requestHeaders), 5)) return { error: TOO_MANY };
+  const login = text(formData, "login").toLowerCase().slice(0, 191);
+  if (!login) return { error: "Upišite korisničko ime ili email adresu." };
+  const settings = await getSettings();
+  if (!isMailReady(settings)) {
+    return { error: "Slanje emaila nije podešeno, pa link ne može da stigne. Novu lozinku vam postavlja vlasnik, a vlasniku komanda npm run admin:user." };
+  }
+  const reset = await createAdminReset(login);
+  if (reset) {
+    const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
+    const base = host ? `${requestHeaders.get("x-forwarded-proto") ?? "http"}://${host}` : publicBase(settings);
+    const t = await getPanelT();
+    const { errors } = await sendMails(settings, [
+      {
+        to: reset.user.email,
+        subject: `${t("Nova lozinka za panel")} — ${settings.store.name}`,
+        ...simpleEmail(settings, {
+          message: t("Zdravo {ime}, tražili ste novu lozinku za panel prodavnice. Link važi jedan sat.\n\nAko to niste bili vi, ne morate ništa da radite: lozinka ostaje ista.", { ime: reset.user.name }),
+          button: { label: t("Postavite novu lozinku"), url: `${base}/admin-lozinka/${reset.token}` },
+        }),
+      },
+    ]);
+    if (errors.length > 0) console.error(`[nova lozinka panela] ${errors[0]}`);
+    await audit("Poslat link za novu lozinku", reset.user.username, reset.user);
+  }
+  return { sent: true };
+}
+
+export type NewPasswordState = { error?: string; done?: boolean };
+
+export async function newPasswordAction(_previous: NewPasswordState, formData: FormData): Promise<NewPasswordState> {
+  if (tooMany("admin-reset", clientIp(await headers()), 10)) return { error: TOO_MANY };
+  const password = String(formData.get("password") ?? "");
+  const problem = passwordProblem(password);
+  if (problem) return { error: problem };
+  if (password !== String(formData.get("repeat") ?? "")) return { error: "Lozinke se ne poklapaju." };
+  const user = await resetAdminPassword(text(formData, "token"), password);
+  if (!user) return { error: "Link više ne važi. Zatražite novi." };
+  await audit("Postavljena nova lozinka preko linka", user.username, user);
+  return { done: true };
+}
+
 /* ---------- Prvo pokretanje ---------- */
 
 export type SetupState = { error?: string };
@@ -83,7 +145,7 @@ export async function setupAction(_previous: SetupState, formData: FormData): Pr
   if (problem) return { error: problem };
   if (password !== String(formData.get("repeat") ?? "")) return { error: "Lozinke se ne poklapaju." };
 
-  const user = await createFirstOwner({ username, name, password });
+  const user = await createFirstOwner({ username, name, email: EMAIL_PATTERN.test(email) ? email.toLowerCase().slice(0, 191) : "", password });
   if (!user) return { error: "Panel je već podešen. Osvežite stranicu i prijavite se." };
   const language = formData.get("language");
   await updateContent((content) => {
@@ -104,6 +166,22 @@ export async function setupAction(_previous: SetupState, formData: FormData): Pr
 /* ---------- Veza sa spoljnim sistemima ---------- */
 
 const INTEGRATIONS_PATH = `${ADMIN_PATH}/integracije`;
+
+/** Šta je spolja dostupno. Sve je isključeno dok vlasnik ne uključi. */
+export async function saveAccessAction(formData: FormData) {
+  await requireAdmin("settings");
+  const access = {
+    publicApi: formData.get("publicApi") === "on",
+    adminApi: formData.get("adminApi") === "on",
+    webhooks: formData.get("webhooks") === "on",
+  };
+  await updateContent((content) => {
+    content.settings.access = access;
+  });
+  const on = [access.publicApi ? "javni API" : "", access.adminApi ? "API sa ključem" : "", access.webhooks ? "webhook-ovi" : ""].filter(Boolean);
+  await audit("Promenjen pristup spolja", on.length > 0 ? `uključeno: ${on.join(", ")}` : "sve isključeno");
+  back(INTEGRATIONS_PATH, "ok", "Pristup spolja je sačuvan.");
+}
 
 export type ApiKeyState = { error?: string; key?: string };
 
@@ -172,8 +250,10 @@ export async function createUserAction(formData: FormData) {
   if (!name) back(USERS_PATH, "greska", "Upišite ime korisnika.");
   const problem = passwordProblem(password);
   if (problem) back(USERS_PATH, "greska", problem);
+  const email = userEmail(formData);
+  if (email === null) back(USERS_PATH, "greska", "Email adresa nije ispravna.");
 
-  const user = await createAdmin({ username, name, password, role: role(formData) });
+  const user = await createAdmin({ username, name, email, password, role: role(formData) });
   if (!user) back(USERS_PATH, "greska", "Korisnik sa tim imenom već postoji.");
   await audit("Dodat korisnik panela", `${user.username} (${roleLabels[user.role]})`);
   back(USERS_PATH, "ok", `Korisnik ${user.username} je dodat. Lozinku mu javite sami; može da je promeni u svom nalogu.`);
@@ -186,8 +266,10 @@ export async function updateUserAction(formData: FormData) {
   if (!name) back(USERS_PATH, "greska", "Upišite ime korisnika.");
   const disabled = formData.get("disabled") === "on";
   if (id === current.id && disabled) back(USERS_PATH, "greska", "Ne možete isključiti sopstveni nalog.");
+  const email = userEmail(formData);
+  if (email === null) back(USERS_PATH, "greska", "Email adresa nije ispravna.");
 
-  const result = await updateAdmin(id, { name, role: role(formData), disabled });
+  const result = await updateAdmin(id, { name, email, role: role(formData), disabled });
   if (result === "last-owner") back(USERS_PATH, "greska", "Mora ostati bar jedan aktivan vlasnik.");
   await audit("Izmenjen korisnik panela", `${name} (${roleLabels[role(formData)]}${disabled ? ", isključen" : ""})`);
   back(USERS_PATH, "ok", "Korisnik je sačuvan.");
@@ -224,6 +306,15 @@ export async function deleteUserAction(formData: FormData) {
 }
 
 /* ---------- Moj nalog ---------- */
+
+export async function saveEmailAction(formData: FormData) {
+  const user = await requireAdmin();
+  const email = userEmail(formData);
+  if (email === null) back(ACCOUNT_PATH, "greska", "Email adresa nije ispravna.");
+  await setAdminEmail(user.id, email);
+  await audit("Promenjena sopstvena email adresa");
+  back(ACCOUNT_PATH, "ok", email ? "Email adresa je sačuvana. Na nju stiže link ako zaboravite lozinku." : "Email adresa je uklonjena.");
+}
 
 export async function changePasswordAction(formData: FormData) {
   const user = await requireAdmin();

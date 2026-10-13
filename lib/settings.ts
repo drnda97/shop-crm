@@ -74,6 +74,8 @@ export type PaymentSettings = {
   card: boolean;
   /** Id procesora kartica koji prodavnica koristi; prazno: nijedan. */
   cardProvider: string;
+  /** Kupac može da zatraži povrat sa stranice za praćenje porudžbine. Isključeno: prodavnica ne radi povrat. */
+  returns: boolean;
 };
 
 export type TaxSettings = {
@@ -93,6 +95,31 @@ export type AnalyticsSettings = {
   ga4: string;
   /** Meta (Facebook) Pixel ID: broj. Prazno: isključeno. */
   metaPixel: string;
+};
+
+/** Prijava kupaca preko spoljnog naloga. Svaka prodavnica upisuje sopstvene podatke iz Google Cloud konzole. */
+export type AuthSettings = {
+  /** OAuth Client ID; dugme „Nastavi sa Google nalogom" se prikazuje tek kada su upisani i ID i tajna. */
+  googleClientId: string;
+  googleClientSecret: string;
+};
+
+export function googleLoginReady(settings: Settings): boolean {
+  return settings.auth.googleClientId !== "" && settings.auth.googleClientSecret !== "";
+}
+
+/**
+ * Pristup spolja. Sve je isključeno dok vlasnik izričito ne uključi: bez toga niko van ove
+ * aplikacije ne može da čita podatke prodavnice niti da ih dobija. Gotova prodavnica uz panel
+ * radi i kada je sve isključeno, jer čita bazu direktno.
+ */
+export type AccessSettings = {
+  /** Javni API (/api/v1/…): katalog, stranice, obračun korpe i slanje porudžbine za sajt van ove aplikacije. */
+  publicApi: boolean;
+  /** API sa ključem (/api/v1/admin/…): porudžbine i stanje za spoljne sisteme. */
+  adminApi: boolean;
+  /** Slanje webhook-ova. */
+  webhooks: boolean;
 };
 
 export type AbandonedCartSettings = {
@@ -181,6 +208,8 @@ export type MailSettings = {
 
 export type Settings = {
   store: StoreSettings;
+  /** Izabrana tema sajta (themes/list.ts). */
+  themeId: string;
   /** Boje sajta i emaila, i fontovi sajta (lib/theme.ts). */
   colors: ThemeColors;
   fonts: ThemeFonts;
@@ -196,6 +225,8 @@ export type Settings = {
   abandoned: AbandonedCartSettings;
   /** Merenje poseta; učitava se samo uz pristanak posetioca (traka za kolačiće). */
   analytics: AnalyticsSettings;
+  auth: AuthSettings;
+  access: AccessSettings;
   mail: MailSettings;
 };
 
@@ -218,15 +249,18 @@ export const defaultSettings: Settings = {
     allowedOrigins: "",
     legal: "",
   },
+  themeId: "default",
   colors: defaultColors,
   fonts: defaultFonts,
   site: defaultSite,
   templates: mergeTemplates(undefined),
   shipping: { methods: legacyMethods({}) },
-  payment: { cod: true, bank: false, bankInstructions: "", card: false, cardProvider: "" },
+  payment: { cod: true, bank: false, bankInstructions: "", card: false, cardProvider: "", returns: true },
   tax: { enabled: false, percent: 20, invoiceEmail: "none" },
   abandoned: defaultAbandoned,
   analytics: { ga4: "", metaPixel: "" },
+  auth: { googleClientId: "", googleClientSecret: "" },
+  access: { publicApi: false, adminApi: false, webhooks: false },
   mail: {
     notifySeller: true,
     notifyCustomer: true,
@@ -299,6 +333,12 @@ export function mergeSettings(saved: Partial<Settings>): Settings {
     analytics: {
       ga4: /^G-[A-Z0-9]{4,20}$/.test(saved.analytics?.ga4 ?? "") ? (saved.analytics?.ga4 as string) : "",
       metaPixel: /^\d{5,20}$/.test(saved.analytics?.metaPixel ?? "") ? (saved.analytics?.metaPixel as string) : "",
+    },
+    auth: { ...defaultSettings.auth, ...saved.auth },
+    access: {
+      publicApi: saved.access?.publicApi === true,
+      adminApi: saved.access?.adminApi === true,
+      webhooks: saved.access?.webhooks === true,
     },
     abandoned: {
       ...defaultAbandoned,

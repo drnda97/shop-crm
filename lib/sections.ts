@@ -336,6 +336,15 @@ const sections: SectionType[] = [
           { key: "time", label: "Vreme", kind: "text" },
         ],
       },
+      {
+        key: "topics",
+        label: "Teme poruke",
+        hint: "Šta kupac bira u polju „Tema“. Link sa ?tema=… otvara formu sa temom koja sadrži tu reč.",
+        kind: "list",
+        itemLabel: "Tema",
+        max: 12,
+        fields: [{ key: "name", label: "Tema", kind: "text" }],
+      },
     ],
   },
 ];

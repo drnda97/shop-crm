@@ -74,10 +74,7 @@ Ostalo:
 
 - Natpisi na dugmadima i poljima formi („Dodaj u korpu", „Email adresa") su u temi; idu uz prevod u Fazi 6.
 - Zaobljenost i razmaci teme se ne menjaju iz panela.
-- Teme kontakt forme („Uzorci tkanina"…) su u kodu.
-- Dugme „Nastavi sa Google nalogom" na stranici naloga ne radi; korpa novog posetioca kreće sa dva proizvoda iz dizajna (ako postoje u katalogu). Oba su ostatak demo dizajna.
 - SEO polja za proizvod i kategoriju, slika za deljenje po stranici, preusmerenja starih adresa.
-- Blog.
 
 ### Faza 2 — Katalog ✅
 
@@ -95,7 +92,7 @@ Završeno 12. 10. 2026.
 Ostalo za kasnije:
 
 - Uvoz ne prenosi utiske, oznake (tagove), poreze ni dostavu, i ne čita Shopify-jev i WooCommerce-ov izvoz kupaca i porudžbina.
-- Filteri rade nad proizvodima učitanim u pregledač; za kataloge od više hiljada proizvoda treba ih preseliti na server (isto važi i za prepisivanje celog kataloga pri svakoj izmeni).
+- Katalog se pri svakoj izmeni prepisuje ceo, i panel ga učitava celog; za više hiljada proizvoda upis treba svesti na izmenjeni proizvod, a spiskove u panelu na strane. (Prodavnica od 13. 10. 2026. čita samo proizvode koje prikazuje.)
 
 ### Faza 3 — Porudžbine, plaćanje, dostava
 
@@ -140,7 +137,7 @@ Ostalo:
 
 - Lista želja nije vezana za nalog: na drugom uređaju je prazna.
 - Utisak može da ostavi samo prijavljen kupac; kupac bez naloga ne može.
-- Popusti se ne sabiraju, i nagrade posle porudžbine su i dalje samo procenat na celu korpu.
+- Nagrade posle porudžbine su i dalje samo procenat na celu korpu. (Popusti se namerno ne sabiraju: vidi Odluke.)
 - Meta Pixel nije isproban sa pravim nalogom; Google Analytics je proveren samo do učitavanja skripte.
 - Novosti idu preko SMTP naloga prodavnice, poruku po poruku; za spiskove od više hiljada adresa treba servis za slanje.
 - Povraćaj kao kod za sledeću kupovinu umesto novca nije urađen.
@@ -163,7 +160,6 @@ Ostalo:
 - Dnevnik beleži šta je urađeno i na čemu, ne i staru i novu vrednost. Beleške i pomeranje redosleda se ne upisuju.
 - Prijava u dva koraka je po izboru korisnika; vlasnik ne može da je zahteva od svih.
 - Isti kod iz aplikacije može se upotrebiti dva puta dok važi (oko minut).
-- Korisnik koji zaboravi lozinku ne dobija link emailom: novu mu postavlja vlasnik, a vlasniku skripta.
 
 ### Faza 6 — Objavljivanje kao otvoren kod (u toku)
 
@@ -188,6 +184,29 @@ Urađeno 12. 10. 2026:
 - Na engleskom panelu su prevedeni i: zaglavlja CSV izvoza (osim izvoza proizvoda, koji se uvozi nazad), popust i dostava na kartici porudžbine, i email kupcu o zahtevu za povrat (ide na jeziku kupca).
 - Stranica Kontakt: okvir pored forme se skuplja kada nema podataka prodavnice, i dobio je polje za fotografiju.
 
+Urađeno 13. 10. 2026 (MVP):
+
+- **Blog** (`lib/blog.ts`, `lib/rich-text.ts`; panel → Blog): članci na `/blog` sa naslovnom fotografijom, kratkim opisom, autorom, oznakama, nacrtom i zakazanom objavom, podacima za pretraživače (i schema.org), filterom po oznaci i stranama. Tekst se piše jednostavnim oznakama (naslov, podnaslov, spisak, citat, link, slika) i iscrtava bez sirovog HTML-a. Članci su u mapi sajta, u delu Prevodi i u javnom API-ju (`/api/v1/blog`).
+- **Tema se bira u panelu** (Podešavanja → Tema sajta; `themes/list.ts`, `themes/registry.ts`, `themes/pages.tsx`): uz instalaciju može da stoji više tema, a izabrana važi odmah. Stilove teme jezgro služi posebno (`/api/theme/{id}.css`), samo za izabranu temu, pa se stilovi tema ne mešaju ni međusobno ni sa panelom. Provereno sa privremenom drugom temom; uz instalaciju i dalje stiže jedna.
+- **Filteri i proizvodi upitom u bazi** (`lib/listing.ts`, `lib/storefront/collection.ts`; migracija 20): uz svaki upis sadržaja pravi se spisak proizvoda koji mogu da se poruče (cena, kategorije sa nadkategorijama, opcije, tekst za pretragu), pa kategoriju, cenu, opcije, pretragu, redosled i „Učitaj još" računa baza i vraća samo tražene proizvode. Izbor je u adresi (`?cena-od=`, `?opcija=Boja:Siva`, `?sortiraj=`, `?strana=`). Prodavnica više nigde ne učitava ceo katalog: stranica proizvoda, slični proizvodi, sekcije, obračun korpe i porudžbina čitaju proizvode po oznaci, a pregledač dobija samo proizvode koje vidi; korpa i lista želja svoje traže sa servera. Pretraga i redosled po nazivu rade nad glavnim jezikom.
+- **Pristup spolja je isključen po podrazumevanom** (panel → Integracije): javni API, API sa ključem i webhook-ovi se uključuju svaki za sebe; dok su isključeni, API odgovara sa 403 i ništa se ne šalje.
+- **Zaboravljena lozinka panela**: korisnik sam traži link emailom (`/admin-lozinka`); link važi sat vremena i jednom, nova lozinka odjavljuje sve uređaje. Email adresa je uz korisnika (čarobnjak, Moj nalog, Korisnici).
+- **Prijava kupaca Google nalogom** (`lib/google-login.ts`, `/api/auth/google`): svaka prodavnica upisuje svoj Client ID i tajnu u Podešavanjima; bez njih dugmeta nema. Tok sa Google-om nije isproban sa pravim nalogom (nema ga na računaru na kom je rađeno); provereni su početak, odbijanje podmetnutog odgovora i čitanje žetona.
+- **Povrat se uključuje i isključuje** (Podešavanja → Plaćanje): prodavnica koja ne radi povrat ne nudi zahtev kupcu.
+- **Teme kontakt forme** se upisuju u sekciji Kontakt (Stranice → Kontakt → Teme poruke), više nisu u kodu.
+- **Korpa novog posetioca je prazna**; dva proizvoda iz dizajna više se ne dodaju.
+
+Sledeće (redom važnosti):
+
+- **Tržišta (Markets), kao u Shopify-ju**: zemlje u koje prodavnica prodaje, i po tržištu dostava, valuta, jezik i porez; polje za zemlju pri poručivanju. Zamenjuje današnje zone po poštanskim brojevima jedne zemlje.
+- **Fiskalni račun**: veza sa fiskalnim servisom (vidi Odluke).
+- **Povraćaj kao kod za sledeću kupovinu**, kao opcija koju prodavnica uključuje.
+- **Uvoz**: utisci, oznake, porezi, dostava, kupci i porudžbine iz Shopify-jevog i WooCommerce-ovog izvoza.
+- **Veliki katalog u panelu**: upis samo izmenjenog proizvoda umesto celog kataloga, i spiskovi u panelu po stranama. Javni API i mapa sajta i dalje čitaju ceo katalog.
+- Blog: vizuelni uređivač teksta, komentari, RSS, sekcija „Najnoviji članci" za početnu stranu.
+- Druga gotova tema.
+- Spoljni API (pravljenje i izmena proizvoda) i webhook-ovi (ponavljanje, istorija): odloženo, nije potrebno za MVP.
+
 Ostaje:
 
 - Prevod je vezan za tekst: kada tekst na glavnom jeziku promenite, njegov prevod više ne važi i upisuje se ponovo. Stari prevodi ostaju u bazi neiskorišćeni.
@@ -197,7 +216,7 @@ Ostaje:
 - Za jezike osim engleskog nema gotovog prevoda teme: oko 350 tekstova se prevodi u panelu (do tada su na engleskom).
 - Posle promene adrese stranice stara adresa ne preusmerava na novu.
 - Engleski panela je proveren čitanjem svih stranica; forme nisu redom slate na engleskom, pa neka poruka o grešci može ostati na srpskom.
-- Tema se menja izmenom reda u `tsconfig.json` i novim build-om, ne iz panela.
+- Nova tema se dodaje kao folder i traži nov build; iz panela se bira među temama koje su već u instalaciji, ne ubacuje se kao fajl.
 - Uputstvo za postavljanje i za doprinos; javna demo adresa.
 - Docker fajlovi nisu pokrenuti (na računaru na kom je ovo rađeno nema Docker-a).
 - Webhook koji tri puta ne uspe se ne ponavlja kasnije i nema istoriju slanja, samo poslednji ishod.
@@ -211,7 +230,12 @@ Ostaje:
 | Više prodavnica | Jedna prodavnica po instalaciji i bazi; postavljanje treba da traje nekoliko minuta. |
 | Plaćanje karticom | Opcija i sloj za procesore postoje (`lib/payments.ts`), isključeno po podrazumevanom; procesor se dopisuje kada neko ima ugovor sa bankom. Stripe ne otvara naloge firmama iz Srbije. |
 | Licenca | AGPL-3.0: ko kod izmeni i nudi ga kao servis mora da objavi izmene. |
-| Dodaci kao u WordPress-u | Ne u prvoj verziji; webhook-ovi i API, a sistem dodataka tek ako ga korisnici traže. (predlog, nije potvrđeno) |
+| Dodaci kao u WordPress-u | Ne (odlučeno 13. 10. 2026): tuđi kod se ne instalira u prodavnicu. Spoljni sistemi se povezuju preko API-ja i webhook-ova, koji su isključeni dok ih vlasnik ne uključi. |
+| Popusti | Ne sabiraju se: važi jedan, onaj koji kupcu najviše štedi (kod koji je upisao ili automatski popust). |
+| Povrat | Prodavnica ga uključuje ili isključuje. Povraćaj kao kod za sledeću kupovinu: kasnije, kao opcija. |
+| Prijava Google nalogom | Svaka prodavnica upisuje sopstvene OAuth podatke; uz kod ne idu ničiji. |
+| Više zemalja | Preko tržišta (Markets) kao u Shopify-ju: dostava, valuta, jezik i porez po tržištu. Posle bloga. |
+| Fiskalni račun | Preko spoljnog fiskalnog servisa (ESIR sa API-jem) kao integracija po zemlji; aplikacija sama ne može biti fiskalna kasa. Nije urađeno. |
 | Jezici | Panel: srpski ili engleski. Prodavnica: glavni jezik i koliko god dodatnih, koje kupac bira na sajtu; prevodi se upisuju u panelu. |
 | Tema | I zamenljiv folder teme u ovoj aplikaciji, i sadržaj kroz API za sajt van nje. |
 | Docker | Ostaje, kao olakšica za druge; nije obavezan. |

@@ -1,7 +1,7 @@
 import { getShopT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { getCartByToken } from "@/lib/abandoned";
-import { RestoreCartPage } from "@theme/pages/simple";
+import { RestoreCartPage } from "@/themes/pages";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getShopT())("Vaša korpa"), robots: { index: false, follow: false } };

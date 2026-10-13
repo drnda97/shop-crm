@@ -1,7 +1,7 @@
 import { getShopT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/storefront/auth";
-import { TrackingPage } from "@theme/pages/simple";
+import { TrackingPage } from "@/themes/pages";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getShopT())("Praćenje porudžbine"), robots: { index: false, follow: false } };

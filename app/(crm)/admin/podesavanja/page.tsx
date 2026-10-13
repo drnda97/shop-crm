@@ -8,11 +8,13 @@ import { templatePlaceholders } from "@/lib/email-template";
 import { fromMinor } from "@/lib/format";
 import { PAYMENT_PROVIDERS } from "@/lib/payments";
 import { STATUS_EMAILS, statusEmailLabels } from "@/lib/settings";
+import { THEME_LIST, themeId } from "@/themes/list";
 import { ShippingEditor } from "./shipping-editor";
 import {
   resetTemplateAction,
   saveAppearanceAction,
   saveMailAction,
+  saveAuthAction,
   savePaymentAction,
   saveStoreAction,
   sendTestEmailAction,
@@ -20,6 +22,7 @@ import {
   saveAnalyticsAction,
   saveStatusEmailsAction,
   saveTaxAction,
+  saveThemeAction,
 } from "../actions";
 import {
   buttonClass,
@@ -53,7 +56,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   await requireAdmin("settings");
   const { greska, ok } = await searchParams;
   // Lozinka za SMTP se namerno ne šalje u formu.
-  const { store, logo, favicon, mail, shipping, payment, tax, analytics } = await getSettings();
+  const { store, logo, favicon, mail, shipping, payment, tax, analytics, auth, themeId: savedTheme } = await getSettings();
+  const activeTheme = themeId(savedTheme);
   const providers = PAYMENT_PROVIDERS.map((provider) => ({ id: provider.id, label: t(provider.label), ready: provider.ready() }));
   const previewPath = `${ADMIN_PATH}/podesavanja/pregled`;
   const decimals = store.currencyDecimals;
@@ -293,9 +297,42 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                     : t("Nijedan procesor nije povezan, pa se kartica ne nudi kupcu ni kada je uključena. Procesor banke se dopisuje u lib/payments.ts.")}
                 </span>
               </label>
+              <label className={checkboxLabel}>
+                <Checkbox name="returns" defaultChecked={payment.returns} />
+                {t("Povrat — kupac može da zatraži povrat sa stranice za praćenje porudžbine")}
+              </label>
               <div>
                 <button type="submit" className={buttonClass}>
                   {t("Sačuvaj plaćanje")}
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className={sectionClass}>
+            <h2 className={sectionTitle}>{t("Prijava kupaca")}</h2>
+            <p className={sectionHint}>
+              {t("Kupac se uvek može prijaviti emailom i lozinkom. Da bi imao i dugme „Nastavi sa Google nalogom“, napravite OAuth klijenta u Google Cloud konzoli (APIs & Services → Credentials → OAuth client ID, vrsta Web application), upišite mu adresu ispod kao „Authorized redirect URI“, pa ovde prepišite Client ID i Client secret. Dok su polja prazna, dugme se ne prikazuje.")}
+            </p>
+            <p className={`${codeClass} mb-[16px]`}>{crmUrl}/api/auth/google/callback</p>
+            <form action={saveAuthAction} className="flex flex-col gap-[16px]">
+              <label className={labelClass}>
+                {t("Google Client ID")}
+                <input name="googleClientId" defaultValue={auth.googleClientId} placeholder="1234567890-abc.apps.googleusercontent.com" autoComplete="off" className={inputClass} />
+              </label>
+              <label className={labelClass}>
+                {t("Google Client secret")}
+                <input
+                  name="googleClientSecret"
+                  type="password"
+                  autoComplete="off"
+                  placeholder={auth.googleClientSecret ? t("Upisana; ostavite prazno da ostane ista") : ""}
+                  className={inputClass}
+                />
+              </label>
+              <div>
+                <button type="submit" className={buttonClass}>
+                  {t("Sačuvaj prijavu kupaca")}
                 </button>
               </div>
             </form>
@@ -377,6 +414,29 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           </section>
         </div>
         <div className={columnClass}>
+          <section className={sectionClass}>
+            <h2 className={sectionTitle}>{t("Tema sajta")}</h2>
+            <p className={sectionHint}>
+              {t("Tema određuje izgled i raspored prodavnice. Proizvodi, stranice, boje, fontovi i sva podešavanja ostaju isti kada je promenite. Nova tema se dodaje kao folder u themes/ (uputstvo je u themes/README.md) i posle novog build-a se pojavljuje ovde.")}
+            </p>
+            <form action={saveThemeAction} className="flex flex-col gap-[12px]">
+              {THEME_LIST.map((theme) => (
+                <label key={theme.id} className="flex cursor-pointer items-start gap-[12px] rounded-[18px] bg-band p-[14px] has-checked:bg-gold-l/45">
+                  <input type="radio" name="themeId" value={theme.id} defaultChecked={theme.id === activeTheme} className="mt-[4px] size-[18px] accent-ink" />
+                  <span className="flex flex-col gap-[2px]">
+                    <span className="font-display text-[16px] font-bold">{t(theme.name)}</span>
+                    <span className="text-[14px] text-muted">{t(theme.description)}</span>
+                  </span>
+                </label>
+              ))}
+              <div>
+                <button type="submit" className={buttonClass}>
+                  {t("Sačuvaj temu")}
+                </button>
+              </div>
+            </form>
+          </section>
+
           <section className={sectionClass}>
             <h2 className={sectionTitle}>{t("Logo i favicon")}</h2>
             <p className={sectionHint}>

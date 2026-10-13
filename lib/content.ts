@@ -3,9 +3,11 @@ import path from "node:path";
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { cache } from "react";
 import { emptyHighlight, type Category, type Collection, type Page, type Product } from "@/lib/catalog";
+import { getBlogImages } from "@/lib/blog";
 import { getDb } from "@/lib/db";
 import type { Discount } from "@/lib/discounts";
 import { detectImage, makeSizes, type ImageFile } from "@/lib/images";
+import { storeListing } from "@/lib/listing";
 import { IMAGE_WIDTHS, sizedSrc, VARIANT_FILE } from "@/lib/media";
 import { collectImages, normalizeSections, sectionType } from "@/lib/sections";
 import { mergeSettings, type Settings } from "@/lib/settings";
@@ -54,23 +56,22 @@ const CONTENT_TABLES = [
   "discounts",
 ];
 
-async function loadContent(db: Pool | PoolConnection): Promise<Content> {
-  const select = async (sql: string) => (await db.query<RowDataPacket[]>(sql))[0];
-  // Jedan po jedan upit: ista veza (u transakciji) ne može da vodi više upita odjednom.
-  const products = await select("SELECT * FROM products ORDER BY position");
-  const productImages = await select("SELECT * FROM product_images ORDER BY position");
-  const productVariants = await select("SELECT * FROM product_variants ORDER BY position");
-  const productCategories = await select("SELECT * FROM product_categories ORDER BY position");
-  const categories = await select("SELECT * FROM categories ORDER BY position");
-  const collections = await select("SELECT * FROM collections ORDER BY position");
-  const collectionProducts = await select("SELECT * FROM collection_products ORDER BY position");
-  const pages = await select("SELECT * FROM pages ORDER BY position");
-  const discounts = await select("SELECT * FROM discounts ORDER BY position");
-  const settings = await select("SELECT value FROM settings WHERE name = 'settings'");
-  const saved = settings.length > 0 ? (JSON.parse(settings[0].value) as Partial<Settings>) : {};
+type Db = Pool | PoolConnection;
 
-  return {
-    products: products.map((row) => ({
+/**
+ * Proizvodi sa galerijom, varijantama i kategorijama. Bez `slugs` svi (panel, izmene sadržaja);
+ * sa njima samo traženi, pa stranica prodavnice ne učitava ceo katalog.
+ */
+async function loadProducts(db: Db, slugs?: string[]): Promise<Product[]> {
+  if (slugs && slugs.length === 0) return [];
+  // Jedan po jedan upit: ista veza (u transakciji) ne može da vodi više upita odjednom.
+  const select = async (table: string, column: string) =>
+    (await db.query<RowDataPacket[]>(`SELECT * FROM ${table}${slugs ? ` WHERE ${column} IN (?)` : ""} ORDER BY position`, slugs ? [slugs] : []))[0];
+  const products = await select("products", "slug");
+  const productImages = await select("product_images", "product_slug");
+  const productVariants = await select("product_variants", "product_slug");
+  const productCategories = await select("product_categories", "product_slug");
+  return products.map((row) => ({
       slug: row.slug,
       name: row.name,
       sku: row.sku,
@@ -116,7 +117,21 @@ async function loadContent(db: Pool | PoolConnection): Promise<Content> {
           ...(variant.image === null ? {} : { image: variant.image }),
           enabled: variant.enabled === 1,
         })),
-    })),
+    }));
+}
+
+/** Sve osim proizvoda: kategorije, kolekcije, stranice, popusti i podešavanja. */
+async function loadBase(db: Db): Promise<Omit<Content, "products">> {
+  const select = async (sql: string) => (await db.query<RowDataPacket[]>(sql))[0];
+  const categories = await select("SELECT * FROM categories ORDER BY position");
+  const collections = await select("SELECT * FROM collections ORDER BY position");
+  const collectionProducts = await select("SELECT * FROM collection_products ORDER BY position");
+  const pages = await select("SELECT * FROM pages ORDER BY position");
+  const discounts = await select("SELECT * FROM discounts ORDER BY position");
+  const settings = await select("SELECT value FROM settings WHERE name = 'settings'");
+  const saved = settings.length > 0 ? (JSON.parse(settings[0].value) as Partial<Settings>) : {};
+
+  return {
     categories: categories.map((row) => ({
       id: row.id,
       label: row.label,
@@ -159,6 +174,11 @@ async function loadContent(db: Pool | PoolConnection): Promise<Content> {
     })),
     settings: mergeSettings(saved),
   };
+}
+
+async function loadContent(db: Db): Promise<Content> {
+  const products = await loadProducts(db);
+  return { products, ...(await loadBase(db)) };
 }
 
 async function insertRows(connection: PoolConnection, sql: string, rows: unknown[][]) {
@@ -300,10 +320,14 @@ async function storeContent(connection: PoolConnection, content: Content) {
   await connection.query(
     "INSERT INTO settings (name, value) VALUES ('settings', ?) ON DUPLICATE KEY UPDATE value = VALUES(value)",
     [JSON.stringify(content.settings)],
-  );
+  );  // Spisak za stranicu kolekcije (filteri, pretraga, redosled) pravi se iz upravo upisanog kataloga.
+  await storeListing(connection, content.products, content.categories);
 }
 
-const readContent = cache(async () => loadContent(await getDb()));
+// Proizvodi se čitaju odvojeno od ostalog: stranica kojoj ne trebaju (ili joj treba nekoliko) ne učitava katalog.
+const readBase = cache(async () => loadBase(await getDb()));
+const readProducts = cache(async () => loadProducts(await getDb()));
+const readContent = cache(async (): Promise<Content> => ({ products: await readProducts(), ...(await readBase()) }));
 
 // GET_LOCK važi za ceo MySQL server, pa ime sadrži i bazu: više prodavnica na
 // istom serveru se međusobno ne čekaju. Ime zaključavanja može imati najviše 64 znaka.
@@ -381,32 +405,37 @@ export async function setStoredValue(name: string, value: string | null) {
 
 /** Svi proizvodi, i nacrti — za panel. API prikazuje samo objavljene. */
 export async function getProducts(): Promise<Product[]> {
-  return (await readContent()).products;
+  return readProducts();
+}
+
+/** Samo traženi proizvodi, redom iz kataloga; za stranice prodavnice. Nepostojeći se preskaču. */
+export async function getProductsBySlugs(slugs: string[]): Promise<Product[]> {
+  return loadProducts(await getDb(), [...new Set(slugs)].slice(0, 500));
 }
 
 export async function getProduct(slug: string): Promise<Product | undefined> {
-  return (await getProducts()).find((product) => product.slug === slug);
+  return (await getProductsBySlugs([slug]))[0];
 }
 
 export async function getCategories(): Promise<Category[]> {
-  return (await readContent()).categories;
+  return (await readBase()).categories;
 }
 
 export async function getCollections(): Promise<Collection[]> {
-  return (await readContent()).collections;
+  return (await readBase()).collections;
 }
 
 export async function getPages(): Promise<Page[]> {
-  return (await readContent()).pages;
+  return (await readBase()).pages;
 }
 
 /** Sadrži i lozinku za SMTP — ne prosleđivati ceo objekat u "use client" komponente ni u API. */
 export async function getSettings(): Promise<Settings> {
-  return (await readContent()).settings;
+  return (await readBase()).settings;
 }
 
 export async function getDiscounts(): Promise<Discount[]> {
-  return (await readContent()).discounts;
+  return (await readBase()).discounts;
 }
 
 export type UploadResult = { ok: true; src: string } | { ok: false; error: string };
@@ -483,7 +512,7 @@ export function uploadPath(src: string | undefined): string | null {
 export async function removeUpload(src: string | undefined) {
   const file = uploadPath(src);
   if (!file || !src) return;
-  if (usedImages(await loadContent(await getDb())).has(src)) return;
+  if (usedImages(await loadContent(await getDb())).has(src) || (await getBlogImages()).has(src)) return;
   await unlink(file).catch(() => {});
   // Manje veličine iste slike.
   for (const width of IMAGE_WIDTHS) {
@@ -532,5 +561,6 @@ function usedImages({ products, pages, settings }: Content): Set<string> {
 
 /** Putanje slika koje sadržaj trenutno koristi: proizvodi, stranice, logo i favicon. */
 export async function getUsedImages(): Promise<Set<string>> {
-  return usedImages(await readContent());
+  const [content, blog] = await Promise.all([readContent(), getBlogImages()]);
+  return new Set([...usedImages(content), ...blog]);
 }

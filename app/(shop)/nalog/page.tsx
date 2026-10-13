@@ -5,7 +5,8 @@ import { paymentLabels } from "@/lib/settings";
 import { getAddress, getCurrentUser, getUserOrders } from "@/lib/storefront/auth";
 import { getWelcomeCode } from "@/lib/storefront/catalog";
 import { getShopSettings } from "@/lib/storefront/pages";
-import { AccountPage, type Account } from "@theme/pages/account";
+import { AccountPage } from "@/themes/pages";
+import type { Account } from "@theme/pages/account";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getShopT())("Prijava i registracija"), robots: { index: false, follow: false } };

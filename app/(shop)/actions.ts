@@ -3,7 +3,7 @@
 import { getShopLang, getShopPath, getShopT } from "@/lib/i18n/server";
 import { headers } from "next/headers";
 import { toLines } from "@/lib/cart";
-import { getProducts } from "@/lib/content";
+import { getProductsBySlugs } from "@/lib/content";
 import { discountText } from "@/lib/discounts";
 import { addOrderEvent, getOrder, getOrders, quoteCart, submitOrder } from "@/lib/order-store";
 import { availableMethods } from "@/lib/shipping";
@@ -30,10 +30,10 @@ import { unsubscribeNewsletter } from "@/lib/newsletter";
 import { addReturnRequest, getOrderReturns, returnStatusLabels } from "@/lib/returns";
 import { saveReview } from "@/lib/reviews";
 import { clearCart, saveCart, unsubscribeCart } from "@/lib/abandoned";
-import { getShopProducts, getWelcomeCode } from "@/lib/storefront/catalog";
+import { getShopProductsBySlugs, getWelcomeCode } from "@/lib/storefront/catalog";
+import { toCardProduct, type CardProduct } from "@/lib/storefront/products";
 import { getShopSettings, siteUrl } from "@/lib/storefront/pages";
 import { addMessage, addSubscriber } from "@/lib/storefront/inbox";
-import { CONTACT_TOPICS } from "@/lib/storefront/topics";
 
 /**
  * Akcije javne prodavnice. Poziva ih pregledač kupca, pa se ničemu što stigne
@@ -212,6 +212,7 @@ async function toOrderView(order: Order): Promise<OrderView> {
     refunded: order.refunded,
     items,
     canReturn:
+      settings.payment.returns &&
       (order.status === "shipped" || order.status === "delivered") &&
       items.some((item) => item.returnable > 0) &&
       !returns.some((request) => request.status === "new"),
@@ -270,7 +271,7 @@ export async function reviewAction(input: { slug: string; rating: number; text: 
   if (!(rating >= 1 && rating <= 5)) return { ok: false, error: "Izaberite ocenu od 1 do 5." };
   const body = asText(input.text, 2000);
   if (body.length < 10) return { ok: false, error: "Napišite bar jednu rečenicu." };
-  const product = (await getProducts()).find((candidate) => candidate.slug === input.slug && candidate.active);
+  const product = (await getProductsBySlugs([asText(input.slug, 191)])).find((candidate) => candidate.active);
   if (!product) return { ok: false, error: "Proizvod više ne postoji." };
 
   const orders = await getUserOrders(user.id);
@@ -304,6 +305,17 @@ export async function subscribeAction(
   return { ok: true, code: await getWelcomeCode() };
 }
 
+/* ---------- Proizvodi za korpu i listu želja ---------- */
+
+/**
+ * Proizvodi po oznaci, u obliku za karticu: korpa i lista želja u pregledaču pamte samo oznake,
+ * a nazive, cene i slike traže ovde. Vraća samo proizvode koji mogu da se poruče.
+ */
+export async function cartProductsAction(slugs: string[]): Promise<CardProduct[]> {
+  const wanted = (Array.isArray(slugs) ? slugs : []).filter((slug) => typeof slug === "string" && slug.length <= 191).slice(0, 200);
+  return (await getShopProductsBySlugs(wanted)).map(toCardProduct);
+}
+
 export type ContactErrors = Partial<Record<"name" | "email" | "text", string>>;
 
 export async function contactAction(input: {
@@ -315,7 +327,8 @@ export async function contactAction(input: {
   const name = asText(input.name);
   const email = asEmail(input.email);
   const body = asText(input.text, 5000);
-  const topic = CONTACT_TOPICS.find((candidate) => candidate === input.topic) ?? CONTACT_TOPICS[0];
+  // Teme upisuje vlasnik u sekciji Kontakt, pa se ovde ne porede sa spiskom.
+  const topic = asText(input.topic, 120);
 
   const errors: ContactErrors = {};
   if (!name) errors.name = "Upišite ime i prezime.";
@@ -357,7 +370,7 @@ export async function quoteAction(input: {
     if (typeof item?.slug !== "string" || !Number.isInteger(qty) || qty < 1) return [];
     return [{ slug: item.slug, qty, ...(typeof item.variantId === "string" ? { variant: item.variantId } : {}) }];
   });
-  const [products, settings] = await Promise.all([getProducts(), getShopSettings()]);
+  const [products, settings] = await Promise.all([getProductsBySlugs(items.map((item) => item.slug)), getShopSettings()]);
   const methods = availableMethods(settings.shipping.methods, asText(input.zip, 16));
   const method = methods.find((candidate) => candidate.id === input.delivery) ?? methods[0];
   // Proveru koda ograničava isti brojač kao i ranije: nagađanje kodova kroz obračun ne prolazi.
@@ -461,8 +474,9 @@ export async function placeOrderAction(
     errors.note = `Napomena može imati najviše ${CUSTOMER_NOTE_MAX} znakova.`;
   }
 
-  const products = await getShopProducts();
-  const items = (Array.isArray(raw.items) ? raw.items.slice(0, 200) : []).flatMap((item) => {
+  const wanted = Array.isArray(raw.items) ? raw.items.slice(0, 200) : [];
+  const products = await getShopProductsBySlugs(wanted.flatMap((item) => (typeof item?.slug === "string" ? [item.slug] : [])));
+  const items = wanted.flatMap((item) => {
     const product = products.find((candidate) => candidate.slug === item?.slug);
     const qty = Number(item?.qty);
     if (!product || !Number.isInteger(qty) || qty < 1) return [];

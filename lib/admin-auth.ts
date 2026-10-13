@@ -54,6 +54,8 @@ export type AdminUser = {
   id: number;
   username: string;
   name: string;
+  /** Adresa na koju stiže link za novu lozinku; prazno dok je korisnik ne upiše. */
+  email: string;
   role: Role;
   /** Uključena prijava u dva koraka. */
   totpEnabled: boolean;
@@ -68,6 +70,7 @@ function toUser(row: RowDataPacket): AdminUser {
     id: row.id,
     username: row.username,
     name: row.name,
+    email: row.email ?? "",
     role: row.role,
     totpEnabled: row.totp_enabled === 1,
     disabled: row.disabled === 1,
@@ -118,12 +121,12 @@ export async function needsSetup(): Promise<boolean> {
  * Pravi prvog vlasnika. Upis uspeva samo dok je tabela prazna, i kada dva zahteva stignu
  * odjednom; null kada vlasnik već postoji.
  */
-export async function createFirstOwner(input: { username: string; name: string; password: string }): Promise<AdminUser | null> {
+export async function createFirstOwner(input: { username: string; name: string; email?: string; password: string }): Promise<AdminUser | null> {
   const db = await getDb();
   const [result] = await db.query<ResultSetHeader>(
-    `INSERT INTO admin_users (username, name, pass_hash, role, created_at)
-     SELECT ?, ?, ?, 'owner', ? FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM admin_users)`,
-    [input.username, input.name, hashPassword(input.password), new Date()],
+    `INSERT INTO admin_users (username, name, email, pass_hash, role, created_at)
+     SELECT ?, ?, ?, ?, 'owner', ? FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM admin_users)`,
+    [input.username, input.name, input.email || null, hashPassword(input.password), new Date()],
   );
   if (result.affectedRows === 0) return null;
   const [rows] = await db.query<RowDataPacket[]>("SELECT * FROM admin_users WHERE id = ?", [result.insertId]);
@@ -272,12 +275,12 @@ export function isValidUsername(value: string): boolean {
 export const PASSWORD_MIN = 10;
 
 /** Dodaje korisnika; null kada ime već postoji. */
-export async function createAdmin(input: { username: string; name: string; password: string; role: Role }): Promise<AdminUser | null> {
+export async function createAdmin(input: { username: string; name: string; email?: string; password: string; role: Role }): Promise<AdminUser | null> {
   const db = await getDb();
   try {
     const [result] = await db.query<ResultSetHeader>(
-      "INSERT INTO admin_users (username, name, pass_hash, role, created_at) VALUES (?, ?, ?, ?, ?)",
-      [input.username, input.name, hashPassword(input.password), input.role, new Date()],
+      "INSERT INTO admin_users (username, name, email, pass_hash, role, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+      [input.username, input.name, input.email || null, hashPassword(input.password), input.role, new Date()],
     );
     const [rows] = await db.query<RowDataPacket[]>("SELECT * FROM admin_users WHERE id = ?", [result.insertId]);
     return toUser(rows[0]);
@@ -291,10 +294,10 @@ export async function createAdmin(input: { username: string; name: string; passw
  * Menja ime, ulogu i da li je korisnik isključen. Poslednjem aktivnom vlasniku se uloga ne
  * može oduzeti niti se može isključiti: panel bi ostao bez ikoga ko sme u podešavanja.
  */
-export async function updateAdmin(id: number, change: { name: string; role: Role; disabled: boolean }): Promise<"ok" | "last-owner"> {
+export async function updateAdmin(id: number, change: { name: string; email: string; role: Role; disabled: boolean }): Promise<"ok" | "last-owner"> {
   if ((change.role !== "owner" || change.disabled) && (await activeOwners(id)) === 0) return "last-owner";
   const db = await getDb();
-  await db.query("UPDATE admin_users SET name = ?, role = ?, disabled = ? WHERE id = ?", [change.name, change.role, change.disabled, id]);
+  await db.query("UPDATE admin_users SET name = ?, email = ?, role = ?, disabled = ? WHERE id = ?", [change.name, change.email || null, change.role, change.disabled, id]);
   if (change.disabled) await db.query("DELETE FROM admin_sessions WHERE user_id = ?", [id]);
   return "ok";
 }
@@ -305,6 +308,57 @@ export async function setAdminPassword(id: number, password: string, keepCurrent
   await db.query("UPDATE admin_users SET pass_hash = ? WHERE id = ?", [hashPassword(password), id]);
   const token = keepCurrent ? (await cookies()).get(COOKIE_NAME)?.value : undefined;
   await db.query("DELETE FROM admin_sessions WHERE user_id = ? AND token_hash <> ?", [id, token ? tokenHash(token) : ""]);
+}
+
+/** Korisnik sam upisuje adresu na koju mu stiže link za novu lozinku. */
+export async function setAdminEmail(id: number, email: string) {
+  await (await getDb()).query("UPDATE admin_users SET email = ? WHERE id = ?", [email || null, id]);
+}
+
+/** Koliko važi link za novu lozinku. */
+const RESET_MINUTES = 60;
+
+/**
+ * Pravi žeton za novu lozinku korisniku sa tim korisničkim imenom ili email adresom. null kada
+ * takvog nema, kada je isključen ili nema upisanu adresu. Raniji žetoni istog korisnika prestaju da važe.
+ */
+export async function createAdminReset(login: string): Promise<{ token: string; user: AdminUser } | null> {
+  const db = await getDb();
+  const [rows] = await db.query<RowDataPacket[]>(
+    "SELECT * FROM admin_users WHERE (username = ? OR email = ?) AND disabled = 0 AND email IS NOT NULL ORDER BY username = ? DESC, id LIMIT 1",
+    [login, login, login],
+  );
+  if (rows.length === 0) return null;
+  const token = randomBytes(32).toString("base64url");
+  await db.query("DELETE FROM admin_password_resets WHERE user_id = ? OR expires_at < ?", [rows[0].id, new Date()]);
+  await db.query("INSERT INTO admin_password_resets (token_hash, user_id, expires_at) VALUES (?, ?, ?)", [
+    tokenHash(token),
+    rows[0].id,
+    new Date(Date.now() + RESET_MINUTES * 60_000),
+  ]);
+  return { token, user: toUser(rows[0]) };
+}
+
+/** Da li link za novu lozinku još važi. */
+export async function isAdminResetValid(token: string): Promise<boolean> {
+  const [rows] = await (
+    await getDb()
+  ).query<RowDataPacket[]>("SELECT 1 FROM admin_password_resets WHERE token_hash = ? AND expires_at > ?", [tokenHash(token), new Date()]);
+  return rows.length > 0;
+}
+
+/** Postavlja lozinku po žetonu iz linka i odjavljuje korisnika sa svih uređaja; null kada žeton ne važi. */
+export async function resetAdminPassword(token: string, password: string): Promise<AdminUser | null> {
+  const db = await getDb();
+  const [rows] = await db.query<RowDataPacket[]>(
+    `SELECT u.* FROM admin_password_resets r JOIN admin_users u ON u.id = r.user_id
+     WHERE r.token_hash = ? AND r.expires_at > ? AND u.disabled = 0`,
+    [tokenHash(token), new Date()],
+  );
+  if (rows.length === 0) return null;
+  await db.query("DELETE FROM admin_password_resets WHERE user_id = ?", [rows[0].id]);
+  await setAdminPassword(rows[0].id, password);
+  return toUser(rows[0]);
 }
 
 export async function checkAdminPassword(id: number, password: string): Promise<boolean> {

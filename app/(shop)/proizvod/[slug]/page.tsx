@@ -3,15 +3,15 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductReviews, ratingSummary } from "@/lib/reviews";
 import { getCurrentUser } from "@/lib/storefront/auth";
-import { getShopProducts } from "@/lib/storefront/catalog";
+import { getRelated, getShopProduct } from "@/lib/storefront/catalog";
 import { getShopSettings, siteUrl } from "@/lib/storefront/pages";
-import { ProductPage } from "@theme/pages/product";
+import { ProductPage } from "@/themes/pages";
 
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const product = (await getShopProducts()).find((candidate) => candidate.slug === slug);
+  const product = await getShopProduct(slug);
   if (!product) return {};
   const description = product.seoDescription || (product.description || product.variant).slice(0, 160);
   return {
@@ -24,19 +24,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductRoute({ params }: Props) {
   const { slug } = await params;
-  const products = await getShopProducts();
-  const product = products.find((candidate) => candidate.slug === slug);
+  const product = await getShopProduct(slug);
   if (!product) notFound();
-
-  // Slični proizvodi: prvo ručno izabrani u panelu, pa iz iste kategorije, pa ostali.
-  const others = products.filter((candidate) => candidate.slug !== product.slug);
-  const related = [
-    ...new Set([
-      ...product.related.flatMap((id) => others.filter((candidate) => candidate.slug === id)),
-      ...others.filter((candidate) => candidate.categoryId === product.categoryId),
-      ...others,
-    ]),
-  ].slice(0, 4);
+  const related = await getRelated(product);
 
   // Podaci o proizvodu za pretraživače (schema.org), da rezultat pretrage prikaže cenu i dostupnost.
   const [settings, base, reviews, user] = await Promise.all([

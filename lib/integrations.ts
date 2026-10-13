@@ -203,6 +203,9 @@ export async function deliverWebhook(webhook: Webhook, event: string, data: unkn
 export function emitOrderEvent(event: WebhookEvent, number: string | number, extra: Record<string, unknown> = {}) {
   const run = async () => {
     try {
+      // Webhook-ovi se šalju samo kada ih je vlasnik uključio (panel → Integracije).
+      const { getSettings } = await import("@/lib/content");
+      if (!(await getSettings()).access.webhooks) return;
       const hooks = (await listWebhooks()).filter((hook) => hook.active && hook.events.includes(event));
       if (hooks.length === 0) return;
       const { getOrder } = await import("@/lib/order-store");

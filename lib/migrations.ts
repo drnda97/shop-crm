@@ -467,6 +467,85 @@ export const MIGRATIONS: Migration[] = [
       await connection.query("ALTER TABLE abandoned_carts ADD COLUMN lang VARCHAR(10) NULL");
     },
   },
+  {
+    id: 18,
+    name: "korisnici panela: email adresa i link za novu lozinku",
+    up: async (connection) => {
+      const tail = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+      await connection.query("ALTER TABLE admin_users ADD COLUMN email VARCHAR(191) NULL");
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS admin_password_resets (
+          token_hash CHAR(64) NOT NULL PRIMARY KEY,
+          user_id INT NOT NULL,
+          expires_at DATETIME(3) NOT NULL,
+          KEY admin_password_resets_user (user_id)
+        ) ${tail}`,
+      );
+    },
+  },
+  {
+    id: 19,
+    name: "blog: članci",
+    up: async (connection) => {
+      const tail = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS blog_posts (
+          id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          slug VARCHAR(160) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          excerpt TEXT NOT NULL,
+          body MEDIUMTEXT NOT NULL,
+          image VARCHAR(255) NULL,
+          image_alt VARCHAR(255) NOT NULL DEFAULT '',
+          author VARCHAR(100) NOT NULL DEFAULT '',
+          tags VARCHAR(600) NOT NULL DEFAULT '',
+          status VARCHAR(20) NOT NULL DEFAULT 'draft',
+          published_at DATETIME(3) NOT NULL,
+          seo_title VARCHAR(255) NOT NULL DEFAULT '',
+          seo_description VARCHAR(500) NOT NULL DEFAULT '',
+          updated_at DATETIME(3) NOT NULL,
+          UNIQUE KEY blog_posts_slug (slug),
+          KEY blog_posts_published (status, published_at)
+        ) ${tail}`,
+      );
+    },
+  },
+  {
+    id: 20,
+    name: "spisak proizvoda za filtere i pretragu u bazi",
+    up: async (connection) => {
+      const tail = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS product_listing (
+          slug VARCHAR(191) NOT NULL PRIMARY KEY,
+          position INT NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          price INT NOT NULL,
+          simple TINYINT(1) NOT NULL DEFAULT 0,
+          search MEDIUMTEXT NOT NULL,
+          KEY product_listing_position (position),
+          KEY product_listing_price (price)
+        ) ${tail}`,
+      );
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS product_listing_categories (
+          category_id VARCHAR(191) NOT NULL,
+          slug VARCHAR(191) NOT NULL,
+          PRIMARY KEY (category_id, slug)
+        ) ${tail}`,
+      );
+      await connection.query(
+        `CREATE TABLE IF NOT EXISTS product_listing_options (
+          slug VARCHAR(191) NOT NULL,
+          name VARCHAR(191) NOT NULL,
+          value VARCHAR(191) NOT NULL,
+          position INT NOT NULL,
+          KEY product_listing_options_value (name, value),
+          KEY product_listing_options_slug (slug)
+        ) ${tail}`,
+      );
+    },
+  },
 ];
 
 // GET_LOCK važi za ceo MySQL server, pa ime sadrži i bazu (najviše 64 znaka).

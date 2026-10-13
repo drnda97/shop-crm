@@ -88,10 +88,24 @@ export type ShopConfig = {
   analytics: { ga4: string; metaPixel: string };
   /** Kupac koji upiše email na stranici plaćanja, a ne poruči, dobija podsetnik (panel → Napuštene korpe). */
   cartReminder: boolean;
+  /** Prodavnica je upisala svoje Google podatke: forma za prijavu nudi i „Nastavi sa Google nalogom". */
+  googleLogin: boolean;
   /** Načini dostave iz CRM-a (Podešavanja → Dostava); cenu za korpu računa lib/shipping.ts. */
   shipping: ShippingMethod[];
   payments: { id: PaymentMethod; label: string }[];
 };
+
+/**
+ * Proizvod kako ga dobija pregledač (kartica, korpa, lista želja): bez opisa, galerije i ostalog
+ * što treba samo stranici proizvoda.
+ */
+export type CardProduct = Omit<ShopProduct, "description" | "attributes" | "gallery" | "highlight" | "seoTitle" | "seoDescription" | "related">;
+
+export function toCardProduct(product: ShopProduct): CardProduct {
+  const { description, attributes, gallery, highlight, seoTitle, seoDescription, related, ...card } = product;
+  void [description, attributes, gallery, highlight, seoTitle, seoDescription, related];
+  return card;
+}
 
 /** 39900 → „39.900 RSD". */
 export function formatPrice(amount: number): string {

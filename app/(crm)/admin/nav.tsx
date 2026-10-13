@@ -198,6 +198,7 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
       title: t("Sajt"),
       items: [
         { href: `${base}/stranice`, label: t("Stranice"), icon: icons.pages, area: "content" },
+        { href: `${base}/blog`, label: t("Blog"), icon: icons.messages, area: "content" },
         { href: `${base}/izgled`, label: t("Izgled sajta"), icon: icons.layout, area: "content" },
         { href: `${base}/slike`, label: t("Slike"), icon: icons.images, area: "content" },
         { href: `${base}/prevodi`, label: t("Prevodi"), icon: icons.messages, area: "content" },

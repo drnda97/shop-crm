@@ -3,13 +3,12 @@ import type { CSSProperties, ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { ogLocale } from "@/lib/i18n";
 import { getShopCustomDict, getShopLang, getShopPrefix, unknownShopLang } from "@/lib/i18n/server";
-import { getShopConfig, getShopProducts } from "@/lib/storefront/catalog";
+import { getShopConfig, getUpsell } from "@/lib/storefront/catalog";
 import { getShopSettings, siteUrl } from "@/lib/storefront/pages";
 import { themeVars } from "@/lib/theme";
-import { fontVariables } from "@theme/fonts";
-import { Shell } from "@theme/pages/shell";
-import "@theme/shop.css";
-import "@theme/shop-fonts.css";
+import { themeCssHref } from "@/lib/storefront/theme-css";
+import { getTheme, getThemeId } from "@/themes/pages";
+import { fontVariables } from "./fonts";
 
 // Proizvodi i podešavanja su u bazi i menjaju se iz panela, pa se stranice prave pri svakoj
 // poseti: izmena se vidi odmah, a build ne zavisi od toga da li je baza dostupna.
@@ -30,13 +29,14 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * Prodavnica ima sopstveni root layout, odvojen od panela: stilovi panela
  * (Tailwind, globals.css) se ovde ne učitavaju, a stilovi teme se ne učitavaju u panelu.
- * Izgled je u temi (themes/default); ovde su samo podaci i ono što svaka tema dobija.
+ * Izgled je u temi izabranoj u panelu (themes/); ovde su samo podaci i ono što svaka tema dobija.
  */
 export default async function ShopLayout({ children }: { children: ReactNode }) {
   // Adresa sa jezikom koji prodavnica nema (/xx/…) ne postoji.
   if (await unknownShopLang()) notFound();
-  const [products, config, settings, lang, prefix, custom] = await Promise.all([
-    getShopProducts(),
+  const [{ Shell }, upsell, config, settings, lang, prefix, custom] = await Promise.all([
+    getTheme(),
+    getUpsell(),
     getShopConfig(),
     getShopSettings(),
     getShopLang(),
@@ -44,12 +44,17 @@ export default async function ShopLayout({ children }: { children: ReactNode }) 
     getShopCustomDict(),
   ]);
   const { announcement, announcementHref } = settings.site;
+  const stylesHref = await themeCssHref(await getThemeId());
 
   return (
     // Boje i fontovi iz panela (Izgled sajta → Tema) stižu kao CSS promenljive teme.
     <html lang={lang} className={fontVariables} style={themeVars(settings.colors, settings.fonts) as CSSProperties}>
+      <head>
+        {/* Stilovi izabrane teme; ostale teme se ne učitavaju. */}
+        <link rel="stylesheet" href={stylesHref} />
+      </head>
       <body>
-        <Shell lang={lang} prefix={prefix} custom={custom} announcement={announcement} announcementHref={announcementHref} products={products} config={config}>
+        <Shell lang={lang} prefix={prefix} custom={custom} announcement={announcement} announcementHref={announcementHref} upsell={upsell} config={config}>
           {children}
         </Shell>
       </body>

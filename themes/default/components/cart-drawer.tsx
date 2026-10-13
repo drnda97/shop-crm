@@ -10,15 +10,11 @@ import { CheckIcon, Photo } from "./ui";
 export function CartDrawer() {
   const to = usePath();
   const t = useT();
-  const { products, config, items, count, subtotal, weight, closeCart, add, setQty } = useCart();
+  const { upsell, config, items, count, subtotal, weight, closeCart, add, setQty } = useCart();
   // Korpa računa dostavu podrazumevanim načinom; kupac ga menja na stranici plaćanja.
   const { isFree, price: shipping, remaining, pct, freeFrom } = shippingFor(defaultMethod(config), subtotal, weight);
   const texts = config.texts.cart;
-  // Predlog do besplatne dostave: proizvod izabran u panelu, inače najjeftiniji iz kataloga.
-  // Nudi se samo proizvod bez varijanti, jer se dodaje jednim klikom.
-  const simple = products.filter((p) => p.variants.length === 0);
-  const upsell =
-    simple.find((p) => p.slug === texts.upsell) ?? [...simple].sort((a, b) => a.price - b.price)[0];
+  // Predlog do besplatne dostave bira server: proizvod izabran u panelu, inače najjeftiniji bez varijanti.
 
   return (
     <div className="ds cart" style={{ fontFamily: "var(--sans)", color: "var(--ink)", background: "var(--paper)" }}>
@@ -106,7 +102,7 @@ export function CartDrawer() {
                 <div className="card-name" style={{ fontSize: "16.5px" }}>{upsell.name}</div>
                 <div className="muted" style={{ fontSize: "14px" }}>{formatPrice(upsell.price)}</div>
               </div>
-              <button className="chip" onClick={() => add({ slug: upsell.slug, variant: upsell.variant })}>
+              <button className="chip" onClick={() => add({ slug: upsell.slug, variant: upsell.variant, product: upsell })}>
                 {t("Dodaj")}
               </button>
             </div>

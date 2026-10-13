@@ -4,7 +4,8 @@ import { PASSWORD_MIN, pendingTotpSecret, requireAdmin, roleHints, roleLabels } 
 import { getSettings } from "@/lib/content";
 import { otpauthUrl } from "@/lib/totp";
 import { buttonClass, inputClass, labelClass, PageHeader, panelClass, panelTitleClass, quietButtonClass } from "../ui";
-import { changePasswordAction, disableTotpAction, startTotpAction } from "../user-actions";
+import { changePasswordAction,
+  saveEmailAction, disableTotpAction, startTotpAction } from "../user-actions";
 import { TotpForm } from "./totp-form";
 
 type AccountPageProps = { searchParams: Promise<{ greska?: string; ok?: string; korak?: string }> };
@@ -27,6 +28,19 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
         notice={ok}
       />
       <div className="grid items-start gap-[16px] xl:grid-cols-2">
+        <form action={saveEmailAction} className={panelClass}>
+          <h2 className={panelTitleClass}>{t("Email adresa")}</h2>
+          <label className={labelClass}>
+            {t("Na ovu adresu stiže link ako zaboravite lozinku")}
+            <input name="email" type="email" maxLength={191} defaultValue={user.email} className={inputClass} />
+          </label>
+          <div>
+            <button type="submit" className={buttonClass}>
+              {t("Sačuvaj adresu")}
+            </button>
+          </div>
+        </form>
+
         <form action={changePasswordAction} className={panelClass}>
           <h2 className={panelTitleClass}>{t("Lozinka")}</h2>
           <label className={labelClass}>

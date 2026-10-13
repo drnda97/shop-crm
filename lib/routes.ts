@@ -22,6 +22,8 @@ const PATHS: [string, Partial<Record<Lang, string>>][] = [
   ["/korpa/vrati", { en: "/cart/restore" }],
   ["/korpa/odjava", { en: "/cart/unsubscribe" }],
   ["/novosti/odjava", { en: "/newsletter/unsubscribe" }],
+  // Ista adresa na svim jezicima; ovde je da je stranica iz panela ne zauzme.
+  ["/blog", {}],
 ];
 
 /** Nazivi parametara u adresi (?pretraga=…) i vrednosti koje nisu sadržaj. */
@@ -29,6 +31,12 @@ const PARAMS: [string, Partial<Record<Lang, string>>][] = [
   ["pretraga", { en: "search" }],
   ["kategorija", { en: "category" }],
   ["tema", { en: "topic" }],
+  ["oznaka", { en: "tag" }],
+  ["strana", { en: "page" }],
+  ["sortiraj", { en: "sort" }],
+  ["cena-od", { en: "price-from" }],
+  ["cena-do", { en: "price-to" }],
+  ["opcija", { en: "option" }],
   ["broj", { en: "number" }],
   ["porudzbina", { en: "order" }],
   ["ishod", { en: "result" }],

@@ -5,7 +5,7 @@ import nodemailer from "nodemailer";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { toLines, type CartItem } from "@/lib/cart";
 import { currentPrice, variantLabel } from "@/lib/catalog";
-import { getProducts, getSettings } from "@/lib/content";
+import { getProductsBySlugs, getSettings } from "@/lib/content";
 import { getDb } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
 import { currencyOf, type Settings } from "@/lib/settings";
@@ -55,7 +55,7 @@ function toCart(row: RowDataPacket): AbandonedCart {
  * popunjava formu. Odjava od podsetnika ostaje i kada kupac ponovo dođe.
  */
 export async function saveCart(input: { email: string; firstName: string; items: CartItem[]; siteUrl: string; lang?: string }) {
-  const lines = toLines(input.items, await getProducts());
+  const lines = toLines(input.items, await getProductsBySlugs(input.items.map((item) => item.slug)));
   if (lines.length === 0) return;
   const items = lines.map((line) => ({ slug: line.product.slug, qty: line.qty, ...(line.variant ? { variant: line.variant.id } : {}) }));
   const value = lines.reduce((sum, line) => sum + (currentPrice(line.product, line.variant) ?? 0) * line.qty, 0);
@@ -108,7 +108,7 @@ function escapeHtml(value: string): string {
 export async function renderReminder(cart: AbandonedCart, settings: Settings, baseUrl: string) {
   const { store, colors, abandoned } = settings;
   const currency = currencyOf(settings);
-  const lines = toLines(cart.items, await getProducts());
+  const lines = toLines(cart.items, await getProductsBySlugs(cart.items.map((item) => item.slug)));
   if (lines.length === 0) return null;
 
   const lang = cart.lang ?? store.language;

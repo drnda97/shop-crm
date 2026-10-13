@@ -14,13 +14,15 @@ import {
   salePercent,
   variantLabel,
 } from "@/lib/catalog";
-import type { Category } from "@/lib/catalog";
-import { getCategories, getCollections, getDiscounts, getProducts, getSettings } from "@/lib/content";
+import type { Category, Collection, Product } from "@/lib/catalog";
+import { getCategories, getCollections, getDiscounts, getProductsBySlugs, getSettings } from "@/lib/content";
+import { listFacets, listSlugs, type ListingFilter } from "@/lib/listing";
 import { getShopSettings } from "@/lib/storefront/pages";
 import { isExpired } from "@/lib/discounts";
 import { cardProvider } from "@/lib/payments";
-import { enabledPayments, paymentLabels } from "@/lib/settings";
-import type { ShopConfig, ShopProduct } from "@/lib/storefront/products";
+import { enabledPayments, googleLoginReady, paymentLabels } from "@/lib/settings";
+import { PAGE_SIZE, parseListingQuery, type Listing } from "@/lib/storefront/collection";
+import { toCardProduct, type CardProduct, type ShopConfig, type ShopProduct } from "@/lib/storefront/products";
 
 /**
  * Javna prodavnica čita katalog i podešavanja iz CRM-a, direktno iz baze
@@ -33,24 +35,8 @@ const TAG_COLLECTIONS = ["bestseler", "novo"];
 /** Promo kod koji prodavnica obećava u prijavi na novosti i pri registraciji. */
 const WELCOME_DISCOUNT_ID = "dobrodoslica";
 
-/** Proizvodi koji mogu da se poruče: objavljeni, sa cenom i na stanju. */
-export async function getShopProducts(): Promise<ShopProduct[]> {
-  return translateForShop(await rawShopProducts());
-}
-
-/** Kategorije na jeziku stranice. */
-export async function getShopCategories(): Promise<Category[]> {
-  return translateForShop(await getCategories());
-}
-
-async function rawShopProducts(): Promise<ShopProduct[]> {
-  const [products, categories, collections] = await Promise.all([
-    getProducts(),
-    getCategories(),
-    getCollections(),
-  ]);
-
-  return products.filter(isAvailable).map((product) => {
+/** Proizvod kako ga vidi kupac: cena koju plaća, oznaka na kartici, varijante koje mogu da se poruče. */
+function toShopProduct(product: Product, categories: Category[], collections: Collection[]): ShopProduct {
     const tagCollection = TAG_COLLECTIONS.map((id) => collections.find((c) => c.id === id)).find(
       (collection) => collection?.productSlugs.includes(product.slug),
     );
@@ -105,7 +91,79 @@ async function rawShopProducts(): Promise<ShopProduct[]> {
         .filter((collection) => collection.productSlugs.includes(product.slug))
         .map((collection) => collection.id),
     };
-  });
+  }
+
+/**
+ * Traženi proizvodi koji mogu da se poruče (objavljeni, sa cenom i na stanju), redom kojim su
+ * traženi, na jeziku stranice. Iz baze se čitaju samo oni, ne ceo katalog.
+ */
+export async function getShopProductsBySlugs(slugs: string[]): Promise<ShopProduct[]> {
+  if (slugs.length === 0) return [];
+  const [products, categories, collections] = await Promise.all([getProductsBySlugs(slugs), getCategories(), getCollections()]);
+  const bySlug = new Map(products.filter(isAvailable).map((product) => [product.slug, toShopProduct(product, categories, collections)]));
+  return translateForShop([...new Set(slugs)].flatMap((slug) => bySlug.get(slug) ?? []));
+}
+
+export async function getShopProduct(slug: string): Promise<ShopProduct | null> {
+  return (await getShopProductsBySlugs([slug]))[0] ?? null;
+}
+
+/** Proizvodi koji prolaze filter, upitom u bazi (lib/listing.ts), u obliku za karticu, i koliko ih ukupno ima. */
+export async function getShopList(filter: ListingFilter, limit: number): Promise<{ items: CardProduct[]; total: number }> {
+  const { slugs, total } = await listSlugs(filter, limit);
+  return { items: (await getShopProductsBySlugs(slugs)).map(toCardProduct), total };
+}
+
+/** Proizvodi za stranicu kolekcije: filteri, pretraga, redosled i strana iz adrese. */
+export async function getListing(category: string, params: Record<string, string | string[] | undefined>): Promise<Listing<CardProduct>> {
+  const [settings, rawFacets] = await Promise.all([getSettings(), listFacets(category)]);
+  const query = parseListingQuery(params);
+  // Kupac upisuje cenu u valuti, a u bazi je u najmanjim jedinicama.
+  const unit = 10 ** settings.store.currencyDecimals;
+  const filter: ListingFilter = {
+    category,
+    search: query.search,
+    min: query.min === null ? null : query.min * unit,
+    max: query.max === null ? null : query.max * unit,
+    options: query.options,
+    sort: query.sort,
+  };
+  let { items, total } = await getShopList(filter, query.page * PAGE_SIZE);
+  // Strana preko kraja (stari link, u međuvremenu manje proizvoda) svodi se na poslednju.
+  const page = Math.min(query.page, Math.max(1, Math.ceil(total / PAGE_SIZE)));
+  if (page !== query.page) ({ items, total } = await getShopList(filter, page * PAGE_SIZE));
+  // Vrednost filtera ostaje na glavnom jeziku (po njoj baza traži); kupac vidi prevod.
+  const labels = await translateForShop(rawFacets);
+  const facets = rawFacets.map((facet, at) => ({
+    name: facet.name,
+    label: labels[at].name,
+    values: facet.values.map((value, index) => ({ value, label: labels[at].values[index] })),
+  }));
+  return { query: { ...query, page }, items, total, facets };
+}
+
+/** Slični proizvodi: prvo ručno izabrani u panelu, pa iz iste kategorije, pa ostali. */
+export async function getRelated(product: ShopProduct, limit = 4): Promise<CardProduct[]> {
+  const picked = product.related.filter((slug) => slug !== product.slug).slice(0, limit);
+  const same = product.categoryId ? (await listSlugs({ category: product.categoryId, exclude: [product.slug, ...picked] }, limit)).slugs : [];
+  const rest = picked.length + same.length < limit ? (await listSlugs({ exclude: [product.slug, ...picked, ...same] }, limit)).slugs : [];
+  return (await getShopProductsBySlugs([...picked, ...same, ...rest])).slice(0, limit).map(toCardProduct);
+}
+
+/**
+ * Predlog u korpi do besplatne dostave: proizvod izabran u panelu, inače najjeftiniji iz
+ * kataloga. Samo proizvod bez varijanti, jer se dodaje jednim klikom.
+ */
+export async function getUpsell(): Promise<CardProduct | null> {
+  const wanted = (await getShopSettings()).templates.cart.upsell;
+  const chosen = wanted ? await getShopProduct(wanted) : null;
+  if (chosen && chosen.variants.length === 0) return toCardProduct(chosen);
+  return (await getShopList({ simple: true, sort: "asc" }, 1)).items[0] ?? null;
+}
+
+/** Kategorije na jeziku stranice. */
+export async function getShopCategories(): Promise<Category[]> {
+  return translateForShop(await getCategories());
 }
 
 export async function getShopConfig(): Promise<ShopConfig> {
@@ -127,6 +185,7 @@ export async function getShopConfig(): Promise<ShopConfig> {
     })),
     analytics: settings.analytics,
     cartReminder: settings.abandoned.enabled,
+    googleLogin: googleLoginReady(settings),
     shipping: settings.shipping.methods,
     payments: enabledPayments(settings, cardProvider(settings) !== null).map((id) => ({ id, label: paymentLabels[id] })),
   };

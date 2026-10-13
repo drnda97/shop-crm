@@ -2,7 +2,7 @@ import { getShopT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { getAddress, getCurrentUser } from "@/lib/storefront/auth";
 import { getShopSettings } from "@/lib/storefront/pages";
-import { CheckoutPage } from "@theme/pages/checkout";
+import { CheckoutPage } from "@/themes/pages";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getShopT())("Plaćanje"), robots: { index: false, follow: false } };

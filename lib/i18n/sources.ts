@@ -1,9 +1,10 @@
+import { getAllPosts } from "@/lib/blog";
 import { getCategories, getCollections, getPages, getProducts, getSettings } from "@/lib/content";
 import type { Lang } from "@/lib/i18n";
 import { contentMap } from "@/lib/i18n/content";
 import { shopDict } from "@/lib/i18n/shop";
 import { collectTexts } from "@/lib/i18n/walk";
-import { themeDict } from "@theme/i18n";
+import { getTheme } from "@/themes/pages";
 
 /**
  * Šta se u prodavnici može prevesti, po grupama, za stranicu Prevodi u panelu. Samo za server.
@@ -11,7 +12,7 @@ import { themeDict } from "@theme/i18n";
 
 export const TRANSLATION_GROUPS = {
   tema: "Tekstovi teme i poruke kupcu",
-  sajt: "Meni, podnožje, stranice, dostava i email",
+  sajt: "Meni, podnožje, stranice, blog, dostava i email",
   katalog: "Proizvodi, kategorije i kolekcije",
 } as const;
 
@@ -30,6 +31,7 @@ export async function translationSources(group: TranslationGroup, lang: Lang): P
 
   if (group === "tema") {
     // Tekstovi teme i jezgra su u kodu na srpskom; jezik bez rečnika pada na engleski.
+    const themeDict = (await getTheme()).dict;
     const english = { ...shopDict.en, ...themeDict.en };
     const own = { ...shopDict[lang], ...themeDict[lang] };
     return Object.keys(english)
@@ -45,6 +47,10 @@ export async function translationSources(group: TranslationGroup, lang: Lang): P
     collectTexts(shipping.methods.map(({ name, hint, confirmation }) => ({ name, hint, confirmation })), texts);
     collectTexts({ subject: abandoned.subject, text: abandoned.text }, texts);
     collectTexts(Object.values(mail.statusEmails).map(({ subject, text }) => ({ subject, text })), texts);
+    for (const post of await getAllPosts()) {
+      const { title, excerpt, body, imageAlt, tags, seoTitle, seoDescription } = post;
+      collectTexts({ title, excerpt, body, imageAlt, tags, seoTitle, seoDescription }, texts);
+    }
     for (const page of await getPages()) collectTexts({ title: page.title, seoTitle: page.seoTitle, seoDescription: page.seoDescription, sections: page.sections }, texts);
   } else {
     const [products, categories, collections] = await Promise.all([getProducts(), getCategories(), getCollections()]);

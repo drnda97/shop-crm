@@ -1,9 +1,10 @@
 "use client";
 
 import { useT } from "@/lib/i18n/client";
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { login, type LoginState } from "./actions";
-import { buttonClass, ErrorNote, inputClass, labelClass } from "./ui";
+import { buttonClass, ErrorNote, inputClass, labelClass, textLinkClass } from "./ui";
 
 const initialState: LoginState = {};
 
@@ -60,8 +61,11 @@ export function LoginForm() {
         </label>
       )}
       <button type="submit" disabled={pending} className={`${buttonClass} mt-[6px] min-h-[58px] w-full`}>
-        {pending ? "Prijavljivanje…" : state.needCode ? t("Potvrdi") : t("Prijavi se")}
+        {pending ? t("Prijavljivanje…") : state.needCode ? t("Potvrdi") : t("Prijavi se")}
       </button>
+      <Link href="/admin-lozinka" className={`${textLinkClass} self-center`}>
+        {t("Zaboravili ste lozinku?")}
+      </Link>
     </form>
   );
 }

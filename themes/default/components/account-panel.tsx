@@ -3,7 +3,7 @@
 import { usePath } from "@/lib/i18n/client";
 import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition, type CSSProperties, type FormEvent } from "react";
 import { countLabel, formatPrice } from "@/lib/storefront/products";
 import { loginAction, logoutAction, registerAction, type RegisterErrors } from "@/app/(shop)/actions";
@@ -65,13 +65,16 @@ export function AccountPanel({ account }: { account: Account | null }) {
 function LoginForm({ toReg }: { toReg: () => void }) {
   const to = usePath();
   const t = useT();
-  const texts = useCart().config.texts.account;
+  const { texts: allTexts, googleLogin } = useCart().config;
+  const texts = allTexts.account;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
-  const [error, setError] = useState("");
+  // Neuspela prijava preko Google naloga vraća na ovu stranicu sa ?greska=google.
+  const googleFailed = useSearchParams().get("greska") === "google";
+  const [error, setError] = useState(googleFailed ? t("Prijava preko Google naloga nije uspela. Pokušajte ponovo.") : "");
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -98,6 +101,11 @@ function LoginForm({ toReg }: { toReg: () => void }) {
       </div>
       {error && <p role="alert" style={ERROR_STYLE}>{error}</p>}
       <button className="btn full" type="submit" disabled={pending}>{t("Prijavi se")}</button>
+      {googleLogin && (
+        // Običan link, ne <Link>: adresa je ruta na serveru koja šalje kupca Google-u.
+        // eslint-disable-next-line @next/next/no-html-link-for-pages
+        <a className="btn ghost full" href="/api/auth/google">{t("Nastavi sa Google nalogom")}</a>
+      )}
       <p className="muted" style={{ fontSize: "15px", textAlign: "center" }}>
         {t("Nemate nalog?")}{" "}
         <button className="txt-btn" type="button" onClick={toReg} style={{ color: "var(--ink)", fontSize: "15px" }}>

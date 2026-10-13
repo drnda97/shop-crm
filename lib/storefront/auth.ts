@@ -64,6 +64,20 @@ export async function checkUser(email: string, password: string): Promise<ShopUs
   return rows.length > 0 && matches ? toUser(rows[0]) : null;
 }
 
+/**
+ * Kupac koji se prijavio preko Google naloga: postojeći nalog sa tom adresom, ili nov. Adresu je
+ * potvrdio Google, pa se nalog sa istom adresom smatra istim kupcem.
+ */
+export async function findOrCreateUser(input: { email: string; firstName: string; lastName: string }): Promise<ShopUser> {
+  const db = await getDb();
+  const find = async () => (await db.query<RowDataPacket[]>("SELECT * FROM shop_users WHERE email = ?", [input.email]))[0];
+  const existing = await find();
+  if (existing.length > 0) return toUser(existing[0]);
+  // Nalog nema lozinku koju iko zna; kupac je može postaviti preko „Zaboravljena lozinka".
+  const created = await createUser({ ...input, password: randomBytes(32).toString("base64url") });
+  return created ?? toUser((await find())[0]);
+}
+
 export async function startSession(userId: number, remember: boolean) {
   const token = randomBytes(32).toString("base64url");
   const seconds = remember ? REMEMBER_SECONDS : DAY_SECONDS;

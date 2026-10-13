@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { HOME_SLUG } from "@/lib/catalog";
 import { getShopSettings, getSitePage } from "@/lib/storefront/pages";
-import { ContentPage } from "@theme/pages/content";
+import { ContentPage } from "@/themes/pages";
 
 type Props = { searchParams: Promise<Record<string, string | undefined>> };
 

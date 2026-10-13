@@ -4,7 +4,9 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { categoryPath, type Category } from "@/lib/catalog";
 import { getShopCategories } from "@/lib/storefront/catalog";
+import type { Listing } from "@/lib/storefront/collection";
 import { getShopSettings } from "@/lib/storefront/pages";
+import type { CardProduct } from "@/lib/storefront/products";
 import { CollectionGrid } from "./collection-grid";
 import { Footer } from "./footer";
 import { Header } from "./header";
@@ -15,13 +17,15 @@ type CollectionViewProps = {
   category?: Category;
   /** Otvara polje za pretragu (lupa iz zaglavlja). */
   search: boolean;
+  /** Proizvodi za izbor iz adrese (filteri, pretraga, redosled, strana), izračunati na serveru. */
+  listing: Listing<CardProduct>;
 };
 
 /**
  * Stranica sa proizvodima: /kolekcija (svi) i /kolekcija/{kategorija}. Baner i poziv ispod
  * mreže su iz panela (Izgled sajta → Kolekcija); na stranici kategorije naslov i tekst su njeni.
  */
-export async function CollectionView({ category, search }: CollectionViewProps) {
+export async function CollectionView({ category, search, listing }: CollectionViewProps) {
   const to = await getShopPath();
   const t = await getShopT();
   const [settings, categories] = await Promise.all([getShopSettings(), getShopCategories()]);
@@ -89,7 +93,7 @@ export async function CollectionView({ category, search }: CollectionViewProps) 
 
       {/* FILTERI + MREŽA */}
       <section style={{ padding: "clamp(28px, 3.6vw, 48px) 0 clamp(72px, 9vw, 128px)" }}>
-        <CollectionGrid initialCategory={category?.id ?? ""} search={search} key={`${category?.id}-${search}`} />
+        <CollectionGrid category={category?.id ?? ""} search={search} listing={listing} currency={settings.store.currency} key={`${category?.id}-${search}`} />
       </section>
 
       {/* POZIV */}

@@ -235,6 +235,13 @@ const drafts: Draft[] = [
             { days: "Subota", time: "[OD] do [DO]" },
             { days: "Nedelja", time: "Zatvoreno" },
           ],
+          topics: [
+            { name: "Pitanje o proizvodu" },
+            { name: "Uzorci tkanina" },
+            { name: "Savet dizajnera" },
+            { name: "Moja porudžbina" },
+            { name: "Povrat ili reklamacija" },
+          ],
         },
       },
       {

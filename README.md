@@ -34,13 +34,20 @@ Prvo otvorite **Podešavanja**: naziv prodavnice, valuta i zapis iznosa (celi iz
 | Kategorije, Kolekcije | kategorije sa podkategorijama, proizvod može biti u više njih; kolekcija je ručno složena grupa |
 | Popusti | promo kodovi i automatski popusti (procenat, fiksni iznos ili besplatna dostava; cela korpa ili izabrani proizvodi i kategorije; broj korišćenja i rok) i nagrade: kod koji kupac dobija emailom posle porudžbine |
 | Stranice | stranice sajta složene od sekcija, sa pregledom pre čuvanja; naslov i opis za pretraživače |
+| Blog | članci na `/blog`: naslov, kratak opis, tekst sa naslovima, spiskovima, citatima, linkovima i slikama, naslovna fotografija, autor, oznake, nacrt ili objavljen, zakazana objava, podaci za pretraživače |
 | Izgled sajta | boje i fontovi; glavni meni, podnožje, traka sa obaveštenjem; tekstovi i fotografije na stranicama kolekcije, proizvoda, naloga, plaćanja i korpe — sve sa pregledom pre čuvanja |
 | Slike | biblioteka ubačenih slika; fotografije se čuvaju kao WebP u više širina |
 | Integracije | API ključevi za spoljne sisteme i webhook-ovi (nova porudžbina, status, uplata, povraćaj) |
-| Korisnici, Dnevnik, Moj nalog | korisnici panela i uloge (vlasnik, prodaja, sadržaj); ko je i kada šta menjao; sopstvena lozinka i prijava u dva koraka kodom iz aplikacije |
-| Podešavanja | prodavnica, načini dostave (cena, težina, zone), plaćanje (pouzeće, uplata na račun, kartica uz povezan procesor), račun i PDV, SMTP, poruke o statusu, šablon emaila |
+| Korisnici, Dnevnik, Moj nalog | korisnici panela i uloge (vlasnik, prodaja, sadržaj); ko je i kada šta menjao; sopstvena lozinka, email adresa i prijava u dva koraka kodom iz aplikacije |
+| Podešavanja | prodavnica, tema sajta, načini dostave (cena, težina, zone), plaćanje (pouzeće, uplata na račun, kartica uz povezan procesor), povrat (uključen ili isključen), prijava kupaca Google nalogom, račun i PDV, SMTP, poruke o statusu, šablon emaila |
+
+**Zaboravljena lozinka panela.** Na strani za prijavu je link „Zaboravili ste lozinku?": korisnik upiše korisničko ime ili email i dobija link koji važi sat vremena. Za to treba podešen SMTP i email adresa uz korisnika (vlasnik je upisuje pri prvom pokretanju; ostali u delu Moj nalog, ili im je upisuje vlasnik). Bez toga ostaje `npm run admin:user`.
+
+**Prijava kupaca Google nalogom.** Svaka prodavnica upisuje svoje podatke: u Google Cloud konzoli napravite OAuth klijenta (Web application), kao „Authorized redirect URI" upišite `https://vaš-sajt/api/auth/google/callback`, pa Client ID i Client secret prepišite u Podešavanja → Prijava kupaca. Dok su polja prazna, dugme se ne prikazuje.
 
 ## Povezivanje sajta
+
+**Javni API je isključen dok ga ne uključite** (panel → Integracije → Pristup spolja); do tada `/api/v1/…` odgovara sa 403. Isto važi, svako za sebe, za API sa ključem i za webhook-ove. Prodavnica koja ide uz panel radi i kada je sve isključeno.
 
 Na sajt se dodaje jedan red, sa adresom na kojoj radi CRM:
 
@@ -115,6 +122,7 @@ Sajt u bilo kojoj tehnologiji može da prikaže ono što vlasnik uređuje u pane
 |---|---|
 | `GET /api/v1/site` | traka sa obaveštenjem, meni, podnožje, boje, fontovi, logo, tekstovi i fotografije stranica kolekcije, proizvoda, naloga, plaćanja i korpe |
 | `GET /api/v1/pages/{slug}` | stranica sa sekcijama redom iz uređivača (`sections[n].type` i `data`) |
+| `GET /api/v1/blog` · `/blog/{slug}` | objavljeni članci (`?tag=`); članak ima tekst (`body`) i isti tekst razložen na delove (`blocks`) |
 | `GET /api/v1/sections` | vrste sekcija i njihova polja |
 
 ### Jezici
@@ -143,7 +151,7 @@ Prevod je u `lib/i18n/` (jezgro, panel, početni sadržaj) i `themes/default/i18
 
 ### Spoljni sistemi: API sa ključem i webhook-ovi
 
-Za knjigovodstvo, magacin ili kurirsku službu. Ključ se pravi u panelu (Integracije) i šalje u zaglavlju, sa servera — nikad iz koda sajta koji vidi kupac:
+Za knjigovodstvo, magacin ili kurirsku službu. Prvo se u panelu (Integracije → Pristup spolja) uključe „API sa ključem" i, po potrebi, „Webhook-ovi"; dok su isključeni, ni ispravan ključ ne prolazi i ništa se ne šalje. Ključ se pravi u panelu (Integracije) i šalje u zaglavlju, sa servera — nikad iz koda sajta koji vidi kupac:
 
 ```
 curl -H "Authorization: Bearer sk_…" https://crm.mojsajt.rs/api/v1/admin/orders?status=new
@@ -170,7 +178,7 @@ docker compose up -d
 
 pokreće aplikaciju i MariaDB; zatim otvorite `http://localhost:3000/admin` i napravite nalog vlasnika. Lozinke baze i `PUBLIC_URL` se zadaju u fajlu `.env` pored `docker-compose.yml`. Slike i baza su na Docker diskovima (`uploads`, `db`).
 
-Uz panel ide i gotova javna prodavnica (rute u `app/(shop)/`, izgled u `themes/default`, na adresi `/`). Izgled je tema: folder koji se može zameniti drugim, bez diranja panela i jezgra — vidi [themes/README.md](themes/README.md). Čita proizvode, kategorije, popuste i podešavanja direktno iz baze i šalje porudžbine istim putem kao API (`submitOrder`). Ima sopstveni izgled (`app/(shop)/shop.css`), odvojen od panela.
+Uz panel ide i gotova javna prodavnica (rute u `app/(shop)/`, izgled u `themes/default`, na adresi `/`). Izgled je tema: folder u `themes/`; može ih biti više, a aktivna se bira u panelu (Podešavanja → Tema sajta), bez diranja panela i jezgra — vidi [themes/README.md](themes/README.md). Čita proizvode, kategorije, popuste i podešavanja direktno iz baze i šalje porudžbine istim putem kao API (`submitOrder`). Stilovi teme su odvojeni od panela.
 
 ```bash
 npm run seed:demo   # 11 proizvoda iz dizajna, kategorije, oznake, kod DOBRODOSLI10, dostava i plaćanje
@@ -255,12 +263,12 @@ Plan razvoja je u `PLAN.md`.
 
 ## Ograničenja
 
-- Natpisi na dugmadima i poljima formi prodavnice su u temi, na srpskom.
-- Jedan nalog za panel; nema uloga ni više korisnika.
 - Proizvod može imati najviše 100 varijanti.
 - Plaćanje karticom traži da se dopiše procesor banke (`lib/payments.ts`) i ugovor sa bankom; pouzeće i uplata na račun rade bez toga.
 - Račun iz panela (PDF) nije fiskalni račun.
-- Katalog se pri svakoj izmeni upisuje ceo (`updateContent`), što je dovoljno brzo do nekoliko stotina proizvoda.
+- Katalog se pri svakoj izmeni upisuje ceo (`updateContent`), i panel ga učitava celog; to je dovoljno brzo do nekoliko stotina proizvoda. Prodavnica ga ne učitava: stranica kolekcije, pretraga, slični proizvodi, sekcije i korpa traže iz baze samo proizvode koje prikazuju (`lib/listing.ts`). Pretraga i redosled po nazivu rade nad tekstom na glavnom jeziku.
+- Blog nema komentare ni RSS, a tekst članka se piše oznakama (## naslov, **podebljano**), bez vizuelnog uređivača.
+- Uz instalaciju stiže jedna tema; druga se dodaje kao folder (themes/README.md).
 - Jedan CRM vodi jednu prodavnicu; za drugu se pokreće još jedan, sa svojom bazom.
 
 ## Licenca

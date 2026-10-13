@@ -2,7 +2,7 @@ import { getShopT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { findProvider, signPayment } from "@/lib/payments";
-import { TestCardPage } from "@theme/pages/simple";
+import { TestCardPage } from "@/themes/pages";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getShopT())("Probno plaćanje"), robots: { index: false, follow: false } };

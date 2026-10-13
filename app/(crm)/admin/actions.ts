@@ -84,6 +84,7 @@ import { findProvider } from "@/lib/payments";
 import { currencyOf, defaultSettings, INVOICE_EMAILS, mergeSettings, STATUS_EMAILS,
   storeLanguages,
 } from "@/lib/settings";
+import { THEME_LIST } from "@/themes/list";
 import { normalizeMethods } from "@/lib/shipping";
 import { sendDueReminders } from "@/lib/abandoned";
 import { audit } from "@/lib/audit";
@@ -1390,6 +1391,25 @@ export async function saveAnalyticsAction(formData: FormData) {
   backWithNotice("Analitika je sačuvana.");
 }
 
+/* ---------- Prijava kupaca ---------- */
+
+export async function saveAuthAction(formData: FormData) {
+  await requireAdmin("settings");
+  const googleClientId = text(formData, "googleClientId").slice(0, 200);
+  const secret = text(formData, "googleClientSecret").slice(0, 200);
+  if (googleClientId !== "" && !/^[\w.-]+\.apps\.googleusercontent\.com$/.test(googleClientId)) {
+    backWithError(SETTINGS_PATH, "Google Client ID se završava sa .apps.googleusercontent.com.");
+  }
+  await updateContent((content) => {
+    // Tajna se ne šalje nazad u formu: prazno polje je ostavlja kakva jeste, a bez ID-ja se briše.
+    const googleClientSecret = googleClientId === "" ? "" : secret || content.settings.auth.googleClientSecret;
+    content.settings.auth = { googleClientId, googleClientSecret };
+  });
+  refreshSite();
+  await audit("Sačuvana prijava kupaca", formData);
+  backWithNotice("Prijava kupaca je sačuvana.");
+}
+
 /* ---------- Napuštene korpe ---------- */
 
 const CARTS_PATH = `${ADMIN_PATH}/korpe`;
@@ -1517,6 +1537,20 @@ export async function saveStoreAction(formData: FormData) {
   backWithNotice("Podaci o prodavnici su sačuvani.");
 }
 
+/** Izbor teme sajta; važi odmah, za sve stranice prodavnice. */
+export async function saveThemeAction(formData: FormData) {
+  await requireAdmin("settings");
+  const wanted = text(formData, "themeId");
+  const theme = THEME_LIST.find((candidate) => candidate.id === wanted);
+  if (!theme) backWithError(SETTINGS_PATH, "Izaberite temu sa spiska.");
+  await updateContent((content) => {
+    content.settings.themeId = theme.id;
+  });
+  refreshSite();
+  await audit("Promenjena tema sajta", theme.name);
+  backWithNotice(`Tema „${theme.name}“ je izabrana.`);
+}
+
 export async function saveAppearanceAction(formData: FormData) {
   await requireAdmin("settings");
   const current = await getSettings();
@@ -1607,11 +1641,11 @@ export async function savePaymentAction(formData: FormData) {
     backWithError(SETTINGS_PATH, "Za uplatu na račun upišite podatke za uplatu.");
   }
   await updateContent((content) => {
-    content.settings.payment = { cod, bank, bankInstructions, card, cardProvider };
+    content.settings.payment = { cod, bank, bankInstructions, card, cardProvider, returns: formData.get("returns") === "on" };
   });
   refreshSite();
   await audit("Sačuvani načini plaćanja", formData);
-  backWithNotice("Načini plaćanja su sačuvani.");
+  backWithNotice("Plaćanje i povrat su sačuvani.");
 }
 
 export async function saveTaxAction(formData: FormData) {

@@ -72,6 +72,10 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                 {t("Ime")}
                 <input name="name" required maxLength={100} defaultValue={user.name} className={inputClass} />
               </label>
+              <label className={`${labelClass} min-w-[200px] grow basis-0`}>
+                {t("Email za novu lozinku")}
+                <input name="email" type="email" maxLength={191} defaultValue={user.email} className={inputClass} />
+              </label>
               <label className={`${labelClass} min-w-[240px] grow-[2] basis-0`}>
                 {t("Uloga")}
                 {roleSelect(user.role)}
@@ -131,6 +135,10 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
             <label className={labelClass}>
               {t("Korisničko ime ili email")}
               <input name="username" required maxLength={100} autoComplete="off" className={inputClass} />
+            </label>
+            <label className={labelClass}>
+              {t("Email za novu lozinku")}
+              <input name="email" type="email" maxLength={191} className={inputClass} />
             </label>
           </div>
           <div className={fieldRowClass}>

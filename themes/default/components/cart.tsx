@@ -1,9 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { cartProductsAction } from "@/app/(shop)/actions";
 import { methodPrice, type ShippingMethod } from "@/lib/shipping";
-import type { ShopConfig, ShopProduct } from "@/lib/storefront/products";
+import type { CardProduct, ShopConfig } from "@/lib/storefront/products";
 import { createStore } from "./store";
 
 /**
@@ -21,11 +22,8 @@ export function cartKey(item: { slug: string; variant: string; variantId?: strin
   return item.slug + (item.variantId ?? item.variant);
 }
 
-// Korpa pri prvoj poseti, kao u dizajnu.
-const SEED: StoredItem[] = [
-  { slug: "okretna-fotelja-mio", variant: "Pesak, Hrast", variantId: "pesak-hrast", qty: 1 },
-  { slug: "hoklica-hrast", variant: "Masivni hrast, 65 cm", qty: 1 },
-];
+// Korpa novog posetioca je prazna.
+const SEED: StoredItem[] = [];
 
 const store = createStore<StoredItem[]>("demoshop:cart", SEED, (value) =>
   Array.isArray(value)
@@ -34,8 +32,8 @@ const store = createStore<StoredItem[]>("demoshop:cart", SEED, (value) =>
 );
 
 type Cart = {
-  /** Proizvodi i podešavanja iz CRM-a, učitani u layoutu prodavnice. */
-  products: ShopProduct[];
+  /** Predlog do besplatne dostave (proizvod bez varijanti), ili null. */
+  upsell: CardProduct | null;
   config: ShopConfig;
   items: CartItem[];
   count: number;
@@ -46,20 +44,44 @@ type Cart = {
   openCart: () => void;
   closeCart: () => void;
   /** Dodaje stavku (ili povećava količinu postojeće) i otvara korpu. */
-  add: (item: { slug: string; variant: string; variantId?: string; qty?: number }) => void;
+  /** `product` je proizvod sa kartice ili stranice sa koje se dodaje, da se u korpi vidi odmah. */
+  add: (item: { slug: string; variant: string; variantId?: string; qty?: number; product?: CardProduct }) => void;
   setQty: (key: string, delta: number) => void;
   clear: () => void;
   /** Zamenjuje korpu sačuvanom (link iz podsetnika). */
-  restore: (items: { slug: string; variantId?: string; qty: number }[]) => void;
+  restore: (items: { slug: string; variantId?: string; qty: number }[]) => Promise<void>;
 };
 
 const CartContext = createContext<Cart | null>(null);
 
-type CartProviderProps = { products: ShopProduct[]; config: ShopConfig; children: ReactNode };
+type CartProviderProps = { upsell: CardProduct | null; config: ShopConfig; children: ReactNode };
 
 /** Jedna korpa za sve stranice prodavnice. */
-export function CartProvider({ products, config, children }: CartProviderProps) {
+export function CartProvider({ upsell, config, children }: CartProviderProps) {
   const stored = store.use();
+  // Proizvodi iz korpe, učitani sa servera po potrebi: u pregledač ne stiže ceo katalog.
+  // null: proizvod je tražen, ali više nije u ponudi.
+  const [known, setKnown] = useState<Record<string, CardProduct | null>>(() => (upsell ? { [upsell.slug]: upsell } : {}));
+
+  useEffect(() => {
+    const missing = [...new Set(stored.map((item) => item.slug))].filter((slug) => !(slug in known));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    cartProductsAction(missing)
+      .then((found) => {
+        if (cancelled) return;
+        setKnown((current) => ({
+          ...current,
+          ...Object.fromEntries(missing.map((slug) => [slug, null])),
+          ...Object.fromEntries(found.map((product) => [product.slug, product])),
+        }));
+      })
+      // Bez veze sa serverom korpa ostaje sačuvana; proizvodi se traže ponovo pri sledećoj izmeni.
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [stored, known]);
   const pathname = usePathname();
   // Korpa je otvorena samo na stranici na kojoj je otvorena: prelazak na drugu je zatvara.
   const [openOn, setOpenOn] = useState<string | null>(null);
@@ -69,6 +91,8 @@ export function CartProvider({ products, config, children }: CartProviderProps) 
 
   const add = useCallback<Cart["add"]>(
     (item) => {
+      const { product } = item;
+      if (product) setKnown((current) => ({ ...current, [product.slug]: product }));
       const current = store.read();
       const key = cartKey(item);
       const qty = item.qty || 1;
@@ -94,21 +118,21 @@ export function CartProvider({ products, config, children }: CartProviderProps) 
 
   const clear = useCallback(() => store.write([]), []);
 
-  const restore = useCallback<Cart["restore"]>(
-    (items) =>
-      store.write(
-        items.flatMap((item) => {
-          const product = products.find((candidate) => candidate.slug === item.slug);
-          return product ? [{ slug: item.slug, variant: product.variant, variantId: item.variantId, qty: item.qty }] : [];
-        }),
-      ),
-    [products],
-  );
+  const restore = useCallback<Cart["restore"]>(async (items) => {
+    const found = await cartProductsAction(items.map((item) => item.slug));
+    setKnown((current) => ({ ...current, ...Object.fromEntries(found.map((product) => [product.slug, product])) }));
+    store.write(
+      items.flatMap((item) => {
+        const product = found.find((candidate) => candidate.slug === item.slug);
+        return product ? [{ slug: item.slug, variant: product.variant, variantId: item.variantId, qty: item.qty }] : [];
+      }),
+    );
+  }, []);
 
   const value = useMemo<Cart>(() => {
     // Proizvod ili varijanta koja je u međuvremenu povučena ili rasprodata ispada iz korpe.
     const items = stored.flatMap((item) => {
-      const product = products.find((candidate) => candidate.slug === item.slug);
+      const product = known[item.slug];
       if (!product) return [];
       if (product.variants.length === 0) {
         return [{ ...item, variantId: undefined, name: product.name, price: product.price, image: product.image }];
@@ -118,13 +142,15 @@ export function CartProvider({ products, config, children }: CartProviderProps) 
       // Naziv i cena varijante su iz kataloga, ne iz onoga što je upisano u pregledaču.
       return [{ ...item, variant: variant.label, name: product.name, price: variant.price, image: variant.image ?? product.image }];
     });
+    // Dok proizvodi iz korpe stižu sa servera, broj u zaglavlju je onaj koji je sačuvan u pregledaču.
+    const loaded = stored.every((item) => item.slug in known);
     return {
-      products,
+      upsell,
       config,
       items,
-      count: items.reduce((sum, i) => sum + i.qty, 0),
+      count: (loaded ? items : stored).reduce((sum, i) => sum + i.qty, 0),
       subtotal: items.reduce((sum, i) => sum + i.price * i.qty, 0),
-      weight: items.reduce((sum, i) => sum + (products.find((p) => p.slug === i.slug)?.weight ?? 0) * i.qty, 0),
+      weight: items.reduce((sum, i) => sum + (known[i.slug]?.weight ?? 0) * i.qty, 0),
       open: openOn === pathname,
       openCart,
       closeCart,
@@ -133,7 +159,7 @@ export function CartProvider({ products, config, children }: CartProviderProps) 
       clear,
       restore,
     };
-  }, [products, config, stored, openOn, pathname, openCart, closeCart, add, setQty, clear, restore]);
+  }, [upsell, known, config, stored, openOn, pathname, openCart, closeCart, add, setQty, clear, restore]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

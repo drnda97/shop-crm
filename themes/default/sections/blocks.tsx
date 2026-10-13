@@ -9,8 +9,9 @@ import { ContactForm } from "../components/contact-form";
 import { FaqList } from "../components/faq-list";
 import { Header } from "../components/header";
 import { NewsletterForm } from "../components/newsletter-form";
+import { getShopCategories, getShopList, getShopProduct } from "@/lib/storefront/catalog";
 import { ProductsBlock } from "../components/best-sellers";
-import { CONTACT_TOPICS, type ContactTopic } from "@/lib/storefront/topics";
+import { CONTACT_TOPICS } from "@/lib/storefront/topics";
 import { ArrowIcon, ArrowSmallIcon, CheckIcon, LeafIcon, PenIcon, Photo, ShieldIcon, TruckIcon } from "../components/ui";
 
 /**
@@ -61,9 +62,9 @@ function Lines({ text }: { text: string }) {
 
 type HeroData = { title: string; text: string; image: ImageValue; buttonLabel: string; buttonHref: string; linkLabel: string; linkHref: string; product: string };
 
-export async function Hero({ data, id, bottom, withHeader, products }: BlockProps<HeroData> & { withHeader: boolean; products: ShopProduct[] }) {
+export async function Hero({ data, id, bottom, withHeader }: BlockProps<HeroData> & { withHeader: boolean }) {
   const to = await getShopPath();
-  const product = products.find((candidate) => candidate.slug === data.product);
+  const product: ShopProduct | null = data.product ? await getShopProduct(data.product) : null;
   return (
     <section
       id={id}
@@ -218,14 +219,25 @@ export async function Tiles({ data, id, bottom }: BlockProps<TilesData>) {
 
 type ProductsData = { heading: string; collection: string; limit: string; tabs: boolean; buttonLabel: string; buttonHref: string };
 
-export function Products({ data, id, bottom }: BlockProps<ProductsData>) {
+export async function Products({ data, id, bottom }: BlockProps<ProductsData>) {
+  const limit = Number(data.limit) || 4;
+  const collection = data.collection || undefined;
+  // Iz baze stiže samo onoliko proizvoda koliko sekcija prikazuje: prvi iz kolekcije, i po tabu prvi iz te kategorije.
+  const [all, { total }, categories] = await Promise.all([getShopList({ collection }, limit), getShopList({}, 0), getShopCategories()]);
+  const tabs = data.tabs
+    ? await Promise.all(
+        categories
+          .filter((category) => !category.parent)
+          .map(async (category) => ({ id: category.id, label: category.label, items: (await getShopList({ collection, category: category.id }, limit)).items })),
+      )
+    : [];
   return (
     <section id={id} style={{ paddingBottom: bottom }}>
       <ProductsBlock
         heading={data.heading}
-        collection={data.collection}
-        limit={Number(data.limit)}
-        tabs={data.tabs}
+        items={all.items}
+        tabs={tabs.filter((tab) => tab.items.length > 0)}
+        total={total}
         button={data.buttonLabel && data.buttonHref ? { label: data.buttonLabel, href: data.buttonHref } : null}
       />
     </section>
@@ -583,13 +595,8 @@ export async function Cta({ data, id, bottom }: BlockProps<CtaData>) {
 
 /* ---------- Kontakt ---------- */
 
-type ContactData = { image: ImageValue; hours: { days: string; time: string }[] };
+type ContactData = { image: ImageValue; hours: { days: string; time: string }[]; topics?: { name: string }[] };
 
-// Linkovi „Poručite uzorke" i „Zakažite savet" otvaraju formu sa izabranom temom.
-const TOPIC_LINKS: Record<string, ContactTopic> = {
-  uzorci: "Uzorci tkanina",
-  savet: "Savet dizajnera",
-};
 
 const iconStroke = { fill: "none", stroke: "currentColor", strokeWidth: "1.600", strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
@@ -608,7 +615,11 @@ function InfoRow({ icon, label, children }: { icon: ReactNode; label: string; ch
 /** Email, telefon i adresa su iz Podešavanja → Prodavnica; red bez podatka se ne prikazuje. */
 export async function Contact({ data, id, bottom, query, store }: BlockProps<ContactData> & { query: Query; store: StoreSettings }) {
   const t = await getShopT();
-  const topic = TOPIC_LINKS[query.tema ?? ""] ?? CONTACT_TOPICS[0];
+  const named = (data.topics ?? []).map((item) => item.name.trim()).filter(Boolean);
+  const topics = named.length > 0 ? named : CONTACT_TOPICS;
+  // Link sa ?tema=uzorci otvara formu sa temom koja sadrži tu reč („Uzorci tkanina").
+  const wanted = (query.tema ?? "").trim().toLowerCase();
+  const topic = (wanted && topics.find((item) => item.toLowerCase().includes(wanted))) || topics[0];
   const hasDetails = Boolean(store.email || store.phone || store.address);
   const hasPhoto = Boolean(data.image?.src);
   // Bez podataka, fotografije i radnog vremena okvir pored forme se ne prikazuje.
@@ -616,7 +627,7 @@ export async function Contact({ data, id, bottom, query, store }: BlockProps<Con
   return (
     <section id={id} style={{ paddingBottom: bottom }}>
       <div className="wrap" style={{ display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "stretch" }}>
-        <ContactForm initialTopic={topic} key={topic} />
+        <ContactForm topics={topics} initialTopic={topic} key={topic} />
 
         {showPanel && (
         <div

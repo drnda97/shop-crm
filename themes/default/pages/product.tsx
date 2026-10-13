@@ -3,7 +3,7 @@ import { getShopT } from "@/lib/i18n/server";
 import Link from "next/link";
 import type { ComponentProps } from "react";
 import type { Templates } from "@/lib/templates";
-import type { ShopProduct } from "@/lib/storefront/products";
+import type { CardProduct, ShopProduct } from "@/lib/storefront/products";
 import { Footer } from "../components/footer";
 import { Header } from "../components/header";
 import { ProductCard } from "../components/product-card";
@@ -14,7 +14,7 @@ import { ArrowSmallIcon, DS_STYLE, Photo } from "../components/ui";
 export type ProductPageProps = {
   product: ShopProduct;
   /** Do četiri slična proizvoda, već poređana. */
-  related: ShopProduct[];
+  related: CardProduct[];
   reviews: ComponentProps<typeof Reviews>["reviews"];
   rating: ComponentProps<typeof Reviews>["summary"];
   loggedIn: boolean;

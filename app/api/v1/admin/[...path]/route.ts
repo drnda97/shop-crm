@@ -1,3 +1,4 @@
+import { getSettings } from "@/lib/content";
 import { after } from "next/server";
 import { baseUrl, publicProduct } from "@/lib/api";
 import { getProducts, updateContent } from "@/lib/content";
@@ -27,6 +28,8 @@ const json = (body: unknown, status = 200) => Response.json(body, { status, head
 const notFound = () => json({ error: "Not found" }, 404);
 
 async function authorize(request: Request, write: boolean): Promise<ApiKey | Response> {
+  // Ni ispravan ključ ne važi dok vlasnik ne uključi API za spoljne sisteme (panel → Integracije).
+  if (!(await getSettings()).access.adminApi) return json({ error: "API is disabled" }, 403);
   // Protiv nagađanja ključa: broje se samo zahtevi bez ispravnog ključa.
   const key = await checkApiKey(request);
   if (!key) {

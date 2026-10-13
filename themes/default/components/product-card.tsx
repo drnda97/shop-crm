@@ -3,12 +3,12 @@
 import { usePath } from "@/lib/i18n/client";
 import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
-import { formatPrice, type ShopProduct } from "@/lib/storefront/products";
+import { formatPrice, type CardProduct } from "@/lib/storefront/products";
 import { useCart } from "./cart";
 import { Photo } from "./ui";
 import { WishButton } from "./wishlist";
 
-export function ProductCard({ product: p }: { product: ShopProduct }) {
+export function ProductCard({ product: p }: { product: CardProduct }) {
   const to = usePath();
   const t = useT();
   const { add } = useCart();
@@ -43,7 +43,7 @@ export function ProductCard({ product: p }: { product: ShopProduct }) {
             <button
               className="add"
               aria-label={t("Dodaj u korpu")}
-              onClick={() => add({ slug: p.slug, variant: p.variant, qty: 1 })}
+              onClick={() => add({ slug: p.slug, variant: p.variant, qty: 1, product: p })}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M8 2v12M2 8h12"></path>

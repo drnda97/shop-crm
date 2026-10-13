@@ -4,7 +4,7 @@ import type { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/prom
 import { after } from "next/server";
 import { findStockProblem, getPricing, getWeight, toLines, type CartLine, type Pricing } from "@/lib/cart";
 import { currentPrice, variantLabel } from "@/lib/catalog";
-import { getCategories, getDiscounts, getProducts, getSettings, withContentLock } from "@/lib/content";
+import { getCategories, getDiscounts, getProductsBySlugs, getSettings, withContentLock } from "@/lib/content";
 import { getDb } from "@/lib/db";
 import {
   applyRule,
@@ -746,7 +746,7 @@ export async function submitOrder(input: unknown, source = "Porudžbina primljen
   }
 
   // Cene i stanje se uzimaju iz proizvoda na serveru, nikad iz onoga što pošalje sajt.
-  const products = await getProducts();
+  const products = await getProductsBySlugs(items.map((item) => item.slug));
   const stockProblem = findStockProblem(items, products);
   if (stockProblem) return { ok: false, errors: {}, message: stockProblem };
   const lines = toLines(items, products);

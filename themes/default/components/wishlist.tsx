@@ -3,6 +3,9 @@
 import { usePath } from "@/lib/i18n/client";
 import { useT } from "@/lib/i18n/client";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { cartProductsAction } from "@/app/(shop)/actions";
+import type { CardProduct } from "@/lib/storefront/products";
 import { useCart } from "./cart";
 import { ProductCard } from "./product-card";
 import { createStore } from "./store";
@@ -52,9 +55,21 @@ export function WishButton({ slug, name, floating = false }: { slug: string; nam
 export function WishlistGrid() {
   const to = usePath();
   const t = useT();
-  const { products } = useCart();
   const { slugs } = useWishlist();
-  const list = slugs.flatMap((slug) => products.filter((product) => product.slug === slug));
+  // Sačuvani proizvodi se traže sa servera; null dok ne stignu.
+  const [found, setFound] = useState<CardProduct[] | null>(null);
+  const wanted = slugs.join(",");
+  useEffect(() => {
+    let cancelled = false;
+    cartProductsAction(wanted ? wanted.split(",") : [])
+      .then((products) => !cancelled && setFound(products))
+      .catch(() => !cancelled && setFound([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [wanted]);
+  if (found === null) return <p className="lead" aria-busy="true">{t("Učitavanje…")}</p>;
+  const list = slugs.flatMap((slug) => found.filter((product) => product.slug === slug));
   if (list.length === 0) {
     return (
       <>

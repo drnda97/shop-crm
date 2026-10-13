@@ -5,7 +5,7 @@ import { listApiKeys, listWebhooks, scopeLabels, webhookEvents } from "@/lib/int
 import { ConfirmButton } from "../confirm-button";
 import { dateFormats } from "../order-ui";
 import { buttonClass, Checkbox, inputClass, labelClass, PageHeader, panelClass, panelTitleClass, quietButtonClass } from "../ui";
-import { createWebhookAction, deleteApiKeyAction, deleteWebhookAction, testWebhookAction, toggleWebhookAction } from "../user-actions";
+import { createWebhookAction, saveAccessAction, deleteApiKeyAction, deleteWebhookAction, testWebhookAction, toggleWebhookAction } from "../user-actions";
 import { KeyForm } from "./key-form";
 
 type IntegrationsPageProps = { searchParams: Promise<{ greska?: string; ok?: string }> };
@@ -16,6 +16,7 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
   await requireAdmin("settings");
   const [{ greska, ok }, keys, webhooks, settings] = await Promise.all([searchParams, listApiKeys(), listWebhooks(), getSettings()]);
   const { orderDate } = dateFormats(settings.store);
+  const { access } = settings;
 
   return (
     <>
@@ -25,6 +26,30 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
         error={greska}
         notice={ok}
       />
+      <form action={saveAccessAction} className={`${panelClass} mb-[16px]`}>
+        <h2 className={panelTitleClass}>{t("Pristup spolja")}</h2>
+        <p className="mt-[-8px] text-[15px] text-muted">
+          {t("Sve je isključeno dok ga vi ne uključite: bez toga niko van ove aplikacije ne može da čita podatke prodavnice. Prodavnica koja ide uz panel radi i kada je sve isključeno.")}
+        </p>
+        <label className="flex cursor-pointer items-start gap-[10px] text-[15px] leading-[22px]">
+          <Checkbox name="publicApi" defaultChecked={access.publicApi} />
+          {t("Javni API — sajt van ove aplikacije čita katalog i stranice i šalje porudžbine (/api/v1/…)")}
+        </label>
+        <label className="flex cursor-pointer items-start gap-[10px] text-[15px] leading-[22px]">
+          <Checkbox name="adminApi" defaultChecked={access.adminApi} />
+          {t("API sa ključem — spoljni sistem čita porudžbine i menja status i stanje (/api/v1/admin/…)")}
+        </label>
+        <label className="flex cursor-pointer items-start gap-[10px] text-[15px] leading-[22px]">
+          <Checkbox name="webhooks" defaultChecked={access.webhooks} />
+          {t("Webhook-ovi — panel javlja upisanim adresama šta se desilo sa porudžbinom")}
+        </label>
+        <div>
+          <button type="submit" className={buttonClass}>
+            {t("Sačuvaj pristup")}
+          </button>
+        </div>
+      </form>
+
       <div className="grid items-start gap-[16px] xl:grid-cols-2">
         <div className={panelClass}>
           <h2 className={panelTitleClass}>{t("API ključevi")}</h2>
