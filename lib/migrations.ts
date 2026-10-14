@@ -546,6 +546,20 @@ export const MIGRATIONS: Migration[] = [
       );
     },
   },
+  {
+    id: 21,
+    name: "kod iz aplikacije važi jednom",
+    up: async (connection) => {
+      await connection.query("ALTER TABLE admin_users ADD COLUMN totp_step BIGINT NULL");
+    },
+  },
+  {
+    id: 22,
+    name: "nalog kupca povezan sa Google prijavom",
+    up: async (connection) => {
+      await connection.query("ALTER TABLE shop_users ADD COLUMN google_linked TINYINT(1) NOT NULL DEFAULT 0");
+    },
+  },
 ];
 
 // GET_LOCK važi za ceo MySQL server, pa ime sadrži i bazu (najviše 64 znaka).

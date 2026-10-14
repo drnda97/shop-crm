@@ -202,6 +202,7 @@ export const panelUi: Dict = {
   "Lozinka (najmanje": "Password (at least",
   "Lozinka (najmanje 10 znakova)": "Password (at least 10 characters)",
   "Lozinka, još jednom": "Password, once more",
+  "Kod za prvo pokretanje (ispisan u dnevniku servera)": "First-run code (printed in the server log)",
   "Lozinka, prijava u dva koraka, brisanje": "Password, two-step sign-in, deletion",
   "Lozinka, za potvrdu": "Password, to confirm",
   "Mere i činjenice — jedan red po stavci, u obliku": "Measurements and facts — one line per item, in the form",

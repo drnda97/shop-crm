@@ -11,6 +11,8 @@ import {
   publicSite,
   publicVariant,
   publicStore,
+  readJsonBody,
+  TOO_LARGE,
 } from "@/lib/api";
 import { getVisiblePosts } from "@/lib/blog";
 import { toLines } from "@/lib/cart";
@@ -94,13 +96,8 @@ function notFound(request: Request, settings: Settings): Promise<Response> {
   return reply(request, settings, { error: "Not found" }, 404);
 }
 
-async function readJson(request: Request): Promise<unknown> {
-  try {
-    return await request.json();
-  } catch {
-    return null;
-  }
-}
+const DEFAULT_PAGE_SIZE = 100;
+const MAX_PAGE_SIZE = 250;
 
 export async function OPTIONS(request: Request) {
   return new Response(null, { status: 204, headers: corsHeaders(request, await getSettings()) });
@@ -187,8 +184,15 @@ export async function GET(request: Request, { params }: Context) {
         `${product.name} ${product.sku} ${product.summary}`.toLocaleLowerCase().includes(search),
       );
     }
+    // Strane: ?limit= (podrazumevano 100, najviše 250) i ?page= od 1; total i pages kažu koliko ih ima.
+    const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(Number(query.get("limit"))) || DEFAULT_PAGE_SIZE));
+    const pages = Math.max(1, Math.ceil(list.length / limit));
+    const page = Math.min(pages, Math.max(1, Math.floor(Number(query.get("page"))) || 1));
     return reply(request, settings, {
-      products: list.map((product) => publicProduct(product, base)),
+      products: list.slice((page - 1) * limit, page * limit).map((product) => publicProduct(product, base)),
+      total: list.length,
+      page,
+      pages,
     });
   }
 
@@ -231,7 +235,9 @@ export async function POST(request: Request, { params }: Context) {
   const settings = await getSettings();
   const off = apiOff(request, settings);
   if (off) return off;
-  const body = ((await readJson(request)) ?? {}) as Record<string, unknown>;
+  const parsed = await readJsonBody(request);
+  if (parsed === TOO_LARGE) return reply(request, settings, { error: "Request body too large" }, 413);
+  const body = (parsed ?? {}) as Record<string, unknown>;
 
   if (route === "cart") {
     const base = baseUrl(request);

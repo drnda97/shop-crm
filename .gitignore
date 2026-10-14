@@ -44,3 +44,6 @@ next-env.d.ts
 # slike ubačene iz admin panela i rezervne kopije
 /storage/
 /backups/
+
+# radni spisak tekstova za prevod
+/keys-last.json

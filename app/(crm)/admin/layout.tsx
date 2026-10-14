@@ -2,7 +2,7 @@ import { getPanelT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
-import { ADMIN_PATH, getCurrentAdmin, needsSetup, roleCan } from "@/lib/admin-auth";
+import { ADMIN_PATH, announceSetupCode, getCurrentAdmin, needsSetup, roleCan } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { countNewOrders } from "@/lib/order-store";
 import { logout } from "./actions";
@@ -23,6 +23,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const user = await getCurrentAdmin();
   if (!user) {
     const [t, settings, setup] = await Promise.all([getPanelT(), getSettings(), needsSetup()]);
+    const codeRequired = setup && (await announceSetupCode());
     return (
       <AuthFrame
         name={settings.store.name}
@@ -32,7 +33,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             : t("Prijavite se da biste upravljali prodavnicom.")
         }
       >
-        {setup ? <SetupForm /> : <LoginForm />}
+        {setup ? <SetupForm codeRequired={codeRequired} /> : <LoginForm />}
       </AuthFrame>
     );
   }
@@ -54,7 +55,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         initialCollapsed={collapsed}
         user={user.name || user.username}
         // Stavke menija za delove panela u koje uloga ne sme se ne prikazuju.
-        areas={(["orders", "catalog", "content", "settings", "users"] as const).filter((area) => roleCan(user.role, area))}
+        areas={(["orders", "catalog", "discounts", "content", "settings", "users"] as const).filter((area) => roleCan(user.role, area))}
         logout={logout}
       />
 

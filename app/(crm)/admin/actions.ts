@@ -55,7 +55,7 @@ import {
   type DiscountKind,
   type DiscountTrigger,
 } from "@/lib/discounts";
-import { formatMoney, toMinor } from "@/lib/format";
+import { formatMoney, MAX_MINOR, toMinor } from "@/lib/format";
 import {
   MAX_TEMPLATE_BYTES,
   notifyStatus,
@@ -110,15 +110,16 @@ function text(formData: FormData, name: string): string {
 /** Ceo broj veći od nule, ili null kada je polje prazno ili neispravno. */
 function wholeNumber(formData: FormData, name: string): number | null {
   const value = Number(text(formData, name));
-  return Number.isFinite(value) && value > 0 ? Math.round(value) : null;
+  return Number.isFinite(value) && value > 0 && value <= MAX_MINOR ? Math.round(value) : null;
 }
 
 /** Broj komada iz forme: null kada je polje prazno, false kada nije ceo broj od nule naviše. */
 function optionalCount(formData: FormData, name: string): number | null | false {
   const value = text(formData, name);
   if (value === "") return null;
-  const count = Number(value);
-  return Number.isInteger(count) && count >= 0 ? count : false;
+  // Samo cifre: Number bi primio i 1e3 i 0x10. Gornja granica je kolona INT u bazi.
+  const count = /^\d+$/.test(value) ? Number(value) : NaN;
+  return Number.isInteger(count) && count <= MAX_MINOR ? count : false;
 }
 
 function image(formData: FormData, name: string): File | null {
@@ -153,7 +154,8 @@ export type LoginState = {
 };
 
 export async function login(_previous: LoginState, formData: FormData): Promise<LoginState> {
-  if (tooMany("admin-login", clientIp(await headers()), 10)) return { error: TOO_MANY };
+  const ip = clientIp(await headers());
+  if (tooMany("admin-login", ip, 10)) return { error: TOO_MANY };
   // Brojač po nalogu ne zavisi od adrese, pa ga promena zaglavlja ne zaobilazi; pokriva i
   // nagađanje koda iz aplikacije, jer svaki pokušaj koda ponovo šalje ime i lozinku.
   const username = text(formData, "username");
@@ -161,6 +163,10 @@ export async function login(_previous: LoginState, formData: FormData): Promise<
   const result = await verifyLogin(username, text(formData, "password"), text(formData, "code"));
   if (!result.ok) {
     if (result.reason === "code-needed") return { needCode: true };
+    await audit(
+      result.reason === "code-invalid" ? "Neuspela prijava: pogrešan kod" : "Neuspela prijava: pogrešno ime ili lozinka",
+      `${username.slice(0, 100)} · ${ip}`,
+    );
     // Usporava nagađanje lozinke i koda.
     await new Promise((resolve) => setTimeout(resolve, 1000));
     return result.reason === "code-invalid"
@@ -731,7 +737,7 @@ export async function deleteCategoryAction(formData: FormData) {
 const DISCOUNTS_PATH = `${ADMIN_PATH}/popusti`;
 
 export async function saveDiscountAction(formData: FormData) {
-  await requireAdmin("catalog");
+  await requireAdmin("discounts");
 
   const [discounts, settings] = await Promise.all([getDiscounts(), getSettings()]);
   const editedId = text(formData, "id");
@@ -847,7 +853,7 @@ export async function saveDiscountAction(formData: FormData) {
 
 /** Prebacuje popust između nacrta i aktivnog. */
 export async function toggleDiscountAction(formData: FormData) {
-  await requireAdmin("catalog");
+  await requireAdmin("discounts");
 
   const id = text(formData, "id");
   await updateContent((content) => {
@@ -860,7 +866,7 @@ export async function toggleDiscountAction(formData: FormData) {
 
 /** Briše pravilo. Kodovi koji su već poslati kupcima ostaju da važe. */
 export async function deleteDiscountAction(formData: FormData) {
-  await requireAdmin("catalog");
+  await requireAdmin("discounts");
 
   const id = text(formData, "id");
   await updateContent((content) => {

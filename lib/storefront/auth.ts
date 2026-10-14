@@ -67,15 +67,31 @@ export async function checkUser(email: string, password: string): Promise<ShopUs
 /**
  * Kupac koji se prijavio preko Google naloga: postojeći nalog sa tom adresom, ili nov. Adresu je
  * potvrdio Google, pa se nalog sa istom adresom smatra istim kupcem.
+ *
+ * Registracija ne proverava email, pa je nalog sa tom adresom mogao da napravi neko drugi i da
+ * zna njegovu lozinku. Zato pri prvoj Google prijavi u postojeći nalog lozinka postaje nova,
+ * nasumična (kupac je može postaviti preko „Zaboravljena lozinka"), a ostale sesije se gase.
  */
 export async function findOrCreateUser(input: { email: string; firstName: string; lastName: string }): Promise<ShopUser> {
   const db = await getDb();
   const find = async () => (await db.query<RowDataPacket[]>("SELECT * FROM shop_users WHERE email = ?", [input.email]))[0];
   const existing = await find();
-  if (existing.length > 0) return toUser(existing[0]);
+  if (existing.length > 0) {
+    const user = existing[0];
+    if (user.google_linked !== 1) {
+      const [claimed] = await db.query<ResultSetHeader>(
+        "UPDATE shop_users SET google_linked = 1, pass_hash = ? WHERE id = ? AND google_linked = 0",
+        [hashPassword(randomBytes(32).toString("base64url")), user.id],
+      );
+      if (claimed.affectedRows === 1) await db.query("DELETE FROM shop_sessions WHERE user_id = ?", [user.id]);
+    }
+    return toUser(user);
+  }
   // Nalog nema lozinku koju iko zna; kupac je može postaviti preko „Zaboravljena lozinka".
   const created = await createUser({ ...input, password: randomBytes(32).toString("base64url") });
-  return created ?? toUser((await find())[0]);
+  const user = created ?? toUser((await find())[0]);
+  await db.query("UPDATE shop_users SET google_linked = 1 WHERE id = ?", [user.id]);
+  return user;
 }
 
 export async function startSession(userId: number, remember: boolean) {

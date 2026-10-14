@@ -220,6 +220,9 @@ try {
     added.podešavanja++;
   }
 
+  // Spisak proizvoda za kolekciju i pretragu (lib/listing.ts) pravi aplikacija: bez oznake
+  // verzije ga pri sledećem pokretanju napravi ponovo, sa novim proizvodima.
+  if (added.proizvodi > 0) await db.query("DELETE FROM settings WHERE name = 'listing'");
   await db.commit();
 } catch (error) {
   await db.rollback();
@@ -229,6 +232,7 @@ try {
 }
 
 console.log("Dodato:", added);
+if (added.proizvodi > 0) console.log("Ako server već radi, pokrenite ga ponovo da se novi proizvodi vide na stranici kolekcije.");
 if (added.podešavanja === 0) {
   console.log("Podešavanja već postoje i nisu menjana. Dostavu, preuzimanje u salonu i plaćanje proverite u panelu.");
 }

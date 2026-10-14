@@ -12,7 +12,7 @@ import {
   type Variant,
 } from "@/lib/catalog";
 import { csvRecords, parseCsv } from "@/lib/csv";
-import { toMinor } from "@/lib/format";
+import { MAX_MINOR, toMinor } from "@/lib/format";
 
 /**
  * Uvoz i izvoz proizvoda u CSV-u. Uvoz čita tri oblika: sopstveni (isti koji izvoz pravi),
@@ -89,9 +89,10 @@ function truthy(value: string): boolean {
   return /^(1|true|yes|da|active|published|objavljen)$/i.test(value.trim());
 }
 
+/** Ceo broj iz CSV-a (komadi, težina); prazan, neispravan ili prevelik za bazu je null. */
 function wholeNumber(value: string): number | null {
   const number = Number(value.replace(",", "."));
-  return value.trim() !== "" && Number.isFinite(number) ? Math.max(0, Math.round(number)) : null;
+  return value.trim() !== "" && Number.isFinite(number) && number <= MAX_MINOR ? Math.max(0, Math.round(number)) : null;
 }
 
 /** Cena iz CSV-a u najmanjim jedinicama valute; neispravna ili prazna je null. */

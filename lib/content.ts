@@ -10,6 +10,7 @@ import { detectImage, makeSizes, type ImageFile } from "@/lib/images";
 import { storeListing } from "@/lib/listing";
 import { IMAGE_WIDTHS, sizedSrc, VARIANT_FILE } from "@/lib/media";
 import { collectImages, normalizeSections, sectionType } from "@/lib/sections";
+import { sealSettings, unsealSettings } from "@/lib/secret-box";
 import { mergeSettings, type Settings } from "@/lib/settings";
 import { logStock, stockDiff } from "@/lib/stock";
 import { TEMPLATES } from "@/lib/templates";
@@ -129,7 +130,7 @@ async function loadBase(db: Db): Promise<Omit<Content, "products">> {
   const pages = await select("SELECT * FROM pages ORDER BY position");
   const discounts = await select("SELECT * FROM discounts ORDER BY position");
   const settings = await select("SELECT value FROM settings WHERE name = 'settings'");
-  const saved = settings.length > 0 ? (JSON.parse(settings[0].value) as Partial<Settings>) : {};
+  const saved = settings.length > 0 ? unsealSettings(JSON.parse(settings[0].value) as Partial<Settings>) : {};
 
   return {
     categories: categories.map((row) => ({
@@ -319,7 +320,7 @@ async function storeContent(connection: PoolConnection, content: Content) {
   );
   await connection.query(
     "INSERT INTO settings (name, value) VALUES ('settings', ?) ON DUPLICATE KEY UPDATE value = VALUES(value)",
-    [JSON.stringify(content.settings)],
+    [JSON.stringify(sealSettings(content.settings))],
   );  // Spisak za stranicu kolekcije (filteri, pretraga, redosled) pravi se iz upravo upisanog kataloga.
   await storeListing(connection, content.products, content.categories);
 }

@@ -41,14 +41,24 @@ export function totpCode(secret: string, time = Date.now()): string {
   return String(value).padStart(6, "0");
 }
 
-/** Prolazi kod iz trenutnog perioda i susednih, da sat telefona sme da kasni ili žuri do pola minuta. */
-export function verifyTotp(secret: string, input: string, time = Date.now()): boolean {
+/**
+ * Period (broj 30-sekundnih koraka) kome kod pripada, ili null kada kod nije ispravan. Prolazi kod
+ * iz trenutnog perioda i susednih, da sat telefona sme da kasni ili žuri do pola minuta.
+ * Period se pamti uz korisnika, da isti kod ne prođe dva puta.
+ */
+export function totpStep(secret: string, input: string, time = Date.now()): number | null {
   const code = input.replace(/\s/g, "");
-  if (!/^\d{6}$/.test(code)) return false;
-  return [-1, 0, 1].some((shift) => {
+  if (!/^\d{6}$/.test(code)) return null;
+  const now = Math.floor(time / 1000 / STEP_SECONDS);
+  for (const shift of [-1, 0, 1]) {
     const expected = Buffer.from(totpCode(secret, time + shift * STEP_SECONDS * 1000));
-    return timingSafeEqual(expected, Buffer.from(code));
-  });
+    if (timingSafeEqual(expected, Buffer.from(code))) return now + shift;
+  }
+  return null;
+}
+
+export function verifyTotp(secret: string, input: string, time = Date.now()): boolean {
+  return totpStep(secret, input, time) !== null;
 }
 
 /** Adresa koju aplikacija čita iz QR koda. */

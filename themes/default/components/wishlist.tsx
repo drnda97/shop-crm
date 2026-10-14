@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cartProductsAction } from "@/app/(shop)/actions";
 import type { CardProduct } from "@/lib/storefront/products";
-import { useCart } from "./cart";
 import { ProductCard } from "./product-card";
 import { createStore } from "./store";
 

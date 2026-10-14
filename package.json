@@ -10,9 +10,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "backup": "node --env-file-if-exists=.env.local scripts/backup.mjs",
-    "seed:demo": "node --env-file-if-exists=.env.local --experimental-strip-types --no-warnings scripts/seed-demo.mjs",
-    "admin:user": "node --env-file-if-exists=.env.local --experimental-strip-types --no-warnings scripts/admin-user.mjs",
-    "images:optimize": "node --env-file-if-exists=.env.local --experimental-strip-types --no-warnings scripts/optimize-images.mjs"
+    "seed:demo": "node --env-file-if-exists=.env.local --experimental-strip-types --no-warnings --import ./scripts/alias.mjs scripts/seed-demo.mjs",
+    "admin:user": "node --env-file-if-exists=.env.local --experimental-strip-types --no-warnings --import ./scripts/alias.mjs scripts/admin-user.mjs",
+    "images:optimize": "node --env-file-if-exists=.env.local --experimental-strip-types --no-warnings --import ./scripts/alias.mjs scripts/optimize-images.mjs"
   },
   "dependencies": {
     "dejavu-fonts-ttf": "^2.37.3",

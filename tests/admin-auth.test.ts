@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isValidUsername, roleCan } from "@/lib/admin-auth";
 import { DUMMY_HASH, hashPassword, passwordMatches } from "@/lib/password";
-import { base32Decode, base32Encode, generateRecoveryCodes, generateSecret, otpauthUrl, totpCode, verifyTotp } from "@/lib/totp";
+import { base32Decode, base32Encode, generateRecoveryCodes, generateSecret, otpauthUrl, totpCode, totpStep, verifyTotp } from "@/lib/totp";
 
 describe("uloge u panelu", () => {
   it("vlasnik sme sve, ostale uloge samo svoj deo", () => {
@@ -13,6 +13,9 @@ describe("uloge u panelu", () => {
     expect(roleCan("sales", "content")).toBe(false);
     expect(roleCan("content", "content")).toBe(true);
     expect(roleCan("content", "orders")).toBe(false);
+    // Popusti su novac: prodaja da, sadržaj ne.
+    expect(roleCan("sales", "discounts")).toBe(true);
+    expect(roleCan("content", "discounts")).toBe(false);
     // Podešavanja, korisnici i dnevnik su samo za vlasnika.
     for (const role of ["sales", "content"] as const) {
       expect(roleCan(role, "settings")).toBe(false);
@@ -65,6 +68,15 @@ describe("jednokratni kodovi (TOTP)", () => {
     expect(verifyTotp(secret, totpCode(secret, now - 120_000), now)).toBe(false);
     expect(verifyTotp(secret, "12345", now)).toBe(false);
     expect(verifyTotp(secret, "", now)).toBe(false);
+  });
+
+  it("kod pripada svom periodu, da isti ne bi prošao dva puta", () => {
+    const now = 1_700_000_000_000;
+    const step = Math.floor(now / 30_000);
+    expect(totpStep(secret, totpCode(secret, now), now)).toBe(step);
+    expect(totpStep(secret, totpCode(secret, now - 30_000), now)).toBe(step - 1);
+    expect(totpStep(secret, totpCode(secret, now + 30_000), now)).toBe(step + 1);
+    expect(totpStep(secret, "000000x", now)).toBeNull();
   });
 
   it("tajna, adresa za QR kod i rezervni kodovi", () => {

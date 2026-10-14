@@ -6,7 +6,7 @@ import { cache } from "react";
 import { getStoredValue, setStoredValue } from "@/lib/content";
 import { getDb } from "@/lib/db";
 import { DUMMY_HASH, hashPassword, passwordMatches } from "@/lib/password";
-import { generateRecoveryCodes, generateSecret, verifyTotp } from "@/lib/totp";
+import { generateRecoveryCodes, generateSecret, totpStep } from "@/lib/totp";
 
 /**
  * Prijava u admin panel i korisnici panela. Korisnici su u bazi (tabela admin_users), svaki
@@ -26,7 +26,7 @@ const SESSION_SECONDS = 60 * 60 * 24 * 7;
 
 export type Role = "owner" | "sales" | "content";
 /** Delovi panela za koje se proverava pristup. */
-export type Area = "orders" | "catalog" | "content" | "settings" | "users";
+export type Area = "orders" | "catalog" | "discounts" | "content" | "settings" | "users";
 
 export const roleLabels: Record<Role, string> = {
   owner: "Vlasnik",
@@ -41,8 +41,9 @@ export const roleHints: Record<Role, string> = {
 };
 
 const roleAreas: Record<Role, Area[]> = {
-  owner: ["orders", "catalog", "content", "settings", "users"],
-  sales: ["orders", "catalog"],
+  owner: ["orders", "catalog", "discounts", "content", "settings", "users"],
+  // Popusti su odvojeni od kataloga: kod od 100% je odluka o novcu, ne o sadržaju.
+  sales: ["orders", "catalog", "discounts"],
   content: ["content", "catalog"],
 };
 
@@ -117,6 +118,42 @@ export async function needsSetup(): Promise<boolean> {
   return envOwner() === null && (await countUsers()) === 0;
 }
 
+const SETUP_CODE_KEY = "setup_code";
+
+/**
+ * Kod za prvo pokretanje. Dok vlasnik nije napravljen, vlasnik bi postao ko prvi otvori /admin;
+ * na serveru (npm run start, Docker) zato čarobnjak traži kod koji vidi samo ko vidi server:
+ * SETUP_CODE iz okruženja, ili kod koji se napravi sam, čuva u bazi i ispisuje u dnevnik servera.
+ * Lokalno (npm run dev) se ne traži. null: kod nije potreban.
+ */
+export async function setupCode(): Promise<string | null> {
+  if (process.env.NODE_ENV !== "production") return null;
+  if (process.env.SETUP_CODE) return process.env.SETUP_CODE;
+  const stored = await getStoredValue(SETUP_CODE_KEY);
+  if (stored) return stored;
+  await setStoredValue(SETUP_CODE_KEY, randomBytes(5).toString("hex"));
+  // Ako su dva procesa pravila kod u istom trenutku, važi onaj koji je ostao upisan.
+  return getStoredValue(SETUP_CODE_KEY);
+}
+
+/** Ispisuje kod u dnevnik servera, dok se prikazuje čarobnjak. */
+export async function announceSetupCode(): Promise<boolean> {
+  const code = await setupCode();
+  if (code && !process.env.SETUP_CODE) console.log(`[prvo pokretanje] Kod za pravljenje vlasnika u /admin: ${code}`);
+  return code !== null;
+}
+
+/** Da li je upisan ispravan kod za prvo pokretanje (ili kod nije potreban). */
+export async function checkSetupCode(input: string): Promise<boolean> {
+  const code = await setupCode();
+  return code === null || safeEqual(input.trim().toLowerCase(), code.toLowerCase());
+}
+
+/** Posle prvog vlasnika kod više ne treba. */
+export async function clearSetupCode() {
+  await setStoredValue(SETUP_CODE_KEY, null);
+}
+
 /**
  * Pravi prvog vlasnika. Upis uspeva samo dok je tabela prazna, i kada dva zahteva stignu
  * odjednom; null kada vlasnik već postoji.
@@ -165,9 +202,9 @@ export async function verifyLogin(username: string, password: string, code: stri
   if (row.totp_enabled === 1) {
     const given = code.trim();
     if (given === "") return { ok: false, reason: "code-needed" };
-    if (!verifyTotp(row.totp_secret, given) && !(await consumeRecoveryCode(row.id, row.recovery_codes, given))) {
-      return { ok: false, reason: "code-invalid" };
-    }
+    const step = totpStep(row.totp_secret, given);
+    const accepted = step !== null ? await claimTotpStep(row.id, step) : await consumeRecoveryCode(row.id, row.recovery_codes, given);
+    if (!accepted) return { ok: false, reason: "code-invalid" };
   }
   return { ok: true, user: toUser(row) };
 }
@@ -177,6 +214,18 @@ function safeEqual(a: string, b: string): boolean {
   const hashA = createHash("sha256").update(a).digest();
   const hashB = createHash("sha256").update(b).digest();
   return timingSafeEqual(hashA, hashB);
+}
+
+/**
+ * Kod iz aplikacije važi jednom: pamti se period poslednjeg iskorišćenog koda, a isti ili stariji
+ * se odbija. Uslov u upitu važi i kada dve prijave sa istim kodom stignu u istom trenutku.
+ */
+async function claimTotpStep(userId: number, step: number): Promise<boolean> {
+  const [result] = await (await getDb()).query<ResultSetHeader>(
+    "UPDATE admin_users SET totp_step = ? WHERE id = ? AND (totp_step IS NULL OR totp_step < ?)",
+    [step, userId, step],
+  );
+  return result.affectedRows === 1;
 }
 
 /** Rezervni kod važi jednom: posle upotrebe se briše. */
@@ -391,16 +440,18 @@ export async function pendingTotpSecret(id: number): Promise<string | null> {
 /** Uključuje prijavu u dva koraka ako je kod iz aplikacije ispravan. Vraća rezervne kodove, koji se vide samo sada. */
 export async function enableTotp(id: number, code: string): Promise<string[] | null> {
   const secret = await pendingTotpSecret(id);
-  if (!secret || !verifyTotp(secret, code)) return null;
+  const step = secret ? totpStep(secret, code) : null;
+  if (step === null) return null;
   const codes = generateRecoveryCodes();
+  // Kod kojim je uključeno ne može odmah i za prijavu.
   await (
     await getDb()
-  ).query("UPDATE admin_users SET totp_enabled = 1, recovery_codes = ? WHERE id = ?", [JSON.stringify(codes.map((item) => tokenHash(item))), id]);
+  ).query("UPDATE admin_users SET totp_enabled = 1, recovery_codes = ?, totp_step = ? WHERE id = ?", [JSON.stringify(codes.map((item) => tokenHash(item))), step, id]);
   return codes;
 }
 
 export async function disableTotp(id: number) {
-  await (await getDb()).query("UPDATE admin_users SET totp_enabled = 0, totp_secret = NULL, recovery_codes = NULL WHERE id = ?", [id]);
+  await (await getDb()).query("UPDATE admin_users SET totp_enabled = 0, totp_secret = NULL, recovery_codes = NULL, totp_step = NULL WHERE id = ?", [id]);
 }
 
 /* ---------- Pregled nesačuvanih izmena na sajtu ---------- */

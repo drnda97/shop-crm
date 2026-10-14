@@ -8,6 +8,8 @@ import {
   ADMIN_PATH,
   beginTotp,
   checkAdminPassword,
+  checkSetupCode,
+  clearSetupCode,
   createAdmin,
   createAdminReset,
   createFirstOwner,
@@ -136,6 +138,9 @@ export type SetupState = { error?: string };
 export async function setupAction(_previous: SetupState, formData: FormData): Promise<SetupState> {
   if (tooMany("admin-setup", clientIp(await headers()), 10)) return { error: TOO_MANY };
   if (!(await needsSetup())) return { error: "Panel je već podešen. Osvežite stranicu i prijavite se." };
+  if (!(await checkSetupCode(text(formData, "setupCode")))) {
+    return { error: "Kod za prvo pokretanje nije ispravan. Kod je ispisan u dnevniku servera (ili je SETUP_CODE iz okruženja)." };
+  }
   const username = text(formData, "username").toLowerCase();
   const name = text(formData, "name").slice(0, 100);
   const store = text(formData, "store").slice(0, 100);
@@ -149,6 +154,7 @@ export async function setupAction(_previous: SetupState, formData: FormData): Pr
 
   const user = await createFirstOwner({ username, name, email: EMAIL_PATTERN.test(email) ? email.toLowerCase().slice(0, 191) : "", password });
   if (!user) return { error: "Panel je već podešen. Osvežite stranicu i prijavite se." };
+  await clearSetupCode();
   const language = formData.get("language");
   await updateContent((content) => {
     if (isLang(language)) {

@@ -25,7 +25,7 @@ function describeTrigger(t: T, discount: Discount, currency: Currency): string {
 
 export default async function DiscountsPage({ searchParams }: DiscountsPageProps) {
   const t = await getPanelT();
-  await requireAdmin("catalog");
+  await requireAdmin("discounts");
   const { greska } = await searchParams;
   const [discounts, counts, uses, settings] = await Promise.all([
     getDiscounts(),

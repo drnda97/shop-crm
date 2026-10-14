@@ -49,6 +49,39 @@ export function corsHeaders(request: Request, settings: Settings): Record<string
   return headers;
 }
 
+/** Najveće telo zahteva API-ja; korpa i porudžbina sa 100 stavki staju u nekoliko KB. */
+export const MAX_BODY_BYTES = 1024 * 1024;
+
+/** Znak da je telo zahteva veće od MAX_BODY_BYTES (odgovor 413). */
+export const TOO_LARGE = Symbol("too-large");
+
+/**
+ * JSON iz tela zahteva. Čita najviše MAX_BODY_BYTES, pa ogroman zahtev ne zauzme memoriju:
+ * TOO_LARGE kada je veći, null kada nije ispravan JSON.
+ */
+export async function readJsonBody(request: Request): Promise<unknown> {
+  if (Number(request.headers.get("content-length")) > MAX_BODY_BYTES) return TOO_LARGE;
+  if (!request.body) return null;
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_BODY_BYTES) {
+      await reader.cancel();
+      return TOO_LARGE;
+    }
+    chunks.push(value);
+  }
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
 /** Osnova za pune adrese slika: PUBLIC_URL, ili adresa sa koje je stigao zahtev. */
 export function baseUrl(request: Request): string {
   const configured = process.env.PUBLIC_URL?.replace(/\/+$/, "");

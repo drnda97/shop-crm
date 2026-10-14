@@ -125,6 +125,8 @@ export const panelActions: Dict = {
   "Prijava u dva koraka je isključena.": "Two-step sign-in is off.",
   "Prijava u dva koraka je već uključena.": "Two-step sign-in is already on.",
   "Prijava u panel": "Panel sign-in",
+  "Neuspela prijava: pogrešno ime ili lozinka": "Failed sign-in: wrong username or password",
+  "Neuspela prijava: pogrešan kod": "Failed sign-in: wrong code",
   "Proba iz panela": "Test from the panel",
   "Proba je stigla (odgovor {a}).": "The test arrived (response {a}).",
   "Proba nije uspela: {a}": "The test failed: {a}",

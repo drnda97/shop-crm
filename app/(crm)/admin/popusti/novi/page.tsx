@@ -4,7 +4,7 @@ import { DiscountForm } from "../discount-form";
 type NewDiscountPageProps = { searchParams: Promise<{ greska?: string }> };
 
 export default async function NewDiscountPage({ searchParams }: NewDiscountPageProps) {
-  await requireAdmin("catalog");
+  await requireAdmin("discounts");
   const { greska } = await searchParams;
 
   return <DiscountForm error={greska} />;

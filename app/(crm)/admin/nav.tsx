@@ -191,7 +191,7 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
         { href: `${base}/proizvodi`, label: t("Proizvodi"), icon: icons.products, area: "catalog" },
         { href: `${base}/kategorije`, label: t("Kategorije"), icon: icons.categories, area: "catalog" },
         { href: `${base}/kolekcije`, label: t("Kolekcije"), icon: icons.collections, area: "catalog" },
-        { href: `${base}/popusti`, label: t("Popusti"), icon: icons.discounts, area: "catalog" },
+        { href: `${base}/popusti`, label: t("Popusti"), icon: icons.discounts, area: "discounts" },
       ],
     },
     {

@@ -15,7 +15,7 @@ npm run dev                  # http://localhost:3000/admin
 npm run build && npm run start
 ```
 
-Tabele se prave same pri prvom pokretanju. Pri prvom otvaranju `/admin` pravite nalog vlasnika; posle se korisnici, uloge i lozinke vode u panelu. (Ako su u `.env.local` upisani `ADMIN_USERNAME` i `ADMIN_PASSWORD`, vlasnik nastaje od njih pri prvoj prijavi.) Ako ostanete bez pristupa: `npm run admin:user -- <ime> <nova-lozinka>`.
+Tabele se prave same pri prvom pokretanju. Pri prvom otvaranju `/admin` pravite nalog vlasnika. Na serveru (`npm run start`, Docker) čarobnjak traži i kod za prvo pokretanje, ispisan u dnevniku servera (ili zadat u `SETUP_CODE`), da vlasnik ne postane ko prvi otvori `/admin`; uz `npm run dev` se ne traži. Posle toga se korisnici, uloge i lozinke vode u panelu. (Ako su u `.env.local` upisani `ADMIN_USERNAME` i `ADMIN_PASSWORD`, vlasnik nastaje od njih pri prvoj prijavi.) Ako ostanete bez pristupa: `npm run admin:user -- <ime> <nova-lozinka>`.
 
 Prvo otvorite **Podešavanja**: naziv prodavnice, valuta i zapis iznosa (celi iznosi ili dve decimale), cena dostave, načini plaćanja i email nalog. Zapis iznosa izaberite pre unosa proizvoda.
 
@@ -77,7 +77,7 @@ Sajt koji ne koristi `sdk.js` (npr. server u PHP-u ili Next.js-u) zove API direk
 | Poziv | Šta vraća |
 |---|---|
 | `GET /api/v1/store` | podaci prodavnice i linkovi za podnožje |
-| `GET /api/v1/products` · `?category=` `?collection=` `?q=` | objavljeni proizvodi; kategorija obuhvata i svoje podkategorije |
+| `GET /api/v1/products` · `?category=` `?collection=` `?q=` `?page=` `?limit=` | objavljeni proizvodi, po 100 na strani (`limit` do 250), uz `total`, `page` i `pages`; kategorija obuhvata i svoje podkategorije |
 | `GET /api/v1/products/{slug}` | jedan proizvod |
 | `GET /api/v1/categories` · `/collections` · `/collections/{id}` | kategorije (sa `parent` za podkategorije) i kolekcije |
 | `GET /api/v1/pages` · `/pages/{slug}` | objavljene stranice; stranica ima `sections` (vrsta i sadržaj svake sekcije), i `body` i `images` izvedene iz njih |
@@ -176,7 +176,7 @@ Webhook šalje `POST` sa telom `{ "event", "at", "data": { "order": … } }` i z
 docker compose up -d
 ```
 
-pokreće aplikaciju i MariaDB; zatim otvorite `http://localhost:3000/admin` i napravite nalog vlasnika. Lozinke baze i `PUBLIC_URL` se zadaju u fajlu `.env` pored `docker-compose.yml`. Slike i baza su na Docker diskovima (`uploads`, `db`).
+pokreće aplikaciju i MariaDB; zatim otvorite `http://localhost:3000/admin` i napravite nalog vlasnika (kod za prvo pokretanje ispisuje `docker compose logs app`). Lozinke baze (`DB_PASSWORD`, `DB_ROOT_PASSWORD`, obavezne) i `PUBLIC_URL` se zadaju u fajlu `.env` pored `docker-compose.yml`. Slike i baza su na Docker diskovima (`uploads`, `db`).
 
 Uz panel ide i gotova javna prodavnica (rute u `app/(shop)/`, izgled u `themes/default`, na adresi `/`). Izgled je tema: folder u `themes/`; može ih biti više, a aktivna se bira u panelu (Podešavanja → Tema sajta), bez diranja panela i jezgra — vidi [themes/README.md](themes/README.md). Čita proizvode, kategorije, popuste i podešavanja direktno iz baze i šalje porudžbine istim putem kao API (`submitOrder`). Stilovi teme su odvojeni od panela.
 
@@ -227,7 +227,7 @@ npm run images:optimize -- --delete-old    # stari fajlovi se brišu
 npm run backup   # backups/shopcrm-<datum>.sql i -slike.tar.gz
 ```
 
-U bazi su lični podaci kupaca i lozinka email naloga, pa kopije ne treba držati na javnom mestu.
+U bazi su lični podaci kupaca, pa kopije ne treba držati na javnom mestu. SMTP lozinka i Google tajna su u bazi šifrovane ključem iz fajla `storage/data.key` (ili promenljive `DATA_KEY`), koji nije u kopiji: čuvajte ga odvojeno. Bez njega se posle vraćanja kopije te dve vrednosti upisuju ponovo u Podešavanjima.
 
 ## Raspored koda
 

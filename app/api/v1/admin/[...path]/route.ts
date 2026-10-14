@@ -1,6 +1,6 @@
 import { getSettings } from "@/lib/content";
 import { after } from "next/server";
-import { baseUrl, publicProduct } from "@/lib/api";
+import { baseUrl, publicProduct, readJsonBody, TOO_LARGE } from "@/lib/api";
 import { getProducts, updateContent } from "@/lib/content";
 import { getDb } from "@/lib/db";
 import { apiOrder, checkApiKey, type ApiKey } from "@/lib/integrations";
@@ -83,7 +83,9 @@ export async function POST(request: Request, { params }: Context) {
   if (key instanceof Response) return key;
   const [resource, id, action, extra] = (await params).path;
   if (!id || !action || extra !== undefined) return notFound();
-  const body = ((await request.json().catch(() => null)) ?? {}) as Record<string, unknown>;
+  const parsed = await readJsonBody(request);
+  if (parsed === TOO_LARGE) return json({ error: "Request body too large" }, 413);
+  const body = (parsed ?? {}) as Record<string, unknown>;
   const by = `API ključ „${key.name}"`;
 
   if (resource === "orders") {
@@ -126,8 +128,8 @@ export async function POST(request: Request, { params }: Context) {
   }
 
   if (resource === "products" && action === "stock") {
-    const qty = body.qty === null ? null : Number(body.qty);
-    if (qty !== null && (!Number.isInteger(qty) || qty < 0 || qty > 1_000_000)) {
+    const qty = body.qty === null ? null : typeof body.qty === "number" || typeof body.qty === "string" ? Number(body.qty) : NaN;
+    if (qty !== null && (!Number.isInteger(qty) || qty < 0 || qty > 1_000_000 || body.qty === "")) {
       return json({ error: "qty must be a whole number from 0 to 1000000, or null to stop tracking" }, 400);
     }
     const variantId = body.variant === undefined ? "" : String(body.variant);

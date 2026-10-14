@@ -22,16 +22,19 @@ export function formatMoney(value: number | null, currency: Currency): string {
   return value === null ? "—" : `${formatAmount(value, currency.decimals)} ${currency.code}`;
 }
 
+/** Najveći iznos u najmanjim jedinicama: kolone iznosa u bazi su INT. */
+export const MAX_MINOR = 2_147_483_647;
+
 /**
  * Iznos iz forme u najmanje jedinice. null: prazno polje; NaN: nije ispravan iznos.
- * Prima i zarez i tačku kao decimalni znak.
+ * Prima i zarez i tačku kao decimalni znak; samo cifre, bez zapisa kao 1e3 ili 0x10.
  */
 export function toMinor(input: string, decimals: number): number | null {
   const value = input.trim().replace(",", ".");
   if (value === "") return null;
-  const amount = Number(value);
-  if (!Number.isFinite(amount) || amount < 0) return NaN;
-  return Math.round(amount * 10 ** decimals);
+  if (!/^\d+(\.\d+)?$/.test(value)) return NaN;
+  const minor = Math.round(Number(value) * 10 ** decimals);
+  return minor > MAX_MINOR ? NaN : minor;
 }
 
 /** Vrednost za polje forme: 125000 → "1250.00". */

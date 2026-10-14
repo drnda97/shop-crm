@@ -7,8 +7,11 @@ import { setupAction, type SetupState } from "./user-actions";
 
 const initialState: SetupState = {};
 
-/** Prvo pokretanje: nalog vlasnika i naziv prodavnice. Prikazuje se samo dok u panelu nema korisnika. */
-export function SetupForm() {
+/**
+ * Prvo pokretanje: nalog vlasnika i naziv prodavnice. Prikazuje se samo dok u panelu nema korisnika.
+ * Na serveru traži i kod iz dnevnika servera (codeRequired), da vlasnik ne postane ko prvi otvori /admin.
+ */
+export function SetupForm({ codeRequired }: { codeRequired: boolean }) {
   const t = useT();
   const [state, action, pending] = useActionState(setupAction, initialState);
   // Polja su kontrolisana: posle greške ostaje upisano sve osim lozinke.
@@ -23,6 +26,12 @@ export function SetupForm() {
   return (
     <form action={action} className="flex flex-col gap-[14px]">
       <ErrorNote message={state.error} />
+      {codeRequired && (
+        <label className={labelClass}>
+          {t("Kod za prvo pokretanje (ispisan u dnevniku servera)")}
+          <input name="setupCode" required autoComplete="off" spellCheck={false} className={inputClass} />
+        </label>
+      )}
       <label className={labelClass}>
         Jezik · Language
         <select name="language" defaultValue="sr" className={inputClass}>

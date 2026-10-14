@@ -1,5 +1,6 @@
-# Pokretanje: docker compose up -d, pa otvorite http://localhost:3000/admin i napravite nalog vlasnika.
-# Pre javnog postavljanja promenite lozinke baze ispod (ili ih zadajte u fajlu .env pored ovog).
+# Pokretanje: u fajlu .env pored ovog upišite DB_PASSWORD i DB_ROOT_PASSWORD (i PUBLIC_URL),
+# pa docker compose up -d. Otvorite http://localhost:3000/admin i napravite nalog vlasnika;
+# kod za prvo pokretanje je u ispisu servera: docker compose logs app.
 services:
   app:
     build: .
@@ -10,10 +11,14 @@ services:
       DB_HOST: db
       DB_PORT: 3306
       DB_USER: shopcrm
-      DB_PASSWORD: ${DB_PASSWORD:-shopcrm}
+      DB_PASSWORD: ${DB_PASSWORD:?Upišite DB_PASSWORD u fajl .env pored docker-compose.yml}
       DB_NAME: shopcrm
       # Javna adresa, npr. https://prodavnica.rs — za linkove u emailovima i adrese slika u API-ju.
       PUBLIC_URL: ${PUBLIC_URL:-}
+      # Kod za prvo pokretanje; prazno: napravi se sam i ispiše u docker compose logs app.
+      SETUP_CODE: ${SETUP_CODE:-}
+      # Koliko proxy-ja stoji ispred aplikacije (nginx, Cloudflare); vidi .env.example.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-1}
       MYSQLDUMP_PATH: mariadb-dump
     volumes:
       - uploads:/app/storage
@@ -28,8 +33,8 @@ services:
     environment:
       MARIADB_DATABASE: shopcrm
       MARIADB_USER: shopcrm
-      MARIADB_PASSWORD: ${DB_PASSWORD:-shopcrm}
-      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-shopcrm-root}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Upišite DB_PASSWORD u fajl .env pored docker-compose.yml}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Upišite DB_ROOT_PASSWORD u fajl .env pored docker-compose.yml}
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     volumes:
       - db:/var/lib/mysql
