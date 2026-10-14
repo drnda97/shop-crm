@@ -81,7 +81,7 @@ import { clientIp, TOO_MANY, tooMany } from "@/lib/rate-limit";
 import { fetchImage } from "@/lib/remote-image";
 import { newSection, normalizeData, normalizeSections } from "@/lib/sections";
 import { findProvider } from "@/lib/payments";
-import { currencyOf, defaultSettings, INVOICE_EMAILS, mergeSettings, STATUS_EMAILS,
+import { currencyOf, defaultSettings, INVOICE_EMAILS, mergeSettings, PRODUCTS_PER_PAGE, productsPerPage, STATUS_EMAILS,
   storeLanguages,
 } from "@/lib/settings";
 import { THEME_LIST } from "@/themes/list";
@@ -137,7 +137,16 @@ function uniqueSlug(name: string, taken: string[]): string {
 }
 
 function backWithError(path: string, message: string): never {
-  redirect(`${path}?greska=${encodeURIComponent(message)}`);
+  redirect(`${path}${path.includes("?") ? "&" : "?"}greska=${encodeURIComponent(message)}`);
+}
+
+/**
+ * Strana spiska proizvoda sa koje je akcija pokrenuta (polje "back": ?strana=, ?q=), da se
+ * posle izmene stanja ili redosleda ostane na istoj strani. Prihvata samo adresu spiska.
+ */
+function productsBack(formData: FormData): string {
+  const value = text(formData, "back");
+  return /^\/admin\/proizvodi\?[\w=&%+.*-]*$/.test(value) ? value : PRODUCTS_PATH;
 }
 
 /** Stranice panela već otvorene u pregledaču dobijaju svež sadržaj pri sledećem prelasku. */
@@ -401,7 +410,7 @@ export async function deleteProductAction(formData: FormData) {
     refresh();
   }
   await audit("Obrisan proizvod", formData);
-  redirect(PRODUCTS_PATH);
+  redirect(productsBack(formData));
 }
 
 /** Brza izmena stanja iz spiska proizvoda: klik menja ručno stanje, a broj se upisuje direktno. */
@@ -411,7 +420,7 @@ export async function setStockAction(formData: FormData) {
   const slug = text(formData, "slug");
   const stockQty = formData.has("stockQty") ? optionalCount(formData, "stockQty") : undefined;
   if (stockQty === false)
-    backWithError(PRODUCTS_PATH, "Broj komada na stanju je ceo broj, nula ili više.");
+    backWithError(productsBack(formData), "Broj komada na stanju je ceo broj, nula ili više.");
 
   await updateContent((content) => {
     const product = content.products.find((item) => item.slug === slug);
@@ -421,7 +430,7 @@ export async function setStockAction(formData: FormData) {
   });
   refresh();
   await audit("Promenjeno stanje proizvoda", formData);
-  redirect(PRODUCTS_PATH);
+  redirect(productsBack(formData));
 }
 
 /** Pomera proizvod za jedno mesto gore ili dole; tim redom ih API vraća sajtu. */
@@ -438,7 +447,24 @@ export async function moveProductAction(formData: FormData) {
     content.products.splice(target, 0, product);
   });
   refresh();
-  redirect(PRODUCTS_PATH);
+  redirect(productsBack(formData));
+}
+
+/** Koliko proizvoda staje na jednu stranu spiska; važi za sve korisnike panela. */
+export async function saveProductsPerPageAction(formData: FormData) {
+  await requireAdmin("catalog");
+  const value = Number(text(formData, "perPage"));
+  if (!Number.isInteger(value) || value < PRODUCTS_PER_PAGE.min || value > PRODUCTS_PER_PAGE.max) {
+    backWithError(productsBack(formData), "Broj proizvoda po strani je od 5 do 200.");
+  }
+  await updateContent((content) => {
+    content.settings.panel = { ...content.settings.panel, productsPerPage: productsPerPage(value) };
+  });
+  refresh();
+  await audit("Promenjen broj proizvoda po strani", String(value));
+  // Sa drugim brojem po strani stare strane ne odgovaraju, pa se kreće od prve (pretraga ostaje).
+  const q = new URLSearchParams(productsBack(formData).split("?")[1] ?? "").get("q");
+  redirect(q ? `${PRODUCTS_PATH}?q=${encodeURIComponent(q)}` : PRODUCTS_PATH);
 }
 
 /* ---------- Više proizvoda odjednom ---------- */
@@ -448,17 +474,17 @@ export async function bulkProductsAction(formData: FormData) {
   await requireAdmin("catalog");
 
   const slugs = formData.getAll("slugs").filter((value): value is string => typeof value === "string");
-  if (slugs.length === 0) backWithError(PRODUCTS_PATH, "Označite bar jedan proizvod.");
+  if (slugs.length === 0) backWithError(productsBack(formData), "Označite bar jedan proizvod.");
   const operation = text(formData, "operation");
   const category = text(formData, "category");
   const percent = Number(text(formData, "percent").replace(",", "."));
   const categories = await getCategories();
 
   if ((operation === "addCategory" || operation === "removeCategory") && !categories.some((item) => item.id === category)) {
-    backWithError(PRODUCTS_PATH, "Izaberite kategoriju.");
+    backWithError(productsBack(formData), "Izaberite kategoriju.");
   }
   if (operation === "price" && (!Number.isFinite(percent) || percent === 0 || percent <= -100 || percent > 1000)) {
-    backWithError(PRODUCTS_PATH, "Upišite procenat promene cene, npr. 10 ili -15.");
+    backWithError(productsBack(formData), "Upišite procenat promene cene, npr. 10 ili -15.");
   }
   // Cena se menja za procenat i zaokružuje na ceo iznos u najmanjoj jedinici valute.
   const scale = (value: number | null) => (value === null ? null : Math.max(0, Math.round(value * (1 + percent / 100))));
@@ -498,7 +524,7 @@ export async function bulkProductsAction(formData: FormData) {
 
   refreshSite();
   await audit("Izmenjeno više proizvoda", formData);
-  redirect(PRODUCTS_PATH);
+  redirect(productsBack(formData));
 }
 
 /* ---------- Uvoz proizvoda ---------- */

@@ -15,8 +15,8 @@ import {
 } from "@/lib/catalog";
 import { getCategories, getProducts, getSettings } from "@/lib/content";
 import { formatMoney } from "@/lib/format";
-import { currencyOf } from "@/lib/settings";
-import { deleteProductAction, moveProductAction, setStockAction } from "../actions";
+import { currencyOf, PRODUCTS_PER_PAGE } from "@/lib/settings";
+import { deleteProductAction, moveProductAction, saveProductsPerPageAction, setStockAction } from "../actions";
 import { ConfirmButton } from "../confirm-button";
 import { BulkBar } from "./bulk-bar";
 import {
@@ -29,7 +29,18 @@ import {
   Thumb,
 } from "../ui";
 
-type ProductsPageProps = { searchParams: Promise<{ greska?: string; q?: string }> };
+type ProductsPageProps = { searchParams: Promise<{ greska?: string; q?: string; strana?: string }> };
+
+const PRODUCTS_PATH = `${ADMIN_PATH}/proizvodi`;
+
+/** Adresa spiska sa pretragom i stranom; prazne vrednosti se izostavljaju. */
+function listUrl(q: string, page: number): string {
+  const query = new URLSearchParams();
+  if (q) query.set("q", q);
+  if (page > 1) query.set("strana", String(page));
+  const text = query.toString();
+  return text ? `${PRODUCTS_PATH}?${text}` : PRODUCTS_PATH;
+}
 
 const badge = "rounded-full px-[12px] font-display text-[12.5px] leading-[26px] font-bold";
 const moveButton =
@@ -38,7 +49,7 @@ const moveButton =
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const t = await getPanelT();
   await requireAdmin("catalog");
-  const { greska, q = "" } = await searchParams;
+  const { greska, q = "", strana } = await searchParams;
   const [all, categories, settings] = await Promise.all([
     getProducts(),
     getCategories(),
@@ -51,6 +62,15 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         `${product.name} ${product.sku}`.toLocaleLowerCase().includes(search),
       )
     : all;
+
+  // Na stranu staje onoliko proizvoda koliko je upisano u polju „Po strani" (Podešavanja panela).
+  const perPage = settings.panel.productsPerPage;
+  const pages = Math.max(1, Math.ceil(products.length / perPage));
+  const page = Math.min(Math.max(Math.floor(Number(strana)) || 1, 1), pages);
+  const shown = products.slice((page - 1) * perPage, page * perPage);
+  // Akcije u redu vraćaju na ovu stranu, ne na prvu (polje "back").
+  const back = `${PRODUCTS_PATH}?${new URLSearchParams({ ...(q.trim() ? { q: q.trim() } : {}), strana: String(page) })}`;
+  const backField = <input type="hidden" name="back" value={back} />;
 
   return (
     <>
@@ -92,7 +112,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       )}
 
       <div className={cardClass}>
-        {products.map((product) => {
+        {shown.map((product) => {
           const position = all.indexOf(product);
           return (
             <div key={product.slug} className={rowClass}>
@@ -109,6 +129,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               {!search && (
                 <form action={moveProductAction} className="flex flex-col gap-[4px]">
                   <input type="hidden" name="slug" value={product.slug} />
+                  {backField}
                   <button
                     type="submit"
                     name="direction"
@@ -194,6 +215,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               ) : product.stockQty !== null ? (
                 <form action={setStockAction} className="flex items-center gap-[6px]">
                   <input type="hidden" name="slug" value={product.slug} />
+                  {backField}
                   <div className="w-[84px] shrink-0">
                     <input
                       name="stockQty"
@@ -213,6 +235,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               ) : (
                 <form action={setStockAction}>
                   <input type="hidden" name="slug" value={product.slug} />
+                  {backField}
                   <button type="submit" className={quietButtonClass}>
                     {hasStock(product) ? t("Označi da nema") : t("Vrati na stanje")}
                   </button>
@@ -223,6 +246,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               </Link>
               <form action={deleteProductAction}>
                 <input type="hidden" name="slug" value={product.slug} />
+                {backField}
                 <ConfirmButton
                   question={t("Obrisati proizvod „{a}\"?", { a: product.name })}
                   className={quietButtonClass}
@@ -240,7 +264,46 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         )}
       </div>
       {products.length > 0 && (
+        <div className="mt-[16px] flex flex-wrap items-center gap-[12px] text-[14px] text-muted">
+          <span>
+            {t("Proizvoda: {a}", { a: products.length })}
+            {pages > 1 && ` · ${t("strana {a} od {b}", { a: page, b: pages })}`}
+          </span>
+          {page > 1 && (
+            <Link href={listUrl(q.trim(), page - 1)} className={quietButtonClass}>
+              {t("← Prethodna")}
+            </Link>
+          )}
+          {page < pages && (
+            <Link href={listUrl(q.trim(), page + 1)} className={quietButtonClass}>
+              {t("Sledeća →")}
+            </Link>
+          )}
+          <form action={saveProductsPerPageAction} className="ml-auto flex items-center gap-[8px]">
+            {backField}
+            <label htmlFor="perPage">{t("Po strani")}</label>
+            <div className="w-[84px] shrink-0">
+              <input
+                id="perPage"
+                name="perPage"
+                type="number"
+                min={PRODUCTS_PER_PAGE.min}
+                max={PRODUCTS_PER_PAGE.max}
+                step="1"
+                required
+                defaultValue={perPage}
+                className={inputClass}
+              />
+            </div>
+            <button type="submit" className={quietButtonClass}>
+              {t("Primeni")}
+            </button>
+          </form>
+        </div>
+      )}
+      {products.length > 0 && (
         <BulkBar
+          back={back}
           categories={categoryTree(categories).map(({ category, depth }) => ({
             id: category.id,
             label: `${"\u00a0\u00a0".repeat(depth)}${category.label}`,

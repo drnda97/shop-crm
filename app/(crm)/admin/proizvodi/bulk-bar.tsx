@@ -5,7 +5,11 @@ import { useState } from "react";
 import { bulkProductsAction } from "../actions";
 import { buttonClass, cardClass, inputClass, labelClass, quietButtonClass } from "../ui";
 
-type BulkBarProps = { categories: { id: string; label: string }[] };
+type BulkBarProps = {
+  categories: { id: string; label: string }[];
+  /** Strana spiska na koju se vraća posle izmene. */
+  back: string;
+};
 
 const OPERATIONS = [
   { id: "publish", label: "Objavi" },
@@ -20,7 +24,7 @@ const OPERATIONS = [
  * Ista izmena na svim označenim proizvodima. Polja za označavanje su u redovima spiska i
  * vezana su za ovu formu atributom form="bulk".
  */
-export function BulkBar({ categories }: BulkBarProps) {
+export function BulkBar({ categories, back }: BulkBarProps) {
   const t = useT();
   const [operation, setOperation] = useState("publish");
 
@@ -42,10 +46,11 @@ export function BulkBar({ categories }: BulkBarProps) {
         }
       }}
     >
+      <input type="hidden" name="back" value={back} />
       <div className="flex w-full flex-wrap items-center gap-[10px]">
         <span className="font-display text-[15px] font-bold">{t("Označeni proizvodi")}</span>
         <button type="button" className={quietButtonClass} onClick={() => selectAll(true)}>
-          {t("Označi sve")}
+          {t("Označi sve na strani")}
         </button>
         <button type="button" className={quietButtonClass} onClick={() => selectAll(false)}>
           {t("Poništi")}

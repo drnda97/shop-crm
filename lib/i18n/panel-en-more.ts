@@ -97,6 +97,7 @@ export const panelMore: Dict = {
     "Email sending is not set up, so the link cannot be delivered. The owner sets a new password for you; the owner uses the command npm run admin:user.",
   "Link više ne važi. Zatražite novi.": "The link is no longer valid. Request a new one.",
   "Poslat link za novu lozinku": "Password reset link sent",
+  "Broj proizvoda po strani je od 5 do 200.": "Products per page must be from 5 to 200.",
   "Kod za prvo pokretanje nije ispravan. Kod je ispisan u dnevniku servera (ili je SETUP_CODE iz okruženja).":
     "The first-run code is not correct. It is printed in the server log (or set as SETUP_CODE in the environment).",
   "Postavljena nova lozinka preko linka": "New password set via link",

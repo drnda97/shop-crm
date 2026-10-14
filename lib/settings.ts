@@ -228,7 +228,24 @@ export type Settings = {
   auth: AuthSettings;
   access: AccessSettings;
   mail: MailSettings;
+  panel: PanelSettings;
 };
+
+/** Izgled panela. */
+export type PanelSettings = {
+  /** Koliko proizvoda staje na jednu stranu spiska u panelu (Proizvodi). */
+  productsPerPage: number;
+};
+
+export const PRODUCTS_PER_PAGE = { default: 20, min: 5, max: 200 };
+
+/** Broj proizvoda po strani u granicama; neispravan je podrazumevani. */
+export function productsPerPage(value: unknown): number {
+  const number = Math.round(Number(value));
+  return Number.isFinite(number) && number > 0
+    ? Math.min(Math.max(number, PRODUCTS_PER_PAGE.min), PRODUCTS_PER_PAGE.max)
+    : PRODUCTS_PER_PAGE.default;
+}
 
 export const defaultSettings: Settings = {
   store: {
@@ -261,6 +278,7 @@ export const defaultSettings: Settings = {
   analytics: { ga4: "", metaPixel: "" },
   auth: { googleClientId: "", googleClientSecret: "" },
   access: { publicApi: false, adminApi: false, webhooks: false },
+  panel: { productsPerPage: PRODUCTS_PER_PAGE.default },
   mail: {
     notifySeller: true,
     notifyCustomer: true,
@@ -352,6 +370,7 @@ export function mergeSettings(saved: Partial<Settings>): Settings {
         STATUS_EMAILS.map((key) => [key, { ...defaultStatusEmails[key], ...saved.mail?.statusEmails?.[key] }]),
       ) as Record<StatusEmailKey, StatusEmail>,
     },
+    panel: { productsPerPage: productsPerPage(saved.panel?.productsPerPage) },
   };
 }
 

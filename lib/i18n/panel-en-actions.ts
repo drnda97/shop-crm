@@ -138,6 +138,7 @@ export const panelActions: Dict = {
   "Promenjena oznaka plaćeno": "Paid mark changed",
   "Promenjena sopstvena lozinka": "Own password changed",
   "Promenjeno stanje proizvoda": "Product stock changed",
+  "Promenjen broj proizvoda po strani": "Products per page changed",
   "Promo kod mora imati upisan kod.": "A promo code must have a code entered.",
   "Proverite adresu u polju „{a}\".": "Check the address in the “{a}” field.",
   "Proverite datum do kog popust važi.": "Check the date until which the discount is valid.",
