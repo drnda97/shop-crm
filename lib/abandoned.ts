@@ -8,6 +8,7 @@ import { currentPrice, variantLabel } from "@/lib/catalog";
 import { getProductsBySlugs, getSettings } from "@/lib/content";
 import { getDb } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
+import { isLoopbackUrl, publicBase } from "@/lib/mail";
 import { currencyOf, type Settings } from "@/lib/settings";
 import { accentText, readableOn } from "@/lib/theme";
 
@@ -149,9 +150,12 @@ ${rows.map((row) => `<tr><td style="padding:8px 0;border-top:1px solid ${colors.
   return { subject: `${fill(words.get(abandoned.subject) ?? abandoned.subject)} — ${store.name}`, html, text, stop };
 }
 
-/** Javna adresa sajta za linkove u poruci: PUBLIC_URL, adresa sajta iz Podešavanja, ili ona sa koje je korpa stigla. */
+/**
+ * Javna adresa sajta za linkove u poruci: PUBLIC_URL ili adresa sajta iz Podešavanja. Adresa sa
+ * koje je korpa stigla važi samo kada je lokalna — inače je mogla doći iz podmetnutog zaglavlja.
+ */
 function baseFor(settings: Settings, siteUrl: string): string {
-  return (process.env.PUBLIC_URL || settings.store.storefrontUrl || siteUrl).replace(/\/+$/, "");
+  return publicBase(settings, isLoopbackUrl(siteUrl) ? siteUrl : "");
 }
 
 /**

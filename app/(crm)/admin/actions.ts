@@ -88,8 +88,7 @@ import { THEME_LIST } from "@/themes/list";
 import { normalizeMethods } from "@/lib/shipping";
 import { sendDueReminders } from "@/lib/abandoned";
 import { audit } from "@/lib/audit";
-import { baseUrl } from "@/lib/api";
-import { isMailReady, publicBase, sendMails, simpleEmail } from "@/lib/mail";
+import { isMailReady, linkBase, NO_SITE_URL, sendMails, simpleEmail } from "@/lib/mail";
 import { createCampaign, getRecipients, sendCampaign } from "@/lib/newsletter";
 import { eraseCustomer } from "@/lib/privacy";
 import { resolveReturn } from "@/lib/returns";
@@ -155,7 +154,11 @@ export type LoginState = {
 
 export async function login(_previous: LoginState, formData: FormData): Promise<LoginState> {
   if (tooMany("admin-login", clientIp(await headers()), 10)) return { error: TOO_MANY };
-  const result = await verifyLogin(text(formData, "username"), text(formData, "password"), text(formData, "code"));
+  // Brojač po nalogu ne zavisi od adrese, pa ga promena zaglavlja ne zaobilazi; pokriva i
+  // nagađanje koda iz aplikacije, jer svaki pokušaj koda ponovo šalje ime i lozinku.
+  const username = text(formData, "username");
+  if (tooMany("admin-login-user", username.toLowerCase(), 10)) return { error: TOO_MANY };
+  const result = await verifyLogin(username, text(formData, "password"), text(formData, "code"));
   if (!result.ok) {
     if (result.reason === "code-needed") return { needCode: true };
     // Usporava nagađanje lozinke i koda.
@@ -1365,7 +1368,8 @@ export async function sendCampaignAction(formData: FormData) {
   const recipients = await getRecipients();
   if (recipients.length === 0) backWithError(MESSAGES_PATH, "Nema prijavljenih na novosti.");
   // Link za odjavu u poruci mora da vodi na javnu adresu sajta.
-  const base = publicBase(settings, baseUrl(new Request("http://localhost", { headers: await headers() })));
+  const base = linkBase(settings, await headers());
+  if (!base) backWithError(MESSAGES_PATH, NO_SITE_URL);
 
   const id = await createCampaign(subject, body, recipients.length);
   after(() => sendCampaign(id, base));

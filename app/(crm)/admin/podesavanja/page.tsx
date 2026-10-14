@@ -187,7 +187,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
               <h3 className={groupTitle}>{t("Sajt prodavnice")}</h3>
               <label className={labelClass}>
-                {t("Adresa sajta (link „Otvori sajt“ u meniju)")}
+                {t("Adresa sajta (link „Otvori sajt“ u meniju i linkovi u emailu: nova lozinka, korpa, novosti)")}
                 <input
                   name="storefrontUrl"
                   type="url"

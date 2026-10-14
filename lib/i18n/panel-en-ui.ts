@@ -43,7 +43,7 @@ export const panelUi: Dict = {
   "Adresa koja prima poruke": "Address that receives messages",
   "Adresa na sajtu:": "Address on the site:",
   "Adresa pošiljaoca (ako je prazno, koristi se korisničko ime)": "Sender address (if empty, the username is used)",
-  "Adresa sajta (link „Otvori sajt“ u meniju)": "Site address (the “Open site” link in the menu)",
+  "Adresa sajta (link „Otvori sajt“ u meniju i linkovi u emailu: nova lozinka, korpa, novosti)": "Site address (the “Open site” link in the menu and links in emails: new password, cart, newsletter)",
   "Adresa stranice na sajtu pravi se iz naslova i kasnije se ne menja. Stranica nastaje kao nacrt: sekcije dodajete u sledećem koraku, a objavljujete je kada bude gotova.": "The page address on the site is made from the title and does not change later. The page starts as a draft: you add sections in the next step and publish it when it is ready.",
   "Adresa za praćenje": "Tracking address",
   "Ako ne izaberete novu, ostaje trenutna slika.": "If you don't choose a new one, the current image stays.",

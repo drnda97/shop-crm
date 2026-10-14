@@ -87,3 +87,27 @@ export async function sendMails(settings: Settings, messages: Outgoing[]): Promi
 export function publicBase(settings: Settings, fallback = ""): string {
   return (process.env.PUBLIC_URL || settings.store.storefrontUrl || fallback).replace(/\/+$/, "");
 }
+
+const LOOPBACK = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?\/?$/;
+
+/** Da li je adresa lokalna (localhost), pa link na nju nikoga ne vodi na tuđ sajt. */
+export function isLoopbackUrl(url: string): boolean {
+  return LOOPBACK.test(url);
+}
+
+/**
+ * Osnova za linkove sa žetonom (nova lozinka, podsetnik za korpu, potvrda plaćanja): samo
+ * PUBLIC_URL ili adresa sajta iz Podešavanja. Zaglavlja Host i X-Forwarded-Host šalje onaj ko
+ * traži link, pa bi napadač mogao da podmetne svoj domen. Izuzetak je lokalna instalacija:
+ * kada ništa nije upisano, a zahtev je stigao na localhost, uzima se ta adresa.
+ * Prazno znači da link ne sme da se pošalje.
+ */
+export function linkBase(settings: Settings, requestHeaders?: Headers): string {
+  const configured = publicBase(settings);
+  if (configured) return configured;
+  const local = `http://${requestHeaders?.get("host") ?? ""}`;
+  return isLoopbackUrl(local) ? local : "";
+}
+
+/** Poruka kada adresa sajta nije upisana, pa link ne može da se pošalje. */
+export const NO_SITE_URL = "Adresa sajta nije upisana (Podešavanja → Prodavnica → Adresa sajta, ili PUBLIC_URL), pa link ne može da se pošalje.";

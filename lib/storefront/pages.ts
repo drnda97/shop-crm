@@ -4,6 +4,7 @@ import { cache } from "react";
 import { isPreviewToken } from "@/lib/admin-auth";
 import type { Page } from "@/lib/catalog";
 import { getPages, getSettings, getStoredValue } from "@/lib/content";
+import { publicBase } from "@/lib/mail";
 import { normalizeSections, type Section } from "@/lib/sections";
 import { mergeSettings, type Settings } from "@/lib/settings";
 import { PREVIEW_HEADER } from "@/lib/storefront/preview-names";
@@ -89,9 +90,13 @@ async function rawSitePage(slug: string): Promise<Page | null> {
   return page.published ? page : null;
 }
 
-/** Javna adresa sajta, bez kose crte na kraju: PUBLIC_URL, ili adresa sa koje je stigao zahtev. */
+/**
+ * Javna adresa sajta za stranice (sitemap, kanonske adrese, Google prijava), bez kose crte na
+ * kraju: PUBLIC_URL, adresa iz Podešavanja, ili adresa sa koje je stigao zahtev. Za linkove sa
+ * žetonom u emailu ne služi — tu ide linkBase iz lib/mail.ts, bez zaglavlja zahteva.
+ */
 export async function siteUrl(): Promise<string> {
-  const configured = process.env.PUBLIC_URL?.replace(/\/+$/, "");
+  const configured = publicBase(await getShopSettings());
   if (configured) return configured;
   const list = await headers();
   const host = list.get("x-forwarded-host") ?? list.get("host") ?? "localhost";

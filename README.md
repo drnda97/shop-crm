@@ -41,7 +41,7 @@ Prvo otvorite **Podešavanja**: naziv prodavnice, valuta i zapis iznosa (celi iz
 | Korisnici, Dnevnik, Moj nalog | korisnici panela i uloge (vlasnik, prodaja, sadržaj); ko je i kada šta menjao; sopstvena lozinka, email adresa i prijava u dva koraka kodom iz aplikacije |
 | Podešavanja | prodavnica, tema sajta, načini dostave (cena, težina, zone), plaćanje (pouzeće, uplata na račun, kartica uz povezan procesor), povrat (uključen ili isključen), prijava kupaca Google nalogom, račun i PDV, SMTP, poruke o statusu, šablon emaila |
 
-**Zaboravljena lozinka panela.** Na strani za prijavu je link „Zaboravili ste lozinku?": korisnik upiše korisničko ime ili email i dobija link koji važi sat vremena. Za to treba podešen SMTP i email adresa uz korisnika (vlasnik je upisuje pri prvom pokretanju; ostali u delu Moj nalog, ili im je upisuje vlasnik). Bez toga ostaje `npm run admin:user`.
+**Zaboravljena lozinka panela.** Na strani za prijavu je link „Zaboravili ste lozinku?": korisnik upiše korisničko ime ili email i dobija link koji važi sat vremena. Za to treba podešen SMTP, upisana adresa sajta (`PUBLIC_URL` ili Podešavanja → Prodavnica → Adresa sajta; adresa iz zahteva se za linkove ne uzima, jer bi je napadač mogao podmetnuti) i email adresa uz korisnika (vlasnik je upisuje pri prvom pokretanju; ostali u delu Moj nalog, ili im je upisuje vlasnik). Bez toga ostaje `npm run admin:user`.
 
 **Prijava kupaca Google nalogom.** Svaka prodavnica upisuje svoje podatke: u Google Cloud konzoli napravite OAuth klijenta (Web application), kao „Authorized redirect URI" upišite `https://vaš-sajt/api/auth/google/callback`, pa Client ID i Client secret prepišite u Podešavanja → Prijava kupaca. Dok su polja prazna, dugme se ne prikazuje.
 
@@ -210,7 +210,9 @@ Izabrana varijanta (npr. „Grafit, Orah") stoji uz stavku porudžbine u panelu 
 
 ## Hosting i rezervna kopija
 
-Hosting mora da podržava Node.js aplikacije. Na njemu se prave prazna baza i promenljive iz `.env.example`; `PUBLIC_URL` je javna adresa CRM-a i ulazi u adrese slika.
+Hosting mora da podržava Node.js aplikacije. Na njemu se prave prazna baza i promenljive iz `.env.example`; `PUBLIC_URL` je javna adresa CRM-a i ulazi u adrese slika i u linkove u emailu. Bez nje (i bez adrese sajta u Podešavanjima) emailovi sa linkom za novu lozinku, podsetnik za korpu i novosti se ne šalju, a kartica se ne pokreće; lokalno, na `localhost`-u, radi i bez toga.
+
+Aplikacija treba da stoji iza proxy-ja (nginx, Cloudflare, proxy hostinga) koji dopisuje adresu posetioca u `X-Forwarded-For`; ograničenje broja pokušaja čita adresu koju je dopisao proxy. Ako ih je više u nizu, njihov broj se upisuje u `TRUSTED_PROXIES`. Prijava u panel i prodavnicu, nova lozinka i praćenje porudžbine imaju i brojač po nalogu, a porudžbine ukupnu granicu (100 za deset minuta), pa ih promena zaglavlja ne zaobilazi.
 
 Ubačene slike su fajlovi u `storage/uploads/` (folder se premešta promenljivom `UPLOADS_DIR`). Taj folder mora da preživi deploy — na hostingu bez trajnog diska slike bi nestale.
 

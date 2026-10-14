@@ -9,9 +9,28 @@ const attempts = new Map<string, number[]>();
 
 export const TOO_MANY = "Previše pokušaja. Sačekajte nekoliko minuta.";
 
-/** Adresa posetioca; iza proxy-ja hostinga je prva u zaglavlju x-forwarded-for. */
+/**
+ * Adresa posetioca. Proxy hostinga dopisuje adresu sa koje je dobio zahtev na kraj zaglavlja
+ * x-forwarded-for, a sve ispred nje šalje sam posetilac. Zato se uzima adresa koju je dopisao
+ * proxy najbliži posetiocu: TRUSTED_PROXIES kaže koliko ih stoji ispred aplikacije (podrazumevano 1).
+ * Bez proxy-ja ispred aplikacije zaglavlje ostaje posetiočevo, pa prijava i lozinke imaju i
+ * brojač po nalogu, a porudžbine ukupnu granicu (tooManyOrders).
+ */
 export function clientIp(headers: Headers): string {
-  return (headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
+  const chain = (headers.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((address) => address.trim())
+    .filter(Boolean);
+  const hops = Math.max(1, Math.floor(Number(process.env.TRUSTED_PROXIES)) || 1);
+  return chain[Math.max(0, chain.length - hops)] ?? "unknown";
+}
+
+/** Porudžbina sa svih adresa zajedno za deset minuta; iznad toga je zatrpavanje, ne kupovina. */
+const ORDERS_PER_WINDOW = 100;
+
+/** Ukupna granica porudžbina, nezavisna od adrese posetioca. */
+export function tooManyOrders(now = Date.now()): boolean {
+  return tooMany("order-all", "*", ORDERS_PER_WINDOW, now);
 }
 
 /**

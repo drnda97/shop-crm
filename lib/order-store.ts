@@ -1,6 +1,7 @@
 import { getShopLang } from "@/lib/i18n/server";
 import { randomInt } from "node:crypto";
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import { headers } from "next/headers";
 import { after } from "next/server";
 import { findStockProblem, getPricing, getWeight, toLines, type CartLine, type Pricing } from "@/lib/cart";
 import { currentPrice, variantLabel } from "@/lib/catalog";
@@ -35,7 +36,7 @@ import { emitOrderEvent } from "@/lib/integrations";
 import { cardProvider } from "@/lib/payments";
 import { enabledPayments, type PaymentMethod, type Settings } from "@/lib/settings";
 import { availableMethods, basePrice, type ShippingMethod } from "@/lib/shipping";
-import { siteUrl } from "@/lib/storefront/pages";
+import { linkBase } from "@/lib/mail";
 import { logStock, type StockChange } from "@/lib/stock";
 
 /**
@@ -838,14 +839,18 @@ export async function submitOrder(input: unknown, source = "Porudžbina primljen
 
   // Kartica: procesor daje adresu na kojoj kupac plaća. Ako pokretanje ne uspe, porudžbina
   // ostaje sačuvana kao neplaćena, a kupac dobija poruku umesto adrese.
+  // Adresa za potvrdu banke je samo upisana adresa sajta, ne ona iz zaglavlja zahteva.
   let paymentUrl: string | undefined;
-  if (order.paymentMethod === "card" && provider) {
+  const base = order.paymentMethod === "card" ? linkBase(settings, await headers()) : "";
+  if (order.paymentMethod === "card" && provider && !base) {
+    await addOrderEvent(await getDb(), order.number, "Plaćanje karticom nije pokrenuto: adresa sajta nije upisana u Podešavanjima.");
+  } else if (order.paymentMethod === "card" && provider) {
     const started = await provider.start({
       orderNumber: order.number,
       amount: order.total,
       currency: settings.store.currency,
       customerEmail: order.customer.email,
-      callbackUrl: `${await siteUrl()}/api/v1/payments/${provider.id}`,
+      callbackUrl: `${base}/api/v1/payments/${provider.id}`,
     });
     if (started.ok) paymentUrl = started.redirectUrl;
     else await addOrderEvent(await getDb(), order.number, `Plaćanje karticom nije pokrenuto: ${started.error}`);

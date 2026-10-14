@@ -91,6 +91,8 @@ export const panelMore: Dict = {
     "Hi {ime}, you asked for a new password for the shop panel. The link is valid for one hour.\n\nIf it was not you, you do not need to do anything: the password stays the same.",
   "Postavite novu lozinku": "Set a new password",
   "Upišite korisničko ime ili email adresu.": "Enter your username or email address.",
+  "Adresa sajta nije upisana (Podešavanja → Prodavnica → Adresa sajta, ili PUBLIC_URL), pa link ne može da se pošalje.":
+    "The site address is not set (Settings → Store → Site address, or PUBLIC_URL), so the link cannot be sent.",
   "Slanje emaila nije podešeno, pa link ne može da stigne. Novu lozinku vam postavlja vlasnik, a vlasniku komanda npm run admin:user.":
     "Email sending is not set up, so the link cannot be delivered. The owner sets a new password for you; the owner uses the command npm run admin:user.",
   "Link više ne važi. Zatražite novi.": "The link is no longer valid. Request a new one.",

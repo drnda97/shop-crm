@@ -1,10 +1,16 @@
+const FORMULA_START = /^[=+\-@\t\r\n]/;
+
 /**
  * CSV za Excel: polja razdvojena tačka-zarezom (tako ga Excel na našim
  * podešavanjima otvara u kolonama) i BOM na početku, da se č, ć, š, ž i đ vide ispravno.
  */
 export function toCsv(rows: (string | number)[][]): string {
   const cell = (value: string | number) => {
-    const text = String(value);
+    // Tekst koji počinje sa =, +, -, @, tabom ili novim redom Excel čita kao formulu; kupac ga
+    // može upisati u ime ili adresu. Apostrof ispred ga ostavlja tekstom (Excel ga ne prikazuje,
+    // a csvRecords ga pri uvozu skida). Iznos kao „-150.00" ostaje broj.
+    const raw = String(value);
+    const text = FORMULA_START.test(raw) && !/^-\d+([.,]\d+)?$/.test(raw) ? `'${raw}` : raw;
     return /[";\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
   };
   return `﻿${rows.map((row) => row.map(cell).join(";")).join("\r\n")}\r\n`;
@@ -64,6 +70,11 @@ export function csvRecords(rows: string[][]): Record<string, string>[] {
   const [header = [], ...body] = rows;
   const names = header.map((name) => name.trim().toLowerCase());
   return body.map((cells) =>
-    Object.fromEntries(names.map((name, index) => [name, (cells[index] ?? "").trim()])),
+    Object.fromEntries(names.map((name, index) => [name, unescapeFormula(cells[index] ?? "").trim()])),
   );
+}
+
+/** Skida apostrof koji toCsv dodaje ispred teksta sličnog formuli, da izvoz i uvoz daju isto. */
+function unescapeFormula(value: string): string {
+  return value.startsWith("'") && FORMULA_START.test(value.slice(1)) ? value.slice(1) : value;
 }

@@ -24,7 +24,7 @@ import {
 } from "@/lib/content";
 import { checkCode, quoteCart, submitOrder } from "@/lib/order-store";
 import { parseItems } from "@/lib/orders";
-import { clientIp, TOO_MANY, tooMany } from "@/lib/rate-limit";
+import { clientIp, TOO_MANY, tooMany, tooManyOrders } from "@/lib/rate-limit";
 import { parseRichText, plainText } from "@/lib/rich-text";
 import type { Settings } from "@/lib/settings";
 import { availableMethods } from "@/lib/shipping";
@@ -285,7 +285,7 @@ export async function POST(request: Request, { params }: Context) {
   }
 
   if (route === "orders") {
-    if (tooMany("order", clientIp(request.headers), 10)) {
+    if (tooMany("order", clientIp(request.headers), 10) || tooManyOrders()) {
       return reply(request, settings, { ok: false, errors: {}, message: TOO_MANY }, 429);
     }
     const result = await submitOrder(body);

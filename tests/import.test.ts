@@ -37,6 +37,15 @@ describe("čitanje CSV-a", () => {
     expect(csvRecords(parseCsv(toCsv(rows)))[0]).toEqual({ naziv: 'Stolica "Lena"', opis: "Prvi red\nDrugi; red" });
   });
 
+  it("tekst koji počinje kao formula dobija apostrof, a uvoz ga skida", () => {
+    const csv = toCsv([["ime", "opis", "iznos"], ["=cmd|' /C calc'!A0", "- prvi\n- drugi", "-150.00"], ["@SUM(A1)", "+381641234567", "12"]]);
+    const cells = parseCsv(csv);
+    expect(cells[1]).toEqual(["'=cmd|' /C calc'!A0", "'- prvi\n- drugi", "-150.00"]);
+    expect(cells[2]).toEqual(["'@SUM(A1)", "'+381641234567", "12"]);
+    expect(csvRecords(cells)[0]).toEqual({ ime: "=cmd|' /C calc'!A0", opis: "- prvi\n- drugi", iznos: "-150.00" });
+    expect(csvRecords(parseCsv("ime\n'Marko\n"))[0]).toEqual({ ime: "'Marko" });
+  });
+
   it("prepoznaje oblik po zaglavlju", () => {
     expect(detectFormat(SHOPIFY.split("\n")[0].split(","))).toBe("shopify");
     expect(detectFormat(parseCsv(WOO)[0])).toBe("woocommerce");

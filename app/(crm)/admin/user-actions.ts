@@ -29,7 +29,7 @@ import {
 import { audit } from "@/lib/audit";
 import { getSettings, updateContent } from "@/lib/content";
 import { getPanelT } from "@/lib/i18n/server";
-import { isMailReady, publicBase, sendMails, simpleEmail } from "@/lib/mail";
+import { isMailReady, linkBase, NO_SITE_URL, sendMails, simpleEmail } from "@/lib/mail";
 import {
   createApiKey,
   createWebhook,
@@ -91,10 +91,12 @@ export async function forgotPasswordAction(_previous: ForgotState, formData: For
   if (!isMailReady(settings)) {
     return { error: "Slanje emaila nije podešeno, pa link ne može da stigne. Novu lozinku vam postavlja vlasnik, a vlasniku komanda npm run admin:user." };
   }
+  const base = linkBase(settings, requestHeaders);
+  if (!base) return { error: NO_SITE_URL };
+  // Uz brojač po adresi i jedan po nalogu: adresu posetilac može da menja.
+  if (tooMany("admin-forgot-user", login, 3)) return { sent: true };
   const reset = await createAdminReset(login);
   if (reset) {
-    const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
-    const base = host ? `${requestHeaders.get("x-forwarded-proto") ?? "http"}://${host}` : publicBase(settings);
     const t = await getPanelT();
     const { errors } = await sendMails(settings, [
       {

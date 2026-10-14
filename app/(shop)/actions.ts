@@ -8,7 +8,7 @@ import { discountText } from "@/lib/discounts";
 import { addOrderEvent, getOrder, getOrders, quoteCart, submitOrder } from "@/lib/order-store";
 import { availableMethods } from "@/lib/shipping";
 import { itemName, orderStatusLabels, validateCustomer, type Order, type OrderErrors } from "@/lib/orders";
-import { clientIp, TOO_MANY, tooMany as countAttempt } from "@/lib/rate-limit";
+import { clientIp, TOO_MANY, tooMany as countAttempt, tooManyOrders } from "@/lib/rate-limit";
 import type { PaymentMethod } from "@/lib/settings";
 import {
   checkUser,
@@ -25,14 +25,14 @@ import {
   type ShopAddress,
 } from "@/lib/storefront/auth";
 import { getDb } from "@/lib/db";
-import { isMailReady, sendMails, simpleEmail } from "@/lib/mail";
+import { isMailReady, linkBase, sendMails, simpleEmail } from "@/lib/mail";
 import { unsubscribeNewsletter } from "@/lib/newsletter";
 import { addReturnRequest, getOrderReturns, returnStatusLabels } from "@/lib/returns";
 import { saveReview } from "@/lib/reviews";
 import { clearCart, saveCart, unsubscribeCart } from "@/lib/abandoned";
 import { getShopProductsBySlugs, getWelcomeCode } from "@/lib/storefront/catalog";
 import { toCardProduct, type CardProduct } from "@/lib/storefront/products";
-import { getShopSettings, siteUrl } from "@/lib/storefront/pages";
+import { getShopSettings } from "@/lib/storefront/pages";
 import { addMessage, addSubscriber } from "@/lib/storefront/inbox";
 
 /**
@@ -53,6 +53,14 @@ function asEmail(value: unknown): string | null {
 
 async function tooMany(kind: string, max: number): Promise<boolean> {
   return countAttempt(kind, clientIp(await headers()), max);
+}
+
+/**
+ * Brojač po nalogu ili porudžbini, nezavisan od adrese posetioca: adresu iz zaglavlja posetilac
+ * može da menja, pa sam brojač po adresi ne sprečava nagađanje lozinke jednog naloga.
+ */
+function tooManyFor(kind: string, key: string, max: number): boolean {
+  return countAttempt(kind, key.toLowerCase(), max);
 }
 
 /* ---------- Nalog ---------- */
@@ -97,6 +105,7 @@ export async function loginAction(input: {
   if (await tooMany("login", 20)) return { ok: false, error: TOO_MANY };
   const email = asEmail(input.email);
   const password = typeof input.password === "string" ? input.password.slice(0, 200) : "";
+  if (email && tooManyFor("login-email", email, 10)) return { ok: false, error: TOO_MANY };
   const user = email ? await checkUser(email, password) : null;
   if (!user) return { ok: false, error: "Pogrešna email adresa ili lozinka." };
   await startSession(user.id, input.remember === true);
@@ -118,10 +127,13 @@ export async function requestResetAction(input: string): Promise<{ ok: true } | 
   if (!email) return { ok: false, error: "Upišite ispravnu email adresu." };
   if (await tooMany("reset", 5)) return { ok: false, error: TOO_MANY };
   const settings = await getShopSettings();
-  if (!isMailReady(settings)) return { ok: false, error: MAIL_OFF };
+  // Link sa žetonom ide samo na upisanu adresu sajta, nikad na onu iz zaglavlja zahteva.
+  const base = linkBase(settings, await headers());
+  if (!isMailReady(settings) || !base) return { ok: false, error: MAIL_OFF };
+  if (tooManyFor("reset-email", email, 3)) return { ok: true };
   const reset = await createPasswordReset(email);
   if (reset) {
-    const url = `${await siteUrl()}${(await getShopPath())(`/nalog/lozinka/${reset.token}`)}`;
+    const url = `${base}${(await getShopPath())(`/nalog/lozinka/${reset.token}`)}`;
     const t = await getShopT();
     const { errors } = await sendMails(settings, [
       {
@@ -229,6 +241,7 @@ const NOT_FOUND = "Nismo našli porudžbinu sa tim brojem i email adresom.";
 
 export async function trackOrderAction(input: { number: string; email: string }): Promise<{ ok: true; order: OrderView } | { ok: false; error: string }> {
   if (await tooMany("track", 20)) return { ok: false, error: TOO_MANY };
+  if (tooManyFor("track-order", asText(input?.number, 12).replace(/^#/, ""), 10)) return { ok: false, error: TOO_MANY };
   const order = await findCustomerOrder(input?.number, input?.email);
   return order ? { ok: true, order: await toOrderView(order) } : { ok: false, error: NOT_FOUND };
 }
@@ -402,7 +415,7 @@ export async function saveCartAction(input: {
     if (typeof item?.slug !== "string" || !Number.isInteger(qty) || qty < 1) return [];
     return [{ slug: item.slug, qty, ...(typeof item.variantId === "string" ? { variant: item.variantId } : {}) }];
   });
-  await saveCart({ email, firstName: asText(input.firstName, 100), items, siteUrl: await siteUrl(), lang: await getShopLang() });
+  await saveCart({ email, firstName: asText(input.firstName, 100), items, siteUrl: linkBase(settings, await headers()), lang: await getShopLang() });
 }
 
 /** Odjava od podsetnika za korpu, sa linka u emailu. */
@@ -459,7 +472,7 @@ function fromCrm(errors: OrderErrors): CheckoutErrors {
 export async function placeOrderAction(
   input: PlaceOrderInput,
 ): Promise<{ ok: true; order: PlacedOrder } | { ok: false; errors: CheckoutErrors; message?: string }> {
-  if (await tooMany("order", 10)) return { ok: false, errors: {}, message: TOO_MANY };
+  if ((await tooMany("order", 10)) || tooManyOrders()) return { ok: false, errors: {}, message: TOO_MANY };
 
   const raw = (typeof input === "object" && input !== null ? input : {}) as Partial<PlaceOrderInput>;
   const customer = (raw.customer ?? {}) as Partial<Record<CheckoutField, unknown>>;
