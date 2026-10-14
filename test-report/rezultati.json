@@ -1,0 +1,4839 @@
+[
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "pos",
+  "title": "/admin prikazuje čarobnjak dok nema korisnika",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "bez prijave: /admin/porudzbine ne daje sadržaj",
+  "pass": true,
+  "detail": "status 200, location null, <!DOCTYPE html><html lang=\"sr-Latn\" class=\"red_hat_display_805cdfaa-module__TKgs"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "bez prijave: /admin/podesavanja ne daje sadržaj",
+  "pass": true,
+  "detail": "status 200, location null, <!DOCTYPE html><html lang=\"sr-Latn\" class=\"red_hat_display_805cdfaa-module__TKgs"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "bez prijave: /admin/korisnici ne daje sadržaj",
+  "pass": true,
+  "detail": "status 200, location null, <!DOCTYPE html><html lang=\"sr-Latn\" class=\"red_hat_display_805cdfaa-module__TKgs"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "bez prijave: /admin/porudzbine/izvoz ne daje sadržaj",
+  "pass": true,
+  "detail": "status 404, location null, Not found"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "bez prijave: /admin/kupci/izvoz ne daje sadržaj",
+  "pass": true,
+  "detail": "status 404, location null, Not found"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "bez prijave: /admin/proizvodi/izvoz ne daje sadržaj",
+  "pass": true,
+  "detail": "status 404, location null, Not found"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "bez prijave: /admin/poruke/izvoz ne daje sadržaj",
+  "pass": true,
+  "detail": "status 404, location null, Not found"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "bez prijave: /admin/izvestaji/izvoz ne daje sadržaj",
+  "pass": true,
+  "detail": "status 404, location null, Not found"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "bez prijave: /admin/podesavanja/sablon ne daje sadržaj",
+  "pass": true,
+  "detail": "status 404, location null, Not found"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "bez prijave: /admin/podesavanja/pregled ne daje sadržaj",
+  "pass": true,
+  "detail": "status 404, location null, Not found"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "bez prijave: /admin/porudzbine/1001/racun ne daje sadržaj",
+  "pass": true,
+  "detail": "status 404, location null, Not found"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "bez prijave: /admin/kupci/t641234567/podaci ne daje sadržaj",
+  "pass": true,
+  "detail": "status 404, location null, Not found"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "neg",
+  "title": "čarobnjak odbija kratku lozinku",
+  "pass": true,
+  "detail": "{\"error\":\"Lozinka mora imati najmanje 10 znakova.\"}"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "neg",
+  "title": "čarobnjak odbija različite lozinke",
+  "pass": true,
+  "detail": "{\"error\":\"Lozinke se ne poklapaju.\"}"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "neg",
+  "title": "čarobnjak odbija neispravno korisničko ime",
+  "pass": true,
+  "detail": "{\"error\":\"Korisničko ime: 3–100 znakova, mala slova, cifre, tačka, crtica ili email adresa.\"}"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "neg",
+  "title": "čarobnjak traži ime",
+  "pass": true,
+  "detail": "{\"error\":\"Upišite svoje ime.\"}"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "server akcija sa tuđeg Origin-a se odbija (CSRF)",
+  "pass": true,
+  "detail": "status 500 0:{\"a\":\"$@1\",\"f\":\"\",\"q\":\"\",\"i\":false,\"b\":\"Yr1hOL5202tEe7i24pPXb\"}\n1:E{\"digest\":\"690545152@E80\"}\n"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "…i vlasnik nije napravljen",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "dva istovremena čarobnjaka prave samo jednog vlasnika",
+  "pass": true,
+  "detail": "[{\"username\":\"vlasnik\",\"role\":\"owner\"}] a=/admin/podesavanja b={\"error\":\"Panel je već podešen. Osvežite stranicu i prijavite se.\"}"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "sec",
+  "title": "čarobnjak ne radi kada vlasnik postoji",
+  "pass": true,
+  "detail": "{\"error\":\"Panel je već podešen. Osvežite stranicu i prijavite se.\"}"
+ },
+ {
+  "area": "Prvo pokretanje i prijava u panel",
+  "kind": "pos",
+  "title": "čarobnjak je upisao naziv i email prodavnice",
+  "pass": true,
+  "detail": "{\"name\":\"Probna Radnja\",\"phone\":\"\",\"email\":\"radnja@example.test\",\"address\":\"\",\"currency\":\"RSD\",\"currencyDecimals\":0,\"language\":\"sr\",\"languages\":[],\"panelLanguage\":\"sr\",\"locale\":\"sr-Latn-RS\",\"timeZone\":\"Europe/Belgrade\",\"phonePrefix\":\"381\",\"codePrefix\":\"KOD\",\"storefrontUrl\":\"\",\"allowedOrigins\":\"\",\"le"
+ },
+ {
+  "area": "Prijava u panel",
+  "kind": "neg",
+  "title": "pogrešna lozinka",
+  "pass": true,
+  "detail": "{\"error\":\"Pogrešno korisničko ime ili lozinka.\"}"
+ },
+ {
+  "area": "Prijava u panel",
+  "kind": "neg",
+  "title": "nepostojeći korisnik daje istu poruku",
+  "pass": true,
+  "detail": "{\"error\":\"Pogrešno korisničko ime ili lozinka.\"}"
+ },
+ {
+  "area": "Prijava u panel",
+  "kind": "sec",
+  "title": "SQL injection u prijavi ne prolazi",
+  "pass": true,
+  "detail": "{\"error\":\"Pogrešno korisničko ime ili lozinka.\"}"
+ },
+ {
+  "area": "Prijava u panel",
+  "kind": "pos",
+  "title": "prijava ispravnom lozinkom (ime velikim slovima)",
+  "pass": true,
+  "detail": "redirect /admin $Sreact.fragment"
+ },
+ {
+  "area": "Prijava u panel",
+  "kind": "pos",
+  "title": "pregled panela se otvara",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Prijava u panel",
+  "kind": "sec",
+  "title": "prijava se blokira posle 10 pogrešnih pokušaja",
+  "pass": true,
+  "detail": "blokada na pokušaju 11"
+ },
+ {
+  "area": "Prijava u panel",
+  "kind": "sec",
+  "title": "blokada prijave NE može da se zaobiđe promenom X-Forwarded-For",
+  "pass": false,
+  "detail": "sa drugom XFF adresom: {\"error\":\"Pogrešno korisničko ime ili lozinka.\"} (napadač sam bira zaglavlje)"
+ },
+ {
+  "area": "Podešavanja prodavnice",
+  "kind": "pos",
+  "title": "čuvanje podataka prodavnice",
+  "pass": true,
+  "detail": "/admin/podesavanja?ok=Podaci o prodavnici su sačuvani."
+ },
+ {
+  "area": "Podešavanja prodavnice",
+  "kind": "neg",
+  "title": "prodavnica bez naziva se odbija",
+  "pass": true,
+  "detail": "Upišite naziv prodavnice."
+ },
+ {
+  "area": "Podešavanja prodavnice",
+  "kind": "neg",
+  "title": "neispravna vremenska zona se odbija",
+  "pass": true,
+  "detail": "Proverite jezik (npr. sr-Latn-RS) i vremensku zonu (npr. Europe/Belgrade)."
+ },
+ {
+  "area": "Podešavanja prodavnice",
+  "kind": "neg",
+  "title": "neispravna adresa sajta (CORS) se odbija",
+  "pass": true,
+  "detail": "Adresa sajta „javascript:alert(1)\" nije ispravna. Upisuje se u obliku https://mojsajt.rs, bez putanje."
+ },
+ {
+  "area": "Podešavanja prodavnice",
+  "kind": "neg",
+  "title": "neispravan email prodavnice se odbija",
+  "pass": true,
+  "detail": "Proverite adresu u polju „Email prodavnice\"."
+ },
+ {
+  "area": "Dostava, plaćanje, PDV, email",
+  "kind": "pos",
+  "title": "čuvanje tri načina dostave",
+  "pass": true,
+  "detail": "{\"ok\":true}"
+ },
+ {
+  "area": "Dostava, plaćanje, PDV, email",
+  "kind": "neg",
+  "title": "dostava bez ijednog načina se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Mora postojati bar jedan način dostave.\"}"
+ },
+ {
+  "area": "Dostava, plaćanje, PDV, email",
+  "kind": "neg",
+  "title": "dostava sa cenom koja nije broj se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"„X\\\": iznosi su brojevi, npr. 450 ili 4,50.\"}"
+ },
+ {
+  "area": "Dostava, plaćanje, PDV, email",
+  "kind": "neg",
+  "title": "dostava sa negativnom cenom se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"„Minus\\\": iznosi su brojevi, npr. 450 ili 4,50.\"}"
+ },
+ {
+  "area": "Dostava, plaćanje, PDV, email",
+  "kind": "pos",
+  "title": "plaćanje: pouzeće + račun + kartica (probni procesor)",
+  "pass": true,
+  "detail": "/admin/podesavanja?ok=Plaćanje i povrat su sačuvani."
+ },
+ {
+  "area": "Dostava, plaćanje, PDV, email",
+  "kind": "neg",
+  "title": "plaćanje bez ijednog načina se odbija",
+  "pass": true,
+  "detail": "Bar jedan način plaćanja mora biti uključen. Kartica se računa tek kada je procesor povezan."
+ },
+ {
+  "area": "Dostava, plaćanje, PDV, email",
+  "kind": "neg",
+  "title": "uplata na račun bez podataka se odbija",
+  "pass": true,
+  "detail": "Za uplatu na račun upišite podatke za uplatu."
+ },
+ {
+  "area": "Dostava, plaćanje, PDV, email",
+  "kind": "pos",
+  "title": "PDV 20%",
+  "pass": true,
+  "detail": "/admin/podesavanja?ok=Račun i PDV su sačuvani."
+ },
+ {
+  "area": "Dostava, plaćanje, PDV, email",
+  "kind": "neg",
+  "title": "PDV 150% se odbija",
+  "pass": true,
+  "detail": "Stopa PDV-a je broj od 0 do 100."
+ },
+ {
+  "area": "Dostava, plaćanje, PDV, email",
+  "kind": "pos",
+  "title": "SMTP (lokalni lažni server)",
+  "pass": true,
+  "detail": "/admin/podesavanja?ok=Podešavanja emaila su sačuvana."
+ },
+ {
+  "area": "Dostava, plaćanje, PDV, email",
+  "kind": "neg",
+  "title": "SMTP port van opsega se odbija",
+  "pass": true,
+  "detail": "Port je broj, najčešće 587 ili 465."
+ },
+ {
+  "area": "Dostava, plaćanje, PDV, email",
+  "kind": "pos",
+  "title": "probni email stiže",
+  "pass": true,
+  "detail": "/admin/podesavanja?ok=Probni email je poslat na vašu adresu: jedna poruka kakvu dobijate vi, jedna kakvu dobija kupac."
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "kategorija „Stolice\"",
+  "pass": true,
+  "detail": "/admin/kategorije"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "kategorija „Fotelje\"",
+  "pass": true,
+  "detail": "/admin/kategorije"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "kategorija „Barske stolice\"",
+  "pass": true,
+  "detail": "/admin/kategorije"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "neg",
+  "title": "kategorija bez naziva se odbija",
+  "pass": true,
+  "detail": "Upišite naziv kategorije."
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "proizvod sa brojem komada",
+  "pass": true,
+  "detail": "/admin/proizvodi"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "proizvod na akciji, bez vođenja stanja",
+  "pass": true,
+  "detail": "/admin/proizvodi"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "proizvod sa varijantama",
+  "pass": true,
+  "detail": "/admin/proizvodi"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "proizvod kao nacrt",
+  "pass": true,
+  "detail": "/admin/proizvodi"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "proizvod koji nije na stanju",
+  "pass": true,
+  "detail": "/admin/proizvodi"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "proizvod bez cene",
+  "pass": true,
+  "detail": "/admin/proizvodi"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "proizvod: poslednji komad",
+  "pass": true,
+  "detail": "/admin/proizvodi"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "proizvod: deset komada",
+  "pass": true,
+  "detail": "/admin/proizvodi"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "proizvod sa HTML-om u nazivu i opisu",
+  "pass": true,
+  "detail": "/admin/proizvodi"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "proizvod besplatan (cena 0)",
+  "pass": true,
+  "detail": "/admin/proizvodi"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "neg",
+  "title": "proizvod bez naziva",
+  "pass": true,
+  "detail": "/admin/proizvodi/novi?greska=Upišite naziv proizvoda."
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "neg",
+  "title": "cena koja nije broj",
+  "pass": true,
+  "detail": "/admin/proizvodi/novi?greska=Cena je broj, npr. 1250 ili 12,50."
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "neg",
+  "title": "negativna cena",
+  "pass": true,
+  "detail": "/admin/proizvodi/novi?greska=Cena je broj, npr. 1250 ili 12,50."
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "neg",
+  "title": "akcijska cena viša od redovne",
+  "pass": true,
+  "detail": "/admin/proizvodi/novi?greska=Cena na akciji mora biti niža od redovne cene."
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "neg",
+  "title": "negativan broj komada",
+  "pass": true,
+  "detail": "/admin/proizvodi/novi?greska=Broj komada na stanju je ceo broj, nula ili više."
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "neg",
+  "title": "broj komada sa decimalom",
+  "pass": true,
+  "detail": "/admin/proizvodi/novi?greska=Broj komada na stanju je ceo broj, nula ili više."
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "neg",
+  "title": "naziv samo od znakova (bez slova)",
+  "pass": true,
+  "detail": "/admin/proizvodi/novi?greska=Naziv mora da sadrži bar jedno slovo ili cifru."
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "neg",
+  "title": "više od 100 kombinacija varijanti",
+  "pass": true,
+  "detail": "/admin/proizvodi/novi?greska=Opcije daju više od 100 kombinacija. Smanjite broj vrednosti."
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "neg",
+  "title": "cena veća od 2.147.483.647 daje poruku, ne grešku servera",
+  "pass": false,
+  "detail": "HTTP 500, redirect null; 0:{\"a\":\"$@1\",\"f\":\"\",\"q\":\"\",\"i\":false,\"b\":\"Yr1hOL5202tEe7i24pPXb\"}\n1:E{\"digest\":\"783857636\"}\n"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "sec",
+  "title": "…i katalog je posle toga ceo (proizvoda pre/posle)",
+  "pass": true,
+  "detail": "10 → 10"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "neg",
+  "title": "cena „0x10“ / „1e3“ se ne prihvata kao broj",
+  "pass": false,
+  "detail": "1e3 → /admin/proizvodi; 0x10 → /admin/proizvodi"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "drugi proizvod istog naziva",
+  "pass": true,
+  "detail": "/admin/proizvodi"
+ },
+ {
+  "area": "Kategorije i proizvodi",
+  "kind": "pos",
+  "title": "isti naziv → različite oznake (slug)",
+  "pass": true,
+  "detail": "stolica-test,stolica-test-2"
+ },
+ {
+  "area": "Popusti",
+  "kind": "pos",
+  "title": "promo kod 10%",
+  "pass": true,
+  "detail": "/admin/popusti"
+ },
+ {
+  "area": "Popusti",
+  "kind": "pos",
+  "title": "promo kod fiksni iznos 2000, najmanja korpa 15000",
+  "pass": true,
+  "detail": "/admin/popusti"
+ },
+ {
+  "area": "Popusti",
+  "kind": "pos",
+  "title": "promo kod besplatna dostava",
+  "pass": true,
+  "detail": "/admin/popusti"
+ },
+ {
+  "area": "Popusti",
+  "kind": "pos",
+  "title": "promo kod za jedno korišćenje",
+  "pass": true,
+  "detail": "/admin/popusti"
+ },
+ {
+  "area": "Popusti",
+  "kind": "pos",
+  "title": "promo kod koji je istekao",
+  "pass": true,
+  "detail": "/admin/popusti"
+ },
+ {
+  "area": "Popusti",
+  "kind": "pos",
+  "title": "promo kod u nacrtu",
+  "pass": true,
+  "detail": "/admin/popusti"
+ },
+ {
+  "area": "Popusti",
+  "kind": "pos",
+  "title": "promo kod 100%",
+  "pass": true,
+  "detail": "/admin/popusti"
+ },
+ {
+  "area": "Popusti",
+  "kind": "pos",
+  "title": "promo kod samo za kategoriju fotelje",
+  "pass": true,
+  "detail": "/admin/popusti"
+ },
+ {
+  "area": "Popusti",
+  "kind": "pos",
+  "title": "nagrada posle prve porudžbine 15%",
+  "pass": true,
+  "detail": "/admin/popusti"
+ },
+ {
+  "area": "Popusti",
+  "kind": "neg",
+  "title": "promo kod bez koda",
+  "pass": true,
+  "detail": "/admin/popusti/novi?greska=Promo kod mora imati upisan kod."
+ },
+ {
+  "area": "Popusti",
+  "kind": "neg",
+  "title": "popust 0%",
+  "pass": true,
+  "detail": "/admin/popusti/novi?greska=Popust je ceo broj od 1 do 100."
+ },
+ {
+  "area": "Popusti",
+  "kind": "neg",
+  "title": "popust 150%",
+  "pass": true,
+  "detail": "/admin/popusti/novi?greska=Popust je ceo broj od 1 do 100."
+ },
+ {
+  "area": "Popusti",
+  "kind": "neg",
+  "title": "kod sa nedozvoljenim znacima",
+  "pass": true,
+  "detail": "/admin/popusti/novi?greska=Kod može imati 3–32 znaka: slova bez kvačica, cifre i crticu."
+ },
+ {
+  "area": "Popusti",
+  "kind": "neg",
+  "title": "kod koji već postoji",
+  "pass": true,
+  "detail": "/admin/popusti/novi?greska=Taj kod već koristi drugi popust. Svaki popust mora imati svoj kod."
+ },
+ {
+  "area": "Popusti",
+  "kind": "neg",
+  "title": "nepoznata vrsta popusta",
+  "pass": true,
+  "detail": "/admin/popusti/novi?greska=Izaberite vrstu popusta."
+ },
+ {
+  "area": "Popusti",
+  "kind": "neg",
+  "title": "broj korišćenja 0",
+  "pass": true,
+  "detail": "/admin/popusti/novi?greska=Broj korišćenja je ceo broj veći od nule, ili prazno."
+ },
+ {
+  "area": "Popusti",
+  "kind": "neg",
+  "title": "neispravan datum",
+  "pass": true,
+  "detail": "/admin/popusti/novi?greska=Proverite datum do kog popust važi."
+ },
+ {
+  "area": "Pristup spolja i API ključevi",
+  "kind": "pos",
+  "title": "uključen javni API, API sa ključem i webhook-ovi",
+  "pass": true,
+  "detail": "/admin/integracije?ok=Pristup spolja je sačuvan."
+ },
+ {
+  "area": "Pristup spolja i API ključevi",
+  "kind": "pos",
+  "title": "API ključ (read)",
+  "pass": true,
+  "detail": "{\"key\":\"sk_d1f4535e43b9f5b3ee3d4b44d045feda3a0060b7decd77b8\"}"
+ },
+ {
+  "area": "Pristup spolja i API ključevi",
+  "kind": "pos",
+  "title": "API ključ (write)",
+  "pass": true,
+  "detail": "{\"key\":\"sk_ee96e9c1f40aea316a25bdcbd542999302a7eaad9092b68d\"}"
+ },
+ {
+  "area": "Pristup spolja i API ključevi",
+  "kind": "neg",
+  "title": "API ključ bez naziva se odbija",
+  "pass": true,
+  "detail": "{\"error\":\"Upišite čemu ključ služi, npr. „Knjigovodstvo“.\"}"
+ },
+ {
+  "area": "Pristup spolja i API ključevi",
+  "kind": "sec",
+  "title": "u bazi je samo heš ključa, ne ceo ključ",
+  "pass": true,
+  "detail": "[\"sk_d1f453\",\"sk_ee96e9\"]"
+ },
+ {
+  "area": "Korisnici panela i uloge",
+  "kind": "pos",
+  "title": "korisnik sa ulogom sales",
+  "pass": true,
+  "detail": "/admin/korisnici?ok=Korisnik prodaja je dodat. Lozinku mu javite sami; može da je promeni u svom nalogu."
+ },
+ {
+  "area": "Korisnici panela i uloge",
+  "kind": "pos",
+  "title": "korisnik sa ulogom content",
+  "pass": true,
+  "detail": "/admin/korisnici?ok=Korisnik sadrzaj je dodat. Lozinku mu javite sami; može da je promeni u svom nalogu."
+ },
+ {
+  "area": "Korisnici panela i uloge",
+  "kind": "pos",
+  "title": "korisnik sa ulogom owner",
+  "pass": true,
+  "detail": "/admin/korisnici?ok=Korisnik drugivlasnik je dodat. Lozinku mu javite sami; može da je promeni u svom nalogu."
+ },
+ {
+  "area": "Korisnici panela i uloge",
+  "kind": "neg",
+  "title": "korisnik sa zauzetim imenom se odbija",
+  "pass": true,
+  "detail": "Korisnik sa tim imenom već postoji."
+ },
+ {
+  "area": "Korisnici panela i uloge",
+  "kind": "neg",
+  "title": "korisnik sa kratkom lozinkom se odbija",
+  "pass": true,
+  "detail": "Lozinka mora imati najmanje 10 znakova."
+ },
+ {
+  "area": "Korisnici panela i uloge",
+  "kind": "neg",
+  "title": "nepoznata uloga ne postaje vlasnik",
+  "pass": true,
+  "detail": "uloga u bazi: sales"
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "pos",
+  "title": "GET /store",
+  "pass": true,
+  "detail": "{\"name\":\"Probna Radnja\",\"phone\":\"011 123 456\",\"email\":\"radnja@example.test\",\"address\":\"Glavna 1, Beograd\",\"currency\":{\"code\":\"RSD\",\"decimals\":0},\"locale\":\"sr-Latn-RS\",\"language\":\"sr\",\"languages\":[\"sr\""
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "sec",
+  "title": "/store ne otkriva SMTP, tajne ni interne podatke",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "sec",
+  "title": "/site ne otkriva SMTP ni tajne",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "pos",
+  "title": "GET /products vraća objavljene",
+  "pass": true,
+  "detail": "stolica-test,lampa-akcija,fotelja-varijante,nema-na-stanju,bez-cene,poslednji-komad,deset-komada,img-src-x-onerror-alert-1-xss,besplatan-uzorak"
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "sec",
+  "title": "nacrti nisu u /products",
+  "pass": true,
+  "detail": "stolica-test,lampa-akcija,fotelja-varijante,nema-na-stanju,bez-cene,poslednji-komad,deset-komada,img-src-x-onerror-alert-1-xss,besplatan-uzorak"
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "sec",
+  "title": "nacrt po oznaci → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "pos",
+  "title": "GET /products/{slug}",
+  "pass": true,
+  "detail": "{\"product\":{\"slug\":\"stolica-test\",\"name\":\"Stolica Test\",\"sku\":\"ST-1\",\"category\":\"stolice\",\"categories\":[\"stolice\"],\"seoTitle\":\"\",\"seoDescription\":\"\",\"related\":[],\"summary\":\"Hrast\",\"description\":\"Opis "
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "sec",
+  "title": "javni proizvod ne otkriva tačan broj komada preko polja stockQty",
+  "pass": true,
+  "detail": "stockQty=undefined, maxQty=5"
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "pos",
+  "title": "proizvod sa varijantama: 4 varijante, isključena i rasprodata nisu dostupne",
+  "pass": true,
+  "detail": "[\"crvena-hrast:true:30000\",\"crvena-orah:true:33000\",\"plava-orah:false:30000\"]"
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "pos",
+  "title": "filter po kategoriji obuhvata podkategoriju",
+  "pass": true,
+  "detail": "stolica-test,deset-komada"
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "pos",
+  "title": "pretraga ?q=",
+  "pass": true,
+  "detail": "lampa-akcija"
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "pos",
+  "title": "GET /categories",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "pos",
+  "title": "GET /collections",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "pos",
+  "title": "GET /pages",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "pos",
+  "title": "GET /blog",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Javni API: čitanje",
+  "kind": "pos",
+  "title": "GET /sections",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "GET /products/' OR '1'='1 → 404",
+  "pass": true,
+  "detail": "status 404 {\"error\":\"Not found\"}"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "GET /products/%00 → 404",
+  "pass": true,
+  "detail": "status 404 {\"error\":\"Not found\"}"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "GET /nepostoji → 404",
+  "pass": true,
+  "detail": "status 404 {\"error\":\"Not found\"}"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "GET /products/a/b/c → 404",
+  "pass": true,
+  "detail": "status 404 {\"error\":\"Not found\"}"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "GET /products?q=' UNION SELECT * FROM admin_users --  → 200",
+  "pass": true,
+  "detail": "status 200 {\"products\":[]}"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "GET /products?category=%27%3B DROP TABLE products%3B-- → 200",
+  "pass": true,
+  "detail": "status 200 {\"products\":[]}"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "GET /collections/' OR 1=1 → 404",
+  "pass": true,
+  "detail": "status 404 {\"error\":\"Not found\"}"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "GET /pages/<script> → 404",
+  "pass": true,
+  "detail": "status 404 {\"error\":\"Not found\"}"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "GET /blog/' OR 1=1 -- → 404",
+  "pass": true,
+  "detail": "status 404 {\"error\":\"Not found\"}"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "posle SQL pokušaja tabela products je cela",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "PUT /products/{slug} nije dozvoljen",
+  "pass": true,
+  "detail": "status 405"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "DELETE /products/{slug} nije dozvoljen",
+  "pass": true,
+  "detail": "status 405"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "PATCH /products/{slug} nije dozvoljen",
+  "pass": true,
+  "detail": "status 405"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "GET /orders (spisak porudžbina) ne postoji javno",
+  "pass": true,
+  "detail": "status 404 {\"error\":\"Not found\"}"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "/admin/orders bez ključa → 401",
+  "pass": true,
+  "detail": "status 401"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "neg",
+  "title": "POST /cart sa pokvarenim JSON-om ne ruši server",
+  "pass": true,
+  "detail": "status 200 {\"lines\":[],\"removedItems\":[],\"removed\":[],\"discount\":null,\"discountError\":null,\"pricing\":{\"subtotal\":0,\"discount\":0,\"de"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "neg",
+  "title": "POST /cart sa telom null",
+  "pass": true,
+  "detail": "status 200 {\"lines\":[],\"removedItems\":[],\"removed\":[],\"discount\":null,\"discountError\":null,\"pricing\":{\"subtotal\":0,\"discount\":0,\"de"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "neg",
+  "title": "POST /cart sa nizom umesto objekta",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "neg",
+  "title": "POST /orders sa tekstom umesto objekta → 422",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{\"name\":\"Upišite ime i prezime.\",\"phone\":\"Upišite broj telefona.\",\"email\":\"Upišite email adresu.\",\""
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "korpa sa __proto__ / constructor oznakama",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "korpa sa 50.000 stavki (1,2 MB) ne obara server",
+  "pass": true,
+  "detail": "status 200, 15 ms"
+ },
+ {
+  "area": "Javni API: neispravni i zlonamerni zahtevi",
+  "kind": "sec",
+  "title": "telo zahteva od 20 MB se odbija (ograničenje veličine)",
+  "pass": false,
+  "detail": "status 200, 41 ms — API prima telo bilo koje veličine"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "pos",
+  "title": "obračun: 2×10000 + akcija 4000 = 24000, dostava besplatna preko 20000",
+  "pass": true,
+  "detail": "{\"subtotal\":24000,\"discount\":0,\"delivery\":0,\"total\":24000}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "pos",
+  "title": "obračun: 4000 + dostava 500",
+  "pass": true,
+  "detail": "{\"subtotal\":4000,\"discount\":0,\"delivery\":500,\"total\":4500}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "pos",
+  "title": "za 21000 se ne nudi dostava samo za Beograd (zona 11)",
+  "pass": true,
+  "detail": "kurir,preuzimanje"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "pos",
+  "title": "dostava po težini: 8 kg → 1500",
+  "pass": true,
+  "detail": "{\"subtotal\":20000,\"discount\":0,\"delivery\":1500,\"total\":21500}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "neg",
+  "title": "količina veća od stanja se svodi na stanje (5)",
+  "pass": true,
+  "detail": "qty 5"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "neg",
+  "title": "nacrt, rasprodat, bez cene, nepostojeći, bez varijante, isključena i rasprodata varijanta ispadaju iz korpe",
+  "pass": true,
+  "detail": "lines  removed nacrt-proizvod,nema-na-stanju,bez-cene,nepostoji,fotelja-varijante"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "pos",
+  "title": "varijanta sa svojom akcijskom cenom 33000",
+  "pass": true,
+  "detail": "{\"subtotal\":33000,\"discount\":0,\"delivery\":0,\"total\":33000}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "pos",
+  "title": "kod malim slovima LETO10 → 10%",
+  "pass": true,
+  "detail": "{\"p\":{\"subtotal\":24000,\"discount\":2400,\"delivery\":0,\"total\":21600},\"e\":null}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "pos",
+  "title": "fiksni iznos 2000 uz korpu preko 15000",
+  "pass": true,
+  "detail": "{\"p\":{\"subtotal\":24000,\"discount\":2000,\"delivery\":0,\"total\":22000},\"e\":null}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "pos",
+  "title": "kod 100% → popust ceo iznos proizvoda",
+  "pass": true,
+  "detail": "{\"p\":{\"subtotal\":24000,\"discount\":24000,\"delivery\":500,\"total\":500},\"e\":null}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "neg",
+  "title": "kod „ISTEKAO\" ne daje popust",
+  "pass": true,
+  "detail": "{\"p\":{\"subtotal\":10000,\"discount\":0,\"delivery\":500,\"total\":10500},\"e\":\"Kod nije ispravan ili je već iskorišćen.\"}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "neg",
+  "title": "kod „NACRT\" ne daje popust",
+  "pass": true,
+  "detail": "{\"p\":{\"subtotal\":10000,\"discount\":0,\"delivery\":500,\"total\":10500},\"e\":\"Kod nije ispravan ili je već iskorišćen.\"}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "neg",
+  "title": "kod „NEPOSTOJI\" ne daje popust",
+  "pass": true,
+  "detail": "{\"p\":{\"subtotal\":10000,\"discount\":0,\"delivery\":500,\"total\":10500},\"e\":\"Kod nije ispravan ili je već iskorišćen.\"}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "neg",
+  "title": "kod „' OR 1=1 --\" ne daje popust",
+  "pass": true,
+  "detail": "{\"p\":{\"subtotal\":10000,\"discount\":0,\"delivery\":500,\"total\":10500},\"e\":\"Kod nije ispravan ili je već iskorišćen.\"}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "neg",
+  "title": "kod „AAAAAAAAAAAAAAAAAAAA\" ne daje popust",
+  "pass": true,
+  "detail": "{\"p\":{\"subtotal\":10000,\"discount\":0,\"delivery\":500,\"total\":10500},\"e\":\"Kod nije ispravan ili je već iskorišćen.\"}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "neg",
+  "title": "kod sa najmanjom korpom 15000 ne važi za korpu od 4000",
+  "pass": true,
+  "detail": "{\"p\":{\"subtotal\":4000,\"discount\":0,\"delivery\":500,\"total\":4500},\"e\":\"Kod ne važi za ovu korpu: proverite najmanji iznos i proizvode na koje se odnosi.\"}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "neg",
+  "title": "kod za kategoriju fotelje ne važi za lampu",
+  "pass": true,
+  "detail": "{\"p\":{\"subtotal\":4000,\"discount\":0,\"delivery\":500,\"total\":4500},\"e\":\"Kod ne važi za ovu korpu: proverite najmanji iznos i proizvode na koje se odnosi.\"}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "pos",
+  "title": "kod za kategoriju: 20% samo na fotelju (6000)",
+  "pass": true,
+  "detail": "{\"subtotal\":34000,\"discount\":6000,\"delivery\":0,\"total\":28000}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "pos",
+  "title": "kod za besplatnu dostavu",
+  "pass": true,
+  "detail": "{\"subtotal\":4000,\"discount\":0,\"delivery\":0,\"total\":4000}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "pos",
+  "title": "POST /discounts/check važeći kod",
+  "pass": true,
+  "detail": "{\"ok\":true,\"discount\":{\"code\":\"LETO10\",\"label\":\"Leto\",\"kind\":\"percent\",\"percent\":10,\"amount\":0,\"products\":[],\"categories\":[],\"threshold\":0}}"
+ },
+ {
+  "area": "Javni API: korpa i obračun",
+  "kind": "neg",
+  "title": "/discounts/check sa brojem umesto teksta",
+  "pass": true,
+  "detail": "{\"ok\":false,\"message\":\"Kod nije ispravan ili je već iskorišćen.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — pozitivni tok",
+  "kind": "pos",
+  "title": "porudžbina pouzećem → 201",
+  "pass": true,
+  "detail": "{\"ok\":true,\"orderNumber\":\"1001\",\"total\":18500,\"paymentMethod\":\"cod\",\"deliveryMethod\":\"Kurirska služba\",\"deliveryNote\":\"Stiže za 2-3 dana.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — pozitivni tok",
+  "kind": "pos",
+  "title": "stanje se skida (5 → 4)",
+  "pass": true,
+  "detail": "5 → 4"
+ },
+ {
+  "area": "Javni API: porudžbina — pozitivni tok",
+  "kind": "pos",
+  "title": "porudžbina u bazi: iznosi, status nova, PDV 20%",
+  "pass": true,
+  "detail": "{\"total\":18500,\"status\":\"new\",\"tax\":\"20.00\",\"delivery\":500}"
+ },
+ {
+  "area": "Javni API: porudžbina — pozitivni tok",
+  "kind": "pos",
+  "title": "prvi kupac dobija kod nagrade (15%)",
+  "pass": true,
+  "detail": "KOD-VJUS5T 15%"
+ },
+ {
+  "area": "Javni API: porudžbina — pozitivni tok",
+  "kind": "pos",
+  "title": "porudžbina uplatom na račun vraća podatke za uplatu",
+  "pass": true,
+  "detail": "{\"ok\":true,\"orderNumber\":\"1002\",\"total\":4500,\"paymentMethod\":\"bank\",\"deliveryMethod\":\"Kurirska služba\",\"deliveryNote\":\"Stiže za 2-3 dana.\",\"paymentInstructions\":\"Račun 160-000000-00, poziv na broj: br"
+ },
+ {
+  "area": "Javni API: porudžbina — pozitivni tok",
+  "kind": "pos",
+  "title": "porudžbina karticom vraća paymentUrl",
+  "pass": true,
+  "detail": "{\"ok\":true,\"orderNumber\":\"1003\",\"total\":4500,\"paymentMethod\":\"card\",\"deliveryMethod\":\"Kurirska služba\",\"deliveryNote\":\"Stiže za 2-3 dana.\",\"paymentUrl\":\"http://127.0.0.1:3100/placanje/proba-kartice?porudzbina=1003&iznos=4500&potpis=b528ea7998efdfae9f34cd803628afbcfe2e1c449e0f0545b477d1ba708fc780\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — pozitivni tok",
+  "kind": "pos",
+  "title": "lično preuzimanje: dostava 0",
+  "pass": true,
+  "detail": "{\"ok\":true,\"orderNumber\":\"1004\",\"total\":4000,\"paymentMethod\":\"cod\",\"deliveryMethod\":\"Lično preuzimanje\",\"deliveryNote\":\"Čekamo vas.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — pozitivni tok",
+  "kind": "pos",
+  "title": "porudžbina varijante sa kodom LETO10: 33000 − 3300, dostava besplatna",
+  "pass": true,
+  "detail": "{\"ok\":true,\"orderNumber\":\"1005\",\"total\":29700,\"paymentMethod\":\"cod\",\"deliveryMethod\":\"Kurirska služba\",\"deliveryNote\":\"Stiže za 2-3 dana.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — pozitivni tok",
+  "kind": "pos",
+  "title": "stanje varijante se skida (1 → 0)",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Javni API: porudžbina — pozitivni tok",
+  "kind": "neg",
+  "title": "rasprodata varijanta ne može da se poruči",
+  "pass": true,
+  "detail": "{\"ok\":false,\"errors\":{},\"message\":\"„Fotelja Varijante (Crvena, Orah)\\\" trenutno nije na stanju. Uklonite ga iz korpe pa potvrdite ponovo.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "prazna porudžbina",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{\"name\":\"Upišite ime i prezime.\",\"phone\":\"Upišite broj telefona.\",\"email\":\"Upišite email adresu.\",\"street\":\"Upišite ulicu i broj.\",\"city\":\"Upišite mesto.\",\"postalCode\":\"Upišite poštanski broj.\"}}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "bez imena",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{\"name\":\"Upišite ime i prezime.\"}}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "telefon sa slovima",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{\"phone\":\"Proverite broj telefona.\"}}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "email bez @",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{\"email\":\"Proverite email adresu.\"}}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "poštanski broj sa znakovima",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{\"postalCode\":\"Proverite poštanski broj.\"}}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "napomena duža od 500",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{\"note\":\"Napomena može imati najviše 500 znakova.\"}}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "prazna korpa",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"Korpa je prazna. Dodajte proizvode pa pokušajte ponovo.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "samo nepostojeći proizvod",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"Korpa je prazna. Dodajte proizvode pa pokušajte ponovo.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "sec",
+  "title": "nacrt proizvoda",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"„Nacrt Proizvod\\\" trenutno nije na stanju. Uklonite ga iz korpe pa potvrdite ponovo.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "proizvod bez cene",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"„Bez Cene\\\" trenutno nije na stanju. Uklonite ga iz korpe pa potvrdite ponovo.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "proizvod koji nije na stanju",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"„Nema Na Stanju\\\" trenutno nije na stanju. Uklonite ga iz korpe pa potvrdite ponovo.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "više komada nego na stanju",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"Na stanju je još samo 4 kom. proizvoda „Stolica Test\\\". Smanjite količinu pa potvrdite ponovo.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "proizvod sa varijantama bez izabrane varijante",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"Izaberite opcije za „Fotelja Varijante\\\" pa ga ponovo dodajte u korpu.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "isključena varijanta",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"„Fotelja Varijante (Plava, Hrast)\\\" trenutno nije na stanju. Uklonite ga iz korpe pa potvrdite ponovo.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "nepostojeći način plaćanja",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"Izabrani način plaćanja nije dostupan.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "nepostojeći način dostave",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"Izabrani način dostave nije dostupan za vašu adresu.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "dostava van zone (Beograd za Novi Sad)",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"Izabrani način dostave nije dostupan za vašu adresu.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "istekao kod",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"Kod za popust ne važi za ovu porudžbinu: nije poslat na upisani email ili telefon, istekao je ili je već iskorišćen. Uklonite kod pa potvrdite ponovo.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "neg",
+  "title": "kod u nacrtu",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"Kod za popust ne važi za ovu porudžbinu: nije poslat na upisani email ili telefon, istekao je ili je već iskorišćen. Uklonite kod pa potvrdite ponovo.\"}"
+ },
+ {
+  "area": "Javni API: porudžbina — negativni tok",
+  "kind": "sec",
+  "title": "tuđi kod nagrade (drugi email i telefon)",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{},\"message\":\"Kod za popust ne važi za ovu porudžbinu: nije poslat na upisani email ili telefon, istekao je ili je već iskorišćen. Uklonite kod pa potvrdite ponovo.\"}"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "sec",
+  "title": "cena/ukupno/status/plaćeno iz zahteva se ignorišu",
+  "pass": true,
+  "detail": "{\"total\":4500,\"status\":\"new\",\"paid_at\":null,\"discount_amount\":0,\"number\":1007}"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "sec",
+  "title": "negativna i nulta količina ne prolaze",
+  "pass": true,
+  "detail": "{\"ok\":false,\"errors\":{},\"message\":\"Korpa je prazna. Dodajte proizvode pa pokušajte ponovo.\"}"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "sec",
+  "title": "ogromna količina se svodi na najviše 99",
+  "pass": true,
+  "detail": "{\"ok\":true,\"orderNumber\":\"1008\",\"total\":396000,\"paymentMethod\":\"cod\",\"deliveryMethod\":\"Kurirska služba\",\"deliveryNote\":\"Stiže za 2-3 dana.\"}"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "sec",
+  "title": "200 istih stavki se sabira i ne prelazi stanje",
+  "pass": true,
+  "detail": "{\"ok\":false,\"errors\":{},\"message\":\"Na stanju je još samo 4 kom. proizvoda „Stolica Test\\\". Smanjite količinu pa potvrdite ponovo.\"}"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "pos",
+  "title": "kod JEDNOM prvi put prolazi (50%)",
+  "pass": true,
+  "detail": "{\"ok\":true,\"orderNumber\":\"1009\",\"total\":2500,\"paymentMethod\":\"cod\",\"deliveryMethod\":\"Kurirska služba\",\"deliveryNote\":\"Stiže za 2-3 dana.\"}"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "sec",
+  "title": "kod JEDNOM drugi put ne prolazi",
+  "pass": true,
+  "detail": "{\"ok\":false,\"errors\":{},\"message\":\"Kod za popust ne važi za ovu porudžbinu: nije poslat na upisani email ili telefon, istekao je ili je već iskorišćen. Uklonite kod pa potvrdite ponovo.\"}"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "pos",
+  "title": "kupac koristi svoj kod nagrade (15% od 4000 = 600)",
+  "pass": true,
+  "detail": "{\"ok\":true,\"orderNumber\":\"1010\",\"total\":3900,\"paymentMethod\":\"cod\",\"deliveryMethod\":\"Kurirska služba\",\"deliveryNote\":\"Stiže za 2-3 dana.\"}"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "sec",
+  "title": "isti kod nagrade ne može dva puta",
+  "pass": true,
+  "detail": "{\"ok\":false,\"errors\":{},\"message\":\"Kod za popust ne važi za ovu porudžbinu: nije poslat na upisani email ili telefon, istekao je ili je već iskorišćen. Uklonite kod pa potvrdite ponovo.\"}"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "sec",
+  "title": "HTML/SQL u podacima kupca se čuva kao običan tekst, tabele su cele",
+  "pass": true,
+  "detail": "{\"customer_name\":\"<script>alert('xss')</script>\",\"city\":\"'; DROP TABLE orders; --\"}"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "pos",
+  "title": "porudžbina sa formulama u poljima (za proveru CSV izvoza)",
+  "pass": true,
+  "detail": "{\"ok\":true,\"orderNumber\":\"1012\",\"total\":4500,\"paymentMethod\":\"cod\",\"deliveryMethod\":\"Kurirska služba\",\"deliveryNote\":\"Stiže za 2-3 dana.\"}"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "pos",
+  "title": "unicode i emoji u imenu se čuvaju tačno",
+  "pass": true,
+  "detail": "201 „Žđćčš 😀 汉字 ‮RTL\""
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "neg",
+  "title": "predugačka polja se skraćuju, bez greške servera",
+  "pass": true,
+  "detail": "status 201 {\"ok\":true,\"orderNumber\":\"1014\",\"total\":4500,\"paymentMethod\":\"cod\",\"deliveryMethod\":\"Kurirska služba\",\"deliveryNote\":\"St"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "neg",
+  "title": "email od 263 znaka (kolona 255): poruka, ne greška servera",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{\"email\":\"Proverite email adresu.\"}}"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "neg",
+  "title": "nula-bajt u imenu ne ruši upis",
+  "pass": true,
+  "detail": "status 201 {\"ok\":true,\"orderNumber\":\"1015\",\"total\":4500,\"paymentMethod\":\"cod\",\"deliveryMethod\":\"Kurirska služba\",\"deliveryNote\":\"Stiže za 2-3 dana.\"}"
+ },
+ {
+  "area": "Javni API: pokušaji prevare pri poručivanju",
+  "kind": "sec",
+  "title": "email sa novim redom (ubacivanje zaglavlja) se odbija",
+  "pass": true,
+  "detail": "status 422 {\"ok\":false,\"errors\":{\"email\":\"Proverite email adresu.\"}}"
+ },
+ {
+  "area": "Javni API: ograničenje broja porudžbina",
+  "kind": "sec",
+  "title": "sa jedne adrese: 11. porudžbina u 10 minuta se odbija (429)",
+  "pass": true,
+  "detail": "429 na pokušaju 11"
+ },
+ {
+  "area": "Javni API: ograničenje broja porudžbina",
+  "kind": "sec",
+  "title": "ograničenje NE može da se zaobiđe lažnim X-Forwarded-For zaglavljem",
+  "pass": false,
+  "detail": "prošlo 30 od 30 porudžbina sa izmišljenim adresama u nekoliko sekundi"
+ },
+ {
+  "area": "Javni API: CORS i zaglavlja",
+  "kind": "sec",
+  "title": "adrese u odgovoru API-ja ne prate zaglavlje X-Forwarded-Host napadača",
+  "pass": true,
+  "detail": "store: false; product: nema"
+ },
+ {
+  "area": "Javni API: CORS i zaglavlja",
+  "kind": "sec",
+  "title": "bezbednosna zaglavlja na stranicama (X-Frame-Options, CSP, nosniff…)",
+  "pass": false,
+  "detail": "content-security-policy: —; x-frame-options: —; x-content-type-options: —; strict-transport-security: —; referrer-policy: —"
+ },
+ {
+  "area": "Javni API: CORS i zaglavlja",
+  "kind": "sec",
+  "title": "panel ne može da se učita u tuđem okviru (clickjacking)",
+  "pass": false,
+  "detail": "x-frame-options: —"
+ },
+ {
+  "area": "Javni API: CORS i zaglavlja",
+  "kind": "sec",
+  "title": "server ne otkriva tehnologiju (X-Powered-By)",
+  "pass": false,
+  "detail": "x-powered-by: Next.js"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /",
+  "pass": true,
+  "detail": "status 200, 81411 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /kolekcija",
+  "pass": true,
+  "detail": "status 200, 45462 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /kolekcija/stolice",
+  "pass": true,
+  "detail": "status 200, 38377 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /proizvod/stolica-test",
+  "pass": true,
+  "detail": "status 200, 39353 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /proizvod/fotelja-varijante",
+  "pass": true,
+  "detail": "status 200, 40285 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /placanje",
+  "pass": true,
+  "detail": "status 200, 24999 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /nalog",
+  "pass": true,
+  "detail": "status 200, 31465 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /nalog/lozinka",
+  "pass": true,
+  "detail": "status 200, 27347 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /pracenje",
+  "pass": true,
+  "detail": "status 200, 27110 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /lista-zelja",
+  "pass": true,
+  "detail": "status 200, 26267 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /blog",
+  "pass": true,
+  "detail": "status 200, 26097 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /o-nama",
+  "pass": true,
+  "detail": "status 200, 48269 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /pitanja",
+  "pass": true,
+  "detail": "status 200, 34826 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /kontakt",
+  "pass": true,
+  "detail": "status 200, 40822 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /sitemap.xml",
+  "pass": true,
+  "detail": "status 200, 1078 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /robots.txt",
+  "pass": true,
+  "detail": "status 200, 209 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /sdk.js",
+  "pass": true,
+  "detail": "status 200, 9178 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /demo.html",
+  "pass": true,
+  "detail": "status 200, 11412 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /en",
+  "pass": true,
+  "detail": "status 200, 81411 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /en/collection",
+  "pass": true,
+  "detail": "status 200, 45462 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /en/product/stolica-test",
+  "pass": true,
+  "detail": "status 200, 39353 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /en/checkout",
+  "pass": true,
+  "detail": "status 200, 24999 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /en/account",
+  "pass": true,
+  "detail": "status 200, 31465 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "pos",
+  "title": "GET /api/theme/default.css",
+  "pass": true,
+  "detail": "status 200, 20733 bajtova"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "neg",
+  "title": "GET /proizvod/nepostoji → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html id=\"__next_error__\"><head><meta charSet"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "neg",
+  "title": "GET /proizvod/nacrt-proizvod → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html id=\"__next_error__\"><head><meta charSet"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "neg",
+  "title": "GET /kolekcija/nepostoji → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html id=\"__next_error__\"><head><meta charSet"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "neg",
+  "title": "GET /nepostojeca-stranica → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html id=\"__next_error__\"><head><meta charSet"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "neg",
+  "title": "GET /blog/nepostoji → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html id=\"__next_error__\"><head><meta charSet"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "neg",
+  "title": "GET /de → 404",
+  "pass": false,
+  "detail": "status 200 <!DOCTYPE html><html lang=\"sr\" class=\"red_hat_display_ca7b79"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "neg",
+  "title": "GET /en/proizvod/nepostoji → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html id=\"__next_error__\"><head><meta charSet"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "GET /media/../../.env.local → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html id=\"__next_error__\"><head><meta charSet"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "GET /media/..%2F..%2F.env.local → 404",
+  "pass": true,
+  "detail": "status 404 Not found"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "GET /media/%2e%2e%2f.env.local → 404",
+  "pass": true,
+  "detail": "status 404 Not found"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "GET /media/x.php → 404",
+  "pass": true,
+  "detail": "status 404 Not found"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "GET /api/theme/..%2F..%2Fpackage.json → 404",
+  "pass": true,
+  "detail": "status 404 Not found"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "GET /.env.local → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html id=\"__next_error__\"><head><meta charSet"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "GET /.env → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html id=\"__next_error__\"><head><meta charSet"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "GET /.git/config → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html><head><meta charSet=\"utf-8\"/><meta name"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "GET /package.json → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html id=\"__next_error__\"><head><meta charSet"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "GET /lib/db.ts → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html><head><meta charSet=\"utf-8\"/><meta name"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "GET /next.config.ts → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html id=\"__next_error__\"><head><meta charSet"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "GET /keys-last.json → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html id=\"__next_error__\"><head><meta charSet"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "GET /admin/../.env.local → 404",
+  "pass": true,
+  "detail": "status 404 <!DOCTYPE html><html id=\"__next_error__\"><head><meta charSet"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "nacrt proizvoda se ne vidi na sajtu",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Prodavnica: stranice se otvaraju",
+  "kind": "sec",
+  "title": "sitemap ne sadrži nacrte ni panel",
+  "pass": true,
+  "detail": "<loc>http://127.0.0.1:3100/</loc> <loc>http://127.0.0.1:3100/o-nama</loc> <loc>http://127.0.0.1:3100/pitanja</loc> <loc>http://127.0.0.1:3100/kontakt</loc> <loc>http://127.0.0.1:3100/kolekcija</loc> <loc>http://127.0.0.1:3100/kolekcija/stolice</loc>"
+ },
+ {
+  "area": "Prodavnica: XSS (HTML koji je uneo vlasnik ili kupac)",
+  "kind": "sec",
+  "title": "bez sirovog HTML-a napadača: /proizvod/img-src-x-onerror-alert-1-xss",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Prodavnica: XSS (HTML koji je uneo vlasnik ili kupac)",
+  "kind": "sec",
+  "title": "bez sirovog HTML-a napadača: /kolekcija",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Prodavnica: XSS (HTML koji je uneo vlasnik ili kupac)",
+  "kind": "sec",
+  "title": "bez sirovog HTML-a napadača: /",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Prodavnica: XSS (HTML koji je uneo vlasnik ili kupac)",
+  "kind": "sec",
+  "title": "bez sirovog HTML-a napadača: /kolekcija?q=%3Cscript%3Ealert(1)%3C/script%3E",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Prodavnica: XSS (HTML koji je uneo vlasnik ili kupac)",
+  "kind": "sec",
+  "title": "bez sirovog HTML-a napadača: /pracenje?broj=%3Cscript%3Ealert(1)%3C/script%3E",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Prodavnica: XSS (HTML koji je uneo vlasnik ili kupac)",
+  "kind": "sec",
+  "title": "bez sirovog HTML-a napadača: /nalog?greska=%3Cimg%20src=x%20onerror=alert(1)%3E",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Prodavnica: XSS (HTML koji je uneo vlasnik ili kupac)",
+  "kind": "sec",
+  "title": "bez sirovog HTML-a napadača: /placanje/uplata?porudzbina=%3Cscript%3Ealert(1)%3C/script%3",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Prodavnica: XSS (HTML koji je uneo vlasnik ili kupac)",
+  "kind": "sec",
+  "title": "bez sirovog HTML-a napadača: /admin?greska=%3Cscript%3Ealert(1)%3C/script%3E",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Prodavnica: XSS (HTML koji je uneo vlasnik ili kupac)",
+  "kind": "sec",
+  "title": "bez sirovog HTML-a napadača: /kolekcija?sort=%22%3E%3Csvg/onload=alert(1)%3E",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Prodavnica: XSS (HTML koji je uneo vlasnik ili kupac)",
+  "kind": "sec",
+  "title": "podaci za Google (ld+json) ne mogu da zatvore <script> oznaku",
+  "pass": true,
+  "detail": "ld+json 350 znakova; x onerror=alert(1)>\\\"'XSS\",\"description\":\"\\u003cscript>alert(3)\\u0"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "neg",
+  "title": "registracija sa kratkom lozinkom",
+  "pass": true,
+  "detail": "{\"ok\":false,\"errors\":{\"password\":\"Lozinka mora imati najmanje 8 karaktera.\"}}"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "neg",
+  "title": "registracija sa neispravnim emailom",
+  "pass": true,
+  "detail": "{\"ok\":false,\"errors\":{\"email\":\"Upišite ispravnu email adresu.\"}}"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "neg",
+  "title": "registracija bez imena",
+  "pass": true,
+  "detail": "{\"ok\":false,\"errors\":{\"firstName\":\"Upišite ime.\",\"lastName\":\"Upišite prezime.\"}}"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "neg",
+  "title": "registracija sa null umesto podataka ne ruši server",
+  "pass": false,
+  "detail": "status 500 E{\"digest\":\"139699119\"}"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "pos",
+  "title": "registracija",
+  "pass": true,
+  "detail": "{\"ok\":true}"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "neg",
+  "title": "registracija sa istom adresom (velika slova)",
+  "pass": true,
+  "detail": "{\"ok\":false,\"errors\":{\"email\":\"Nalog sa ovom adresom već postoji. Prijavite se.\"}}"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "sec",
+  "title": "lozinka kupca je u bazi kao scrypt heš",
+  "pass": true,
+  "detail": "scrypt$09c837eab4a6c"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "pos",
+  "title": "stranica naloga prijavljenog kupca",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "pos",
+  "title": "odjava",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "neg",
+  "title": "prijava pogrešnom lozinkom",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Pogrešna email adresa ili lozinka.\"}"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "sec",
+  "title": "SQL injection u prijavi kupca",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Pogrešna email adresa ili lozinka.\"}"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "sec",
+  "title": "objekti umesto teksta u prijavi",
+  "pass": true,
+  "detail": "status 200 {\"ok\":false,\"error\":\"Pogrešna email adresa ili lozinka.\"}"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "pos",
+  "title": "prijava ispravnom lozinkom",
+  "pass": true,
+  "detail": "{\"ok\":true}"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "pos",
+  "title": "čuvanje adrese uz nalog",
+  "pass": true,
+  "detail": "{\"ok\":true}"
+ },
+ {
+  "area": "Nalog kupca",
+  "kind": "sec",
+  "title": "čuvanje adrese bez prijave se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Prijavite se ponovo.\"}"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "pos",
+  "title": "obračun na stranici plaćanja: 10000 − 1000 + 500",
+  "pass": true,
+  "detail": "{\"subtotal\":10000,\"discount\":1000,\"delivery\":500,\"total\":9500,\"discountText\":\"Popust 10% (kod LETO10)\",\"codeError\":\"\"}"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "pos",
+  "title": "porudžbina prijavljenog kupca",
+  "pass": true,
+  "detail": "{\"ok\":true,\"order\":{\"number\":\"1056\",\"firstName\":\"Mira\",\"subtotal\":10000,\"discount\":1000,\"discountText\":\"Popust 10% (kod LETO10)\",\"delivery\":500,\"total\":9500,\"deliveryMethod\":\"Kurirska služba\",\"deliveryNote\":\"Stiže za 2-3 dana.\",\"paymentMethod\":\"cod\",\"paymentInstructions\":\"\"}}"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "neg",
+  "title": "porudžbina sa praznim imenom i lošim emailom vraća greške po poljima",
+  "pass": true,
+  "detail": "{\"ok\":false,\"errors\":{\"email\":\"Proverite email adresu.\",\"firstName\":\"Upišite ime.\"}}"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "neg",
+  "title": "porudžbina sa null ne ruši server",
+  "pass": true,
+  "detail": "status 200 {\"ok\":false,\"errors\":{\"phone\":\"Upišite broj telefona.\",\"email\":\"Upišite email adresu.\",\"city\":\"Upišite mesto.\",\"firstName\":\"Upišite ime.\",\"address\":\"Upišite ulicu i broj.\",\"zip\":\"Upišite poštanski broj.\",\"lastName\":\"Upišite prezime.\"}}"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "neg",
+  "title": "porudžbina sa pogrešnim tipovima ne ruši server",
+  "pass": true,
+  "detail": "status 200 {\"ok\":true,\"order\":{\"number\":\"1057\",\"firstName\":\"Mira\",\"subtotal\":10000,\"discount\":0,\"discountText\":\"\",\"delivery\":500,\"total\":10500,\"deliveryMethod\":\"Kurirska služba\",\"deliveryNote\":\"Stiže za 2-3 dana.\",\"paymentMethod\":\"cod\",\"paymentInstructions\":\"\"}}"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "pos",
+  "title": "porudžbina se vidi u nalogu kupca",
+  "pass": true,
+  "detail": "traži 1056"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "pos",
+  "title": "račun u PDF-u za svoju porudžbinu",
+  "pass": true,
+  "detail": "status 200 application/pdf"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "sec",
+  "title": "račun tuđe porudžbine → 404 (IDOR)",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "sec",
+  "title": "račun bez prijave → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "sec",
+  "title": "račun sa brojem „1056 OR 1=1\" → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "sec",
+  "title": "račun sa brojem „1001%27\" → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "sec",
+  "title": "račun sa brojem „-1\" → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "sec",
+  "title": "račun sa brojem „99999999999\" → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Poručivanje sa sajta (server akcije)",
+  "kind": "sec",
+  "title": "račun sa brojem „1e3\" → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Praćenje porudžbine i povrat",
+  "kind": "pos",
+  "title": "praćenje po broju i email adresi",
+  "pass": true,
+  "detail": "{\"ok\":true,\"order\":{\"number\":\"1056\",\"date\":\"13. oktobar 2026.\",\"status\":\"Nova\",\"deliveryMethod\":\"Kurirska služba\",\"tracking\":null,\"total\":9500,\"refunded\":0,\"items\":[{\"position\":0,\"name\":\"Stolica Test\""
+ },
+ {
+  "area": "Praćenje porudžbine i povrat",
+  "kind": "pos",
+  "title": "praćenje sa # i velikim slovima u adresi",
+  "pass": true,
+  "detail": "{\"ok\":true,\"order\":{\"number\":\"1056\",\"date\":\"13. oktobar 2026.\",\"status\":\"Nova\",\"deliveryMethod\":\"Kurirska služba\",\"track"
+ },
+ {
+  "area": "Praćenje porudžbine i povrat",
+  "kind": "sec",
+  "title": "praćenje sa pogrešnom adresom ne otkriva porudžbinu",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Nismo našli porudžbinu sa tim brojem i email adresom.\"}"
+ },
+ {
+  "area": "Praćenje porudžbine i povrat",
+  "kind": "sec",
+  "title": "praćenje sa džokerom % umesto adrese",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Nismo našli porudžbinu sa tim brojem i email adresom.\"}"
+ },
+ {
+  "area": "Praćenje porudžbine i povrat",
+  "kind": "sec",
+  "title": "prijavljen kupac ne vidi tuđu porudžbinu bez adrese",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Nismo našli porudžbinu sa tim brojem i email adresom.\"}"
+ },
+ {
+  "area": "Praćenje porudžbine i povrat",
+  "kind": "neg",
+  "title": "praćenje sa objektima umesto teksta",
+  "pass": true,
+  "detail": "status 200 {\"ok\":false,\"error\":\"Nismo našli porudžbinu sa tim brojem i email adresom.\"}"
+ },
+ {
+  "area": "Praćenje porudžbine i povrat",
+  "kind": "neg",
+  "title": "povrat za porudžbinu koja još nije poslata se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Za ovu porudžbinu trenutno ne može da se zatraži povrat.\"}"
+ },
+ {
+  "area": "Praćenje porudžbine i povrat",
+  "kind": "sec",
+  "title": "nagađanje porudžbina se ograničava (20 pokušaja)",
+  "pass": true,
+  "detail": "blokada na 21"
+ },
+ {
+  "area": "Plaćanje karticom (probni procesor)",
+  "kind": "pos",
+  "title": "stranica probnog plaćanja se otvara sa ispravnim potpisom",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Plaćanje karticom (probni procesor)",
+  "kind": "sec",
+  "title": "probno plaćanje sa izmenjenim potpisom → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Plaćanje karticom (probni procesor)",
+  "kind": "sec",
+  "title": "potpis jedne porudžbine ne važi za drugu",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Plaćanje karticom (probni procesor)",
+  "kind": "sec",
+  "title": "potvrda uplate sa lažnim potpisom → 400, porudžbina nije plaćena",
+  "pass": true,
+  "detail": "status 400"
+ },
+ {
+  "area": "Plaćanje karticom (probni procesor)",
+  "kind": "sec",
+  "title": "potpis za „uspeh“ ne važi kao „odbijeno“ i obrnuto",
+  "pass": true,
+  "detail": "status 400"
+ },
+ {
+  "area": "Plaćanje karticom (probni procesor)",
+  "kind": "neg",
+  "title": "nepoznat procesor → 400",
+  "pass": true,
+  "detail": "status 400"
+ },
+ {
+  "area": "Plaćanje karticom (probni procesor)",
+  "kind": "pos",
+  "title": "ispravna potvrda: porudžbina plaćena, kupac vraćen na stranicu ishoda",
+  "pass": true,
+  "detail": "status 303 → http://127.0.0.1:3100/placanje/uplata?porudzbina=1003&ishod=uspeh; ref TEST-1003"
+ },
+ {
+  "area": "Plaćanje karticom (probni procesor)",
+  "kind": "pos",
+  "title": "ista potvrda dva puta upisuje uplatu samo jednom",
+  "pass": true,
+  "detail": "događaja: 1"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "pos",
+  "title": "kontakt forma",
+  "pass": true,
+  "detail": "{\"ok\":true}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "neg",
+  "title": "prazna kontakt forma",
+  "pass": true,
+  "detail": "{\"ok\":false,\"errors\":{\"name\":\"Upišite ime i prezime.\",\"email\":\"Upišite ispravnu email adresu.\",\"text\":\"Upišite poruku.\"}}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "pos",
+  "title": "kontakt poruka sa HTML-om i 6000 znakova se prima (skraćena)",
+  "pass": true,
+  "detail": "{\"ok\":true}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "neg",
+  "title": "tema od 120 znakova (kolona u bazi je 100): poruka se prima bez greške servera",
+  "pass": false,
+  "detail": "status 500 E{\"digest\":\"2884643686\"}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "pos",
+  "title": "prijava na novosti",
+  "pass": true,
+  "detail": "{\"ok\":true,\"code\":null}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "pos",
+  "title": "ista adresa drugi put (bez duplikata)",
+  "pass": true,
+  "detail": "{\"ok\":true,\"code\":null}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "neg",
+  "title": "prijava na novosti sa neispravnom adresom",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Upišite ispravnu email adresu.\"}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "sec",
+  "title": "utisak bez prijave se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Prijavite se da biste ostavili utisak.\"}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "pos",
+  "title": "utisak prijavljenog kupca",
+  "pass": true,
+  "detail": "{\"ok\":true}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "neg",
+  "title": "utisak sa ocenom 0 se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Izaberite ocenu od 1 do 5.\"}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "neg",
+  "title": "utisak sa ocenom 6 se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Izaberite ocenu od 1 do 5.\"}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "neg",
+  "title": "utisak sa ocenom -1 se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Izaberite ocenu od 1 do 5.\"}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "neg",
+  "title": "utisak sa ocenom abc se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Izaberite ocenu od 1 do 5.\"}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "neg",
+  "title": "utisak sa ocenom 1000000000 se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Izaberite ocenu od 1 do 5.\"}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "neg",
+  "title": "utisak za nacrt proizvoda se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Proizvod više ne postoji.\"}"
+ },
+ {
+  "area": "Kontakt, novosti, utisci",
+  "kind": "sec",
+  "title": "neodobren utisak se ne vidi na sajtu",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Nova lozinka kupca i podmetanje adrese (Host)",
+  "kind": "pos",
+  "title": "zahtev za novu lozinku",
+  "pass": true,
+  "detail": "{\"ok\":true}"
+ },
+ {
+  "area": "Nova lozinka kupca i podmetanje adrese (Host)",
+  "kind": "sec",
+  "title": "isti odgovor za postojeću i nepostojeću adresu",
+  "pass": true,
+  "detail": "{\"ok\":true} / {\"ok\":true}"
+ },
+ {
+  "area": "Nova lozinka kupca i podmetanje adrese (Host)",
+  "kind": "pos",
+  "title": "email sa linkom za novu lozinku stiže samo postojećem nalogu",
+  "pass": true,
+  "detail": "link: http://127.0.0.1:3100/nalog/lozinka/Dapz8KKdXrXVmjXa9rHjrT_FOfv9gZS9_MMNHaque9g; poruka: 1"
+ },
+ {
+  "area": "Nova lozinka kupca i podmetanje adrese (Host)",
+  "kind": "pos",
+  "title": "stranica za novu lozinku se otvara",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Nova lozinka kupca i podmetanje adrese (Host)",
+  "kind": "sec",
+  "title": "nova lozinka sa pogrešnim žetonom",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Link više ne važi. Zatražite novi.\"}"
+ },
+ {
+  "area": "Nova lozinka kupca i podmetanje adrese (Host)",
+  "kind": "neg",
+  "title": "nova lozinka kraća od 8",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Lozinka mora imati najmanje 8 karaktera.\"}"
+ },
+ {
+  "area": "Nova lozinka kupca i podmetanje adrese (Host)",
+  "kind": "pos",
+  "title": "postavljanje nove lozinke",
+  "pass": true,
+  "detail": "{\"ok\":true}"
+ },
+ {
+  "area": "Nova lozinka kupca i podmetanje adrese (Host)",
+  "kind": "sec",
+  "title": "isti link ne važi drugi put",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Link više ne važi. Zatražite novi.\"}"
+ },
+ {
+  "area": "Nova lozinka kupca i podmetanje adrese (Host)",
+  "kind": "sec",
+  "title": "nova lozinka odjavljuje stare sesije",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Nova lozinka kupca i podmetanje adrese (Host)",
+  "kind": "sec",
+  "title": "stara lozinka više ne važi",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Pogrešna email adresa ili lozinka.\"}"
+ },
+ {
+  "area": "Nova lozinka kupca i podmetanje adrese (Host)",
+  "kind": "pos",
+  "title": "prijava novom lozinkom",
+  "pass": true,
+  "detail": "{\"ok\":true}"
+ },
+ {
+  "area": "Nova lozinka kupca i podmetanje adrese (Host)",
+  "kind": "sec",
+  "title": "link za lozinku kupca ne prati podmetnut Host/X-Forwarded-Host",
+  "pass": false,
+  "detail": "status 200; link u emailu: http://evil.example/nalog/lozinka/Pyhxlar5myMPNMYo-WVHGs168COACYP3gw90LToufCU"
+ },
+ {
+  "area": "Brisanje naloga",
+  "kind": "pos",
+  "title": "kupac briše nalog; porudžbina ostaje prodavcu",
+  "pass": true,
+  "detail": "nalog: 0, porudžbina: 1"
+ },
+ {
+  "area": "Brisanje naloga",
+  "kind": "sec",
+  "title": "brisanje naloga bez prijave ne radi ništa",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Google prijava (bez izlaska na internet)",
+  "kind": "pos",
+  "title": "dok Google nije podešen, /api/auth/google vraća na /nalog (ne zove Google)",
+  "pass": true,
+  "detail": "status 307 → http://127.0.0.1:3100/nalog"
+ },
+ {
+  "area": "Google prijava (bez izlaska na internet)",
+  "kind": "sec",
+  "title": "povratak sa „Google-a“ bez podešavanja ne prijavljuje nikoga",
+  "pass": true,
+  "detail": "status 307 → http://127.0.0.1:3100/nalog?greska=google"
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/porudzbine",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/porudzbine/1001",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/porudzbine/nova",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/kupci",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/korpe",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/poruke",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/utisci",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/izvestaji",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/proizvodi",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/proizvodi/novi",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/proizvodi/stolica-test",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/proizvodi/fotelja-varijante",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/proizvodi/img-src-x-onerror-alert-1-xss",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/proizvodi/uvoz",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/kategorije",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/kolekcije",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/popusti",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/popusti/novi",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/popusti/leto",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/stranice",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/stranice/nova",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/stranice/pocetna",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/blog",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/izgled",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/izgled/meni",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/slike",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/integracije",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/korisnici",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/dnevnik",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/nalog",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/podesavanja",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/prevodi",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "pos",
+  "title": "GET /admin/porudzbine/1011",
+  "pass": true,
+  "detail": "status 200 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "neg",
+  "title": "GET /admin/porudzbine/999999 (nepostojeće) ne ruši panel",
+  "pass": true,
+  "detail": "status 404 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "neg",
+  "title": "GET /admin/porudzbine/abc (nepostojeće) ne ruši panel",
+  "pass": true,
+  "detail": "status 404 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "neg",
+  "title": "GET /admin/proizvodi/nepostoji (nepostojeće) ne ruši panel",
+  "pass": true,
+  "detail": "status 404 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "neg",
+  "title": "GET /admin/popusti/nepostoji (nepostojeće) ne ruši panel",
+  "pass": true,
+  "detail": "status 404 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "neg",
+  "title": "GET /admin/stranice/nepostoji (nepostojeće) ne ruši panel",
+  "pass": true,
+  "detail": "status 404 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "neg",
+  "title": "GET /admin/blog/999 (nepostojeće) ne ruši panel",
+  "pass": true,
+  "detail": "status 404 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "neg",
+  "title": "GET /admin/kolekcije/nepostoji (nepostojeće) ne ruši panel",
+  "pass": true,
+  "detail": "status 404 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "neg",
+  "title": "GET /admin/kupci/nepostoji (nepostojeće) ne ruši panel",
+  "pass": true,
+  "detail": "status 404 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "neg",
+  "title": "GET /admin/izgled/nepostoji (nepostojeće) ne ruši panel",
+  "pass": true,
+  "detail": "status 404 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "neg",
+  "title": "GET /admin/porudzbine/1001%27%20OR%201=1 (nepostojeće) ne ruši panel",
+  "pass": true,
+  "detail": "status 404 "
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "sec",
+  "title": "panel ne izvršava HTML kupca: /admin/porudzbine/1011",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "sec",
+  "title": "panel ne izvršava HTML kupca: /admin/porudzbine",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "sec",
+  "title": "panel ne izvršava HTML kupca: /admin/kupci",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "sec",
+  "title": "panel ne izvršava HTML kupca: /admin/poruke",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "sec",
+  "title": "panel ne izvršava HTML kupca: /admin/utisci",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "sec",
+  "title": "panel ne izvršava HTML kupca: /admin",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "sec",
+  "title": "panel ne izvršava HTML kupca: /admin/dnevnik",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "sec",
+  "title": "panel ne izvršava HTML kupca: /admin/proizvodi",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Panel: sve stranice se otvaraju (vlasnik)",
+  "kind": "sec",
+  "title": "panel ne izvršava HTML kupca: /admin/izvestaji",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Panel: porudžbina — statusi i stanje",
+  "kind": "pos",
+  "title": "status: potvrđena",
+  "pass": true,
+  "detail": "/admin/porudzbine"
+ },
+ {
+  "area": "Panel: porudžbina — statusi i stanje",
+  "kind": "neg",
+  "title": "nepoznat status se ignoriše",
+  "pass": true,
+  "detail": "/admin/porudzbine"
+ },
+ {
+  "area": "Panel: porudžbina — statusi i stanje",
+  "kind": "pos",
+  "title": "otkazivanje vraća komad na stanje",
+  "pass": true,
+  "detail": "2 → 3"
+ },
+ {
+  "area": "Panel: porudžbina — statusi i stanje",
+  "kind": "pos",
+  "title": "otkazivanje dva puta ne vraća komad dva puta",
+  "pass": true,
+  "detail": "3"
+ },
+ {
+  "area": "Panel: porudžbina — statusi i stanje",
+  "kind": "pos",
+  "title": "vraćanje otkazane porudžbine ponovo skida komad",
+  "pass": true,
+  "detail": "2"
+ },
+ {
+  "area": "Panel: porudžbina — statusi i stanje",
+  "kind": "pos",
+  "title": "broj pošiljke",
+  "pass": true,
+  "detail": "/admin/porudzbine/1056"
+ },
+ {
+  "area": "Panel: porudžbina — statusi i stanje",
+  "kind": "sec",
+  "title": "adresa za praćenje „javascript:“ se odbija",
+  "pass": true,
+  "detail": "Adresa za praćenje počinje sa https:// ili http://."
+ },
+ {
+  "area": "Panel: porudžbina — statusi i stanje",
+  "kind": "pos",
+  "title": "oznaka plaćeno",
+  "pass": true,
+  "detail": "/admin/porudzbine/1056"
+ },
+ {
+  "area": "Panel: porudžbina — statusi i stanje",
+  "kind": "pos",
+  "title": "beleška prodavca",
+  "pass": true,
+  "detail": "/admin/porudzbine"
+ },
+ {
+  "area": "Panel: porudžbina — statusi i stanje",
+  "kind": "sec",
+  "title": "polje „back“ ne preusmerava van panela (open redirect)",
+  "pass": true,
+  "detail": "/admin/porudzbine"
+ },
+ {
+  "area": "Panel: porudžbina — statusi i stanje",
+  "kind": "pos",
+  "title": "ispravka adrese kupca",
+  "pass": true,
+  "detail": "/admin/porudzbine/1056"
+ },
+ {
+  "area": "Panel: porudžbina — statusi i stanje",
+  "kind": "neg",
+  "title": "ispravka sa neispravnim podacima se odbija",
+  "pass": true,
+  "detail": "Upišite ime i prezime."
+ },
+ {
+  "area": "Panel: porudžbina — statusi i stanje",
+  "kind": "pos",
+  "title": "račun u PDF-u iz panela",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Panel: povraćaj novca i robe",
+  "kind": "neg",
+  "title": "povraćaj 0 se odbija",
+  "pass": true,
+  "detail": "Upišite iznos povraćaja."
+ },
+ {
+  "area": "Panel: povraćaj novca i robe",
+  "kind": "neg",
+  "title": "negativan povraćaj se odbija",
+  "pass": true,
+  "detail": "Upišite iznos povraćaja."
+ },
+ {
+  "area": "Panel: povraćaj novca i robe",
+  "kind": "neg",
+  "title": "povraćaj veći od iznosa porudžbine se odbija",
+  "pass": true,
+  "detail": "Najviše može da se vrati 9.500 RSD."
+ },
+ {
+  "area": "Panel: povraćaj novca i robe",
+  "kind": "pos",
+  "title": "delimičan povraćaj 3000 + vraćen komad (traženo 5, vraća se najviše 1)",
+  "pass": true,
+  "detail": "refunded 3000, stanje 2 → 3"
+ },
+ {
+  "area": "Panel: povraćaj novca i robe",
+  "kind": "neg",
+  "title": "zbir povraćaja ne može preko iznosa porudžbine",
+  "pass": true,
+  "detail": "Najviše može da se vrati 6.500 RSD."
+ },
+ {
+  "area": "Panel: povraćaj novca i robe",
+  "kind": "sec",
+  "title": "dva istovremena povraćaja celog ostatka: prolazi samo jedan",
+  "pass": true,
+  "detail": "refunded 9500 od 9500"
+ },
+ {
+  "area": "Panel: povraćaj novca i robe",
+  "kind": "pos",
+  "title": "otkazivanje posle povraćaja robe ne vraća isti komad dva puta",
+  "pass": true,
+  "detail": "stanje 3"
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "pos",
+  "title": "ručna porudžbina",
+  "pass": true,
+  "detail": "{\"ok\":true,\"number\":\"1059\"}"
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "neg",
+  "title": "ručna porudžbina bez podataka",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Upišite ime i prezime.\"}"
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "neg",
+  "title": "ručna porudžbina karticom se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Ručna porudžbina se ne plaća karticom.\"}"
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "pos",
+  "title": "zahtev kupca za povrat (traženo 99, upisuje se najviše 2)",
+  "pass": true,
+  "detail": "[{\"date\":\"13. oktobar 2026.\",\"status\":\"čeka odgovor\",\"items\":\"2 × Lampa Akcija\",\"answer\":\"\"}]"
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "neg",
+  "title": "drugi zahtev dok prvi čeka se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Za ovu porudžbinu trenutno ne može da se zatraži povrat.\"}"
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "neg",
+  "title": "odbijanje povrata bez razloga se ne prihvata",
+  "pass": true,
+  "detail": "Uz odbijanje napišite kupcu razlog."
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "pos",
+  "title": "odobren zahtev za povrat",
+  "pass": true,
+  "detail": "/admin/porudzbine/1059"
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "neg",
+  "title": "već rešen zahtev se ne menja",
+  "pass": true,
+  "detail": "Zahtev je već rešen."
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "pos",
+  "title": "odobren utisak se vidi na stranici proizvoda",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "sec",
+  "title": "…a HTML iz utiska je izbegnut",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "pos",
+  "title": "spisak kupaca prikazuje kupce",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "pos",
+  "title": "stranica kupca sa istorijom porudžbina",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "pos",
+  "title": "izvoz podataka kupca (zahtev po GDPR-u)",
+  "pass": true,
+  "detail": "status 200 application/json; charset=utf-8"
+ },
+ {
+  "area": "Panel: ručna porudžbina, zahtev za povrat, utisci, kupci",
+  "kind": "pos",
+  "title": "beleška o kupcu",
+  "pass": true,
+  "detail": "/admin/kupci/t641234567?ok=Beleška je sačuvana."
+ },
+ {
+  "area": "Panel: izvozi u CSV i formule (CSV injection)",
+  "kind": "pos",
+  "title": "izvoz /admin/porudzbine/izvoz",
+  "pass": true,
+  "detail": "status 200 text/csv; charset=utf-8 10219 bajtova"
+ },
+ {
+  "area": "Panel: izvozi u CSV i formule (CSV injection)",
+  "kind": "sec",
+  "title": "/admin/porudzbine/izvoz: ćelije ne počinju znakom formule (=, +, -, @)",
+  "pass": false,
+  "detail": "Excel bi ovo izvršio kao formulu: =cmd|' /C calc'!A0 | @SUM(A1) | +SUM(1+1) | -2+3"
+ },
+ {
+  "area": "Panel: izvozi u CSV i formule (CSV injection)",
+  "kind": "pos",
+  "title": "izvoz /admin/kupci/izvoz",
+  "pass": true,
+  "detail": "status 200 text/csv; charset=utf-8 7909 bajtova"
+ },
+ {
+  "area": "Panel: izvozi u CSV i formule (CSV injection)",
+  "kind": "sec",
+  "title": "/admin/kupci/izvoz: ćelije ne počinju znakom formule (=, +, -, @)",
+  "pass": false,
+  "detail": "Excel bi ovo izvršio kao formulu: =cmd|' /C calc'!A0 | @SUM(A1) | +SUM(1+1)"
+ },
+ {
+  "area": "Panel: izvozi u CSV i formule (CSV injection)",
+  "kind": "pos",
+  "title": "izvoz /admin/proizvodi/izvoz",
+  "pass": true,
+  "detail": "status 200 text/csv; charset=utf-8 1357 bajtova"
+ },
+ {
+  "area": "Panel: izvozi u CSV i formule (CSV injection)",
+  "kind": "pos",
+  "title": "izvoz /admin/poruke/izvoz",
+  "pass": true,
+  "detail": "status 200 text/csv; charset=utf-8 97 bajtova"
+ },
+ {
+  "area": "Panel: izvozi u CSV i formule (CSV injection)",
+  "kind": "pos",
+  "title": "izvoz /admin/izvestaji/izvoz",
+  "pass": true,
+  "detail": "status 200 text/csv; charset=utf-8 367 bajtova"
+ },
+ {
+  "area": "Panel: slike (ubacivanje fajlova)",
+  "kind": "pos",
+  "title": "ubacivanje PNG slike",
+  "pass": true,
+  "detail": "{\"ok\":true,\"src\":\"/media/slika-mv76g46prafj-full.webp\"}"
+ },
+ {
+  "area": "Panel: slike (ubacivanje fajlova)",
+  "kind": "pos",
+  "title": "ubačena slika se služi kao WebP",
+  "pass": true,
+  "detail": "status 200 image/webp"
+ },
+ {
+  "area": "Panel: slike (ubacivanje fajlova)",
+  "kind": "sec",
+  "title": "PHP fajl predstavljen kao slika se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Slika mora biti JPG, PNG, WebP ili SVG.\"}"
+ },
+ {
+  "area": "Panel: slike (ubacivanje fajlova)",
+  "kind": "sec",
+  "title": "fajl sa PNG zaglavljem i PHP sadržajem se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Slika je oštećena ili nije u ispravnom formatu.\"}"
+ },
+ {
+  "area": "Panel: slike (ubacivanje fajlova)",
+  "kind": "sec",
+  "title": "HTML fajl se odbija",
+  "pass": true,
+  "detail": "{\"ok\":false,\"error\":\"Slika mora biti JPG, PNG, WebP ili SVG.\"}"
+ },
+ {
+  "area": "Panel: slike (ubacivanje fajlova)",
+  "kind": "sec",
+  "title": "ime fajla sa ../ ne izlazi iz foldera za slike",
+  "pass": true,
+  "detail": "{\"ok\":true,\"src\":\"/media/slika-mv76g4779pc6-full.webp\"}"
+ },
+ {
+  "area": "Panel: slike (ubacivanje fajlova)",
+  "kind": "sec",
+  "title": "SVG sa skriptom: služi se sa zabranom izvršavanja (CSP sandbox)",
+  "pass": true,
+  "detail": "primljen; CSP: default-src 'none'; style-src 'unsafe-inline'; sandbox; skripta ostaje u fajlu: true"
+ },
+ {
+  "area": "Panel: slike (ubacivanje fajlova)",
+  "kind": "neg",
+  "title": "oštećena slika daje poruku, ne grešku servera",
+  "pass": true,
+  "detail": "status 200 {\"ok\":false,\"error\":\"Slika je oštećena ili nije u ispravnom formatu.\"}"
+ },
+ {
+  "area": "Panel: slike (ubacivanje fajlova)",
+  "kind": "sec",
+  "title": "ubacivanje slike bez prijave se odbija",
+  "pass": true,
+  "detail": "status 200 redirect /admin $Sreact.fragment"
+ },
+ {
+  "area": "Panel: slike (ubacivanje fajlova)",
+  "kind": "sec",
+  "title": "brisanje „slike“ sa putanjom ../.env.local ne briše fajl",
+  "pass": true,
+  "detail": "/admin/slike"
+ },
+ {
+  "area": "Panel: slike (ubacivanje fajlova)",
+  "kind": "pos",
+  "title": "brisanje nekorišćene slike",
+  "pass": true,
+  "detail": "/admin/slike"
+ },
+ {
+  "area": "Panel: uvoz proizvoda iz CSV-a",
+  "kind": "neg",
+  "title": "nepoznat CSV se odbija",
+  "pass": true,
+  "detail": "Fajl nije prepoznat. Uvozi se CSV izvoz proizvoda iz Shopify-ja, WooCommerce-a ili ovog panela."
+ },
+ {
+  "area": "Panel: uvoz proizvoda iz CSV-a",
+  "kind": "neg",
+  "title": "prazan fajl se odbija",
+  "pass": true,
+  "detail": "Izaberite CSV fajl."
+ },
+ {
+  "area": "Panel: uvoz proizvoda iz CSV-a",
+  "kind": "pos",
+  "title": "Shopify CSV se čita",
+  "pass": true,
+  "detail": "/admin/proizvodi/uvoz"
+ },
+ {
+  "area": "Panel: uvoz proizvoda iz CSV-a",
+  "kind": "pos",
+  "title": "pregled uvoza pre upisa",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Panel: uvoz proizvoda iz CSV-a",
+  "kind": "sec",
+  "title": "uvoz ne preuzima slike sa lokalnih adresa (127.0.0.1, localhost, ::1, decimalni i heksa zapis, file://)",
+  "pass": true,
+  "detail": "zahteva ka lokalnom prijemniku: 0"
+ },
+ {
+  "area": "Panel: uvoz proizvoda iz CSV-a",
+  "kind": "pos",
+  "title": "uvoz završava bez greške servera",
+  "pass": false,
+  "detail": "HTTP 500; 0:{\"a\":\"$@1\",\"f\":\"\",\"q\":\"\",\"i\":false,\"b\":\"Yr1hOL5202tEe7i24pPXb\"}\n1:E{\"digest\":\"735970994\"}\n"
+ },
+ {
+  "area": "Panel: uvoz proizvoda iz CSV-a",
+  "kind": "sec",
+  "title": "katalog je posle uvoza ceo",
+  "pass": true,
+  "detail": "13 → 13"
+ },
+ {
+  "area": "Panel: uvoz proizvoda iz CSV-a",
+  "kind": "sec",
+  "title": "HTML opis iz uvoza se ne izvršava na sajtu",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "pos",
+  "title": "nova stranica (nacrt)",
+  "pass": true,
+  "detail": "/admin/stranice/akcije-script-alert-9-script"
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "sec",
+  "title": "stranica u nacrtu se ne vidi na sajtu",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "pos",
+  "title": "čuvanje i objava stranice (nepoznate sekcije se odbacuju)",
+  "pass": true,
+  "detail": "{\"ok\":true}"
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "pos",
+  "title": "objavljena stranica se vidi",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "sec",
+  "title": "sadržaj stranice ne ubacuje skriptu ni javascript: link",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "sec",
+  "title": "stranica sa naslovom „admin“ ne zauzima rezervisanu adresu",
+  "pass": true,
+  "detail": "adresa: admin-2"
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "sec",
+  "title": "stranica sa naslovom „api“ ne zauzima rezervisanu adresu",
+  "pass": true,
+  "detail": "adresa: api-2"
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "sec",
+  "title": "stranica sa naslovom „kolekcija“ ne zauzima rezervisanu adresu",
+  "pass": true,
+  "detail": "adresa: kolekcija-2"
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "sec",
+  "title": "stranica sa naslovom „nalog“ ne zauzima rezervisanu adresu",
+  "pass": true,
+  "detail": "adresa: nalog-2"
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "sec",
+  "title": "stranica sa naslovom „media“ ne zauzima rezervisanu adresu",
+  "pass": true,
+  "detail": "adresa: media-2"
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "pos",
+  "title": "nov članak na blogu",
+  "pass": true,
+  "detail": "/admin/blog/1"
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "pos",
+  "title": "objava članka",
+  "pass": true,
+  "detail": "/admin/blog/1?ok=Članak je sačuvan."
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "pos",
+  "title": "članak se vidi na sajtu",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "sec",
+  "title": "tekst članka ne ubacuje skriptu, javascript: link ni onerror",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "pos",
+  "title": "članak zakazan za 2099. se ne vidi do tada",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Panel: stranice, blog, kolekcije",
+  "kind": "pos",
+  "title": "kolekcija preko API-ja: nacrt i nepostojeći proizvod se ne vide",
+  "pass": true,
+  "detail": "[\"stolica-test\"]"
+ },
+ {
+  "area": "Panel: brisanje i posledice",
+  "kind": "pos",
+  "title": "brisanje kategorije ne ostavlja podkategoriju sa nepostojećim roditeljem",
+  "pass": true,
+  "detail": "[{\"id\":\"barske-stolice\",\"parent\":\"stolice\"},{\"id\":\"fotelje\",\"parent\":\"\"},{\"id\":\"stolice\",\"parent\":\"\"}]"
+ },
+ {
+  "area": "Panel: brisanje i posledice",
+  "kind": "pos",
+  "title": "porudžbina sa obrisanim proizvodom se i dalje otvara",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Panel: brisanje i posledice",
+  "kind": "pos",
+  "title": "obrisan proizvod ispada iz korpe kupca",
+  "pass": true,
+  "detail": "[\"lampa-akcija\"]"
+ },
+ {
+  "area": "Panel: brisanje i posledice",
+  "kind": "pos",
+  "title": "porudžbina sa obrisanim popustom se i dalje otvara",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Panel: brisanje i posledice",
+  "kind": "neg",
+  "title": "izmena cena za −100% se odbija",
+  "pass": true,
+  "detail": "Upišite procenat promene cene, npr. 10 ili -15."
+ },
+ {
+  "area": "Panel: brisanje i posledice",
+  "kind": "pos",
+  "title": "brisanje više proizvoda odjednom",
+  "pass": true,
+  "detail": "/admin/proizvodi"
+ },
+ {
+  "area": "Webhook-ovi (lokalni prijemnik)",
+  "kind": "neg",
+  "title": "webhook sa ftp:// adresom se odbija",
+  "pass": true,
+  "detail": "Adresa počinje sa https:// ili http:// i ima najviše 500 znakova."
+ },
+ {
+  "area": "Webhook-ovi (lokalni prijemnik)",
+  "kind": "neg",
+  "title": "webhook bez događaja se odbija",
+  "pass": true,
+  "detail": "Izaberite bar jedan događaj."
+ },
+ {
+  "area": "Webhook-ovi (lokalni prijemnik)",
+  "kind": "pos",
+  "title": "dodavanje webhook-a",
+  "pass": true,
+  "detail": "/admin/integracije?ok=Webhook je dodat. Pošaljite probu da proverite da adresa odgovara."
+ },
+ {
+  "area": "Webhook-ovi (lokalni prijemnik)",
+  "kind": "pos",
+  "title": "proba webhook-a stiže",
+  "pass": true,
+  "detail": "/admin/integracije?ok=Proba je stigla (odgovor 200)."
+ },
+ {
+  "area": "Webhook-ovi (lokalni prijemnik)",
+  "kind": "pos",
+  "title": "webhook order.created stiže sa ispravnim potpisom",
+  "pass": true,
+  "detail": "potpis sha256=ea9ed37e8d1d7…"
+ },
+ {
+  "area": "Webhook-ovi (lokalni prijemnik)",
+  "kind": "sec",
+  "title": "webhook ne šalje internu belešku ni ključ kupca",
+  "pass": true,
+  "detail": "{\"event\":\"order.created\",\"at\":\"2026-10-13T21:12:35.736Z\",\"data\":{\"order\":{\"number\":\"1060\",\"receivedAt\":\"2026-10-13T21:12"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "pos",
+  "title": "GET /admin/orders sa ključem za čitanje",
+  "pass": true,
+  "detail": "status 200, porudžbina: 60"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "sec",
+  "title": "odgovor ne sadrži interne beleške",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "pos",
+  "title": "GET /admin/orders/{broj}",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "pos",
+  "title": "filteri ?status=&limit=&since=",
+  "pass": true,
+  "detail": "2"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "neg",
+  "title": "neispravni filteri ne ruše API",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "pos",
+  "title": "GET /admin/products (sa nacrtima i stanjem)",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "sec",
+  "title": "/admin/orders: bez ključa → 401",
+  "pass": true,
+  "detail": "status 401"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "sec",
+  "title": "/admin/orders: pogrešan ključ → 401",
+  "pass": true,
+  "detail": "status 401"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "sec",
+  "title": "/admin/orders: ključ pogrešnog oblika → 401",
+  "pass": true,
+  "detail": "status 401"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "sec",
+  "title": "/admin/orders: Basic umesto Bearer → 401",
+  "pass": true,
+  "detail": "status 401"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "sec",
+  "title": "/admin/orders: ključ u adresi ?key= → 401",
+  "pass": true,
+  "detail": "status 401"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "sec",
+  "title": "/admin/orders: SQL u ključu → 401",
+  "pass": true,
+  "detail": "status 401"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "sec",
+  "title": "ključ samo za čitanje ne može da menja status → 403",
+  "pass": true,
+  "detail": "status 403"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "sec",
+  "title": "ključ samo za čitanje ne može da menja stanje → 403",
+  "pass": true,
+  "detail": "status 403"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "pos",
+  "title": "ključ sa izmenama menja status",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "neg",
+  "title": "nepoznat status → 400",
+  "pass": true,
+  "detail": "status 400 {\"error\":\"status must be one of: new, confirmed, shipped, delivered, cancelled\"}"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "neg",
+  "title": "nepostojeća porudžbina → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "sec",
+  "title": "tracking url „javascript:“ → 400",
+  "pass": true,
+  "detail": "status 400"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "pos",
+  "title": "upis broja pošiljke preko API-ja",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "neg",
+  "title": "stanje qty=-1 → 400",
+  "pass": true,
+  "detail": "status 400 → stanje 3"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "neg",
+  "title": "stanje qty=1.5 → 400",
+  "pass": true,
+  "detail": "status 400 → stanje 3"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "neg",
+  "title": "stanje qty=\"abc\" → 400",
+  "pass": true,
+  "detail": "status 400 → stanje 3"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "neg",
+  "title": "stanje qty=1000000000 → 400",
+  "pass": true,
+  "detail": "status 400 → stanje 3"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "neg",
+  "title": "stanje qty={} → 400",
+  "pass": true,
+  "detail": "status 400 → stanje 3"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "neg",
+  "title": "stanje qty=[5] → 400",
+  "pass": false,
+  "detail": "status 200 → stanje 5"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "neg",
+  "title": "stanje bez polja qty → 400 (ne menja stanje)",
+  "pass": true,
+  "detail": "status 400 {\"error\":\"qty must be a whole number from 0 to 1000000, or null to stop tracking\"} → stanje u bazi 5"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "pos",
+  "title": "upis stanja preko API-ja",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "pos",
+  "title": "upis stanja varijante preko API-ja",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "neg",
+  "title": "stanje nepostojećeg proizvoda → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "sec",
+  "title": "nagađanje API ključa se ograničava (429 posle 20)",
+  "pass": true,
+  "detail": "429 na pokušaju 21"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "pos",
+  "title": "ispravan ključ radi i sa adrese koja je blokirana zbog nagađanja",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "sec",
+  "title": "obrisan ključ odmah prestaje da važi",
+  "pass": true,
+  "detail": "status 401"
+ },
+ {
+  "area": "API sa ključem (/api/v1/admin)",
+  "kind": "sec",
+  "title": "isključen API sa ključem → 403 i sa ispravnim ključem",
+  "pass": true,
+  "detail": "status 403"
+ },
+ {
+  "area": "Cron",
+  "kind": "sec",
+  "title": "/api/v1/cron bez ključa → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Cron",
+  "kind": "sec",
+  "title": "/api/v1/cron sa pogrešnim ključem → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Cron",
+  "kind": "pos",
+  "title": "/api/v1/cron sa ispravnim ključem",
+  "pass": true,
+  "detail": "status 200 {\"reminders\":0}"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "pos",
+  "title": "prijava korisnika sa ulogom prodaja i sadržaj",
+  "pass": true,
+  "detail": "/admin / /admin"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: /admin/podesavanja je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: /admin/korisnici je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: /admin/dnevnik je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: /admin/integracije je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: /admin/stranice je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: /admin/izgled je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: /admin/slike je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: /admin/blog je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: /admin/prevodi je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: /admin/podesavanja/sablon je zatvoren",
+  "pass": true,
+  "detail": "status 404 → "
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: /admin/podesavanja/pregled je zatvoren",
+  "pass": true,
+  "detail": "status 404 → "
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/podesavanja je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/korisnici je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/dnevnik je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/integracije je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/porudzbine je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/porudzbine/1001 je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/kupci je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/poruke je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/izvestaji je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/korpe je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/utisci je zatvoren",
+  "pass": true,
+  "detail": "status 307 → /admin/nalog?greska=Va%C5%A1a%20uloga%20nema%20pristup%20tom%20delu%20panela."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/porudzbine/izvoz je zatvoren",
+  "pass": true,
+  "detail": "status 404 → "
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/kupci/izvoz je zatvoren",
+  "pass": true,
+  "detail": "status 404 → "
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/poruke/izvoz je zatvoren",
+  "pass": true,
+  "detail": "status 404 → "
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/izvestaji/izvoz je zatvoren",
+  "pass": true,
+  "detail": "status 404 → "
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/porudzbine/1001/racun je zatvoren",
+  "pass": true,
+  "detail": "status 404 → "
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: /admin/popusti je zatvoren",
+  "pass": false,
+  "detail": "status 200 →  SADRŽAJ PRIKAZAN"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija saveStoreAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija saveMailAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija createUserAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija updateUserAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija resetUserPasswordAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija deleteUserAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija createApiKeyAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija saveAccessAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija createWebhookAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija savePaymentAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija savePageAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija uploadImageAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija saveShippingAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga prodaja: akcija resetUserTotpAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: akcija setOrderStatusAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: akcija refundOrderAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: akcija eraseCustomerAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: akcija createManualOrderAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: akcija setOrderPaidAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: akcija sendCampaignAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: akcija deleteMessageAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: akcija saveStoreAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "uloga sadržaj: akcija saveThemeAction se odbija",
+  "pass": true,
+  "detail": "redirect /admin/nalog?greska=Vaša uloga nema pristup tom delu panela. $Sreact.fragment"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "sec",
+  "title": "posle svih pokušaja ništa nije promenjeno u bazi",
+  "pass": true,
+  "detail": "[5734,5,1,1,{\"status\":\"confirmed\",\"refunded\":0,\"paid_at\":null},60,\"sales\",2,\"Početna\"] / [5734,5,1,1,{\"status\":\"confirmed\",\"refunded\":0,\"paid_at\":null},60,\"sales\",2,\"Početna\"]"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "pos",
+  "title": "prodaja vidi porudžbine",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "pos",
+  "title": "sadržaj vidi stranice",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "neg",
+  "title": "promena sopstvene lozinke traži ispravnu trenutnu",
+  "pass": true,
+  "detail": "Trenutna lozinka nije ispravna."
+ },
+ {
+  "area": "Uloge: prodaja i sadržaj ne smeju u tuđe delove",
+  "kind": "neg",
+  "title": "nova lozinka kraća od 10 se odbija",
+  "pass": true,
+  "detail": "Lozinka mora imati najmanje 10 znakova."
+ },
+ {
+  "area": "Bez prijave: nijedna akcija panela ne radi",
+  "kind": "sec",
+  "title": "svih ~75 akcija panela bez prijave vraća na stranu za prijavu",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Bez prijave: nijedna akcija panela ne radi",
+  "kind": "sec",
+  "title": "…i baza je ostala ista",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Sesije i korisnici",
+  "kind": "sec",
+  "title": "kolačić panela nije čitljiv iz baze (čuva se heš)",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Sesije i korisnici",
+  "kind": "sec",
+  "title": "izmišljen kolačić ne otvara panel",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Sesije i korisnici",
+  "kind": "sec",
+  "title": "isključen korisnik odmah gubi pristup (postojeća sesija)",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Sesije i korisnici",
+  "kind": "sec",
+  "title": "isključen korisnik ne može da se prijavi",
+  "pass": true,
+  "detail": "{\"error\":\"Pogrešno korisničko ime ili lozinka.\"}"
+ },
+ {
+  "area": "Sesije i korisnici",
+  "kind": "sec",
+  "title": "nova lozinka odjavljuje korisnika sa svih uređaja",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Sesije i korisnici",
+  "kind": "neg",
+  "title": "vlasnik ne može da obriše sam sebe",
+  "pass": true,
+  "detail": "Ne možete obrisati sopstveni nalog."
+ },
+ {
+  "area": "Sesije i korisnici",
+  "kind": "neg",
+  "title": "vlasnik ne može da isključi sam sebe",
+  "pass": true,
+  "detail": "Ne možete isključiti sopstveni nalog."
+ },
+ {
+  "area": "Sesije i korisnici",
+  "kind": "neg",
+  "title": "poslednji vlasnik ne može sebi da oduzme ulogu",
+  "pass": true,
+  "detail": "Mora ostati bar jedan aktivan vlasnik."
+ },
+ {
+  "area": "Sesije i korisnici",
+  "kind": "sec",
+  "title": "posle odjave stari kolačić više ne važi",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Sesije i korisnici",
+  "kind": "sec",
+  "title": "kolačić panela: HttpOnly, SameSite, samo za /admin",
+  "pass": true,
+  "detail": "shopcrm-admin=…; Path=/admin; Expires=Tue, 20 Oct 2026 21:15:09 GMT; Max-Age=604800; Secure; HttpOnly; SameSite=lax"
+ },
+ {
+  "area": "Prijava u dva koraka (TOTP)",
+  "kind": "neg",
+  "title": "pogrešan kod pri uključivanju",
+  "pass": true,
+  "detail": "{\"error\":\"Kod nije ispravan. Upišite kod koji aplikacija trenutno prikazuje.\"}"
+ },
+ {
+  "area": "Prijava u dva koraka (TOTP)",
+  "kind": "pos",
+  "title": "uključivanje prijave u dva koraka + 8 rezervnih kodova",
+  "pass": true,
+  "detail": "{\"codes\":[\"BF555-29106\",\"C90A2-38452\",\"AA599-EFCBA\",\"6A01D-C1F66\",\"F82FD-18F91\",\"5A178-9E668\",\"8F620-0C676\",\"0B3D9-C1038\"]}"
+ },
+ {
+  "area": "Prijava u dva koraka (TOTP)",
+  "kind": "sec",
+  "title": "lozinka sama više nije dovoljna (traži se kod)",
+  "pass": true,
+  "detail": "{\"needCode\":true}"
+ },
+ {
+  "area": "Prijava u dva koraka (TOTP)",
+  "kind": "sec",
+  "title": "pogrešan kod se odbija",
+  "pass": true,
+  "detail": "{\"needCode\":true,\"error\":\"Kod nije ispravan. Upišite trenutni kod iz aplikacije ili rezervni kod.\"}"
+ },
+ {
+  "area": "Prijava u dva koraka (TOTP)",
+  "kind": "pos",
+  "title": "prijava sa ispravnim kodom",
+  "pass": true,
+  "detail": "$Sreact.fragment"
+ },
+ {
+  "area": "Prijava u dva koraka (TOTP)",
+  "kind": "sec",
+  "title": "isti jednokratni kod ne može ponovo (replay)",
+  "pass": false,
+  "detail": "isti kod je prihvaćen drugi put u istih 30–90 sekundi"
+ },
+ {
+  "area": "Prijava u dva koraka (TOTP)",
+  "kind": "pos",
+  "title": "prijava rezervnim kodom",
+  "pass": true,
+  "detail": "$Sreact.fragment"
+ },
+ {
+  "area": "Prijava u dva koraka (TOTP)",
+  "kind": "sec",
+  "title": "rezervni kod važi samo jednom",
+  "pass": true,
+  "detail": "{\"needCode\":true,\"error\":\"Kod nije ispravan. Upišite trenutni kod iz aplikacije ili rezervni kod.\"}"
+ },
+ {
+  "area": "Prijava u dva koraka (TOTP)",
+  "kind": "sec",
+  "title": "ispravan kod bez ispravne lozinke ne prolazi",
+  "pass": true,
+  "detail": "{\"error\":\"Pogrešno korisničko ime ili lozinka.\"}"
+ },
+ {
+  "area": "Prijava u dva koraka (TOTP)",
+  "kind": "sec",
+  "title": "nagađanje koda iz aplikacije je ograničeno po nalogu",
+  "pass": false,
+  "detail": "25 od 25 pokušaja koda je provereno (svaki sa druge „adrese“); nema brojača po nalogu"
+ },
+ {
+  "area": "Zaboravljena lozinka panela",
+  "kind": "sec",
+  "title": "isti odgovor za postojećeg i nepostojećeg korisnika",
+  "pass": true,
+  "detail": "{\"sent\":true} / {\"sent\":true}"
+ },
+ {
+  "area": "Zaboravljena lozinka panela",
+  "kind": "pos",
+  "title": "link za novu lozinku stiže na adresu korisnika",
+  "pass": true,
+  "detail": "link: http://127.0.0.1:3100/admin-lozinka/NJyw_bkYJmj9Qi_i7fYh-UmOTJPZjVJUQu2ffM22Es0"
+ },
+ {
+  "area": "Zaboravljena lozinka panela",
+  "kind": "sec",
+  "title": "nova lozinka sa pogrešnim žetonom",
+  "pass": true,
+  "detail": "{\"error\":\"Link više ne važi. Zatražite novi.\"}"
+ },
+ {
+  "area": "Zaboravljena lozinka panela",
+  "kind": "neg",
+  "title": "lozinke se ne poklapaju",
+  "pass": true,
+  "detail": "{\"error\":\"Lozinke se ne poklapaju.\"}"
+ },
+ {
+  "area": "Zaboravljena lozinka panela",
+  "kind": "pos",
+  "title": "postavljanje nove lozinke preko linka",
+  "pass": true,
+  "detail": "{\"done\":true}"
+ },
+ {
+  "area": "Zaboravljena lozinka panela",
+  "kind": "sec",
+  "title": "link važi samo jednom",
+  "pass": true,
+  "detail": "{\"error\":\"Link više ne važi. Zatražite novi.\"}"
+ },
+ {
+  "area": "Zaboravljena lozinka panela",
+  "kind": "pos",
+  "title": "prijava novom lozinkom",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Zaboravljena lozinka panela",
+  "kind": "sec",
+  "title": "link za lozinku PANELA ne prati podmetnut Host/X-Forwarded-Host",
+  "pass": false,
+  "detail": "status 200; link u emailu korisniku: https://evil.example/admin-lozinka/5razWgP3ITRy83AQycRqFGYvFAmbCXj81Jtjx_eS1m8"
+ },
+ {
+  "area": "Istovremene porudžbine (trke)",
+  "kind": "sec",
+  "title": "20 istovremenih porudžbina za poslednji komad: prolazi tačno jedna",
+  "pass": true,
+  "detail": "uspelo 1, stanje 0, statusi 201,422"
+ },
+ {
+  "area": "Istovremene porudžbine (trke)",
+  "kind": "sec",
+  "title": "30 istovremenih porudžbina na 9 komada: nema prodaje preko stanja",
+  "pass": true,
+  "detail": "uspelo 9, stanje 0, prodato 9; statusi 201,422"
+ },
+ {
+  "area": "Istovremene porudžbine (trke)",
+  "kind": "pos",
+  "title": "brojevi porudžbina su jedinstveni i redom",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Istovremene porudžbine (trke)",
+  "kind": "sec",
+  "title": "kod za 3 korišćenja uz 15 istovremenih porudžbina: tačno 3",
+  "pass": true,
+  "detail": "uspelo 3, u bazi 3"
+ },
+ {
+  "area": "Istovremene porudžbine (trke)",
+  "kind": "sec",
+  "title": "kod nagrade uz 10 istovremenih porudžbina: iskorišćen jednom",
+  "pass": true,
+  "detail": "uspelo 1; statusi 422,422,422,201,422,422,422,422,422,422"
+ },
+ {
+  "area": "Istovremene porudžbine (trke)",
+  "kind": "sec",
+  "title": "12 istovremenih otkazivanja/vraćanja iste porudžbine: stanje ostaje tačno",
+  "pass": true,
+  "detail": "stanje 16 → 16, završni status new"
+ },
+ {
+  "area": "Istovremene porudžbine (trke)",
+  "kind": "sec",
+  "title": "8 istovremenih dodavanja proizvoda: nijedan se ne gubi",
+  "pass": true,
+  "detail": "8 → 16 (očekivano 16); /admin/proizvodi,/admin/proizvodi,/admin/proizvodi,/admin/proizvodi,/admin/proizvodi,/admin/proizvodi,/admin/proizvodi,/admin/proizvodi"
+ },
+ {
+  "area": "Istovremene porudžbine (trke)",
+  "kind": "sec",
+  "title": "izmene kataloga u panelu dok stižu porudžbine ne vraćaju prodate komade na stanje",
+  "pass": true,
+  "detail": "porudžbina 10, stanje 40 (očekivano 40)"
+ },
+ {
+  "area": "Napuštene korpe i novosti",
+  "kind": "pos",
+  "title": "korpa se pamti uz email (nacrt ispada)",
+  "pass": true,
+  "detail": "[{\"slug\":\"stolica-test\",\"qty\":2}]"
+ },
+ {
+  "area": "Napuštene korpe i novosti",
+  "kind": "pos",
+  "title": "podsetnik za korpu se šalje posle isteka vremena",
+  "pass": true,
+  "detail": "/admin/korpe?ok=Poslato podsetnika: 2.; poruka: 2"
+ },
+ {
+  "area": "Napuštene korpe i novosti",
+  "kind": "sec",
+  "title": "bilo ko ne može da pošalje TUĐOJ adresi email prodavnice sa linkom na svoj sajt",
+  "pass": true,
+  "detail": "site_url u bazi: https://evil.example; link u emailu žrtvi: http://127.0.0.1:3100/korpa/vrati/abf89cb07c1c4a595dba5841e2266af2591438109a0be1c1"
+ },
+ {
+  "area": "Napuštene korpe i novosti",
+  "kind": "pos",
+  "title": "podsetnik se ne šalje dva puta",
+  "pass": true,
+  "detail": "novih poruka: 0"
+ },
+ {
+  "area": "Napuštene korpe i novosti",
+  "kind": "pos",
+  "title": "link iz podsetnika vraća korpu",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Napuštene korpe i novosti",
+  "kind": "sec",
+  "title": "izmišljen žeton korpe ne vraća ništa",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Napuštene korpe i novosti",
+  "kind": "pos",
+  "title": "odjava od podsetnika",
+  "pass": true,
+  "detail": "true"
+ },
+ {
+  "area": "Napuštene korpe i novosti",
+  "kind": "pos",
+  "title": "poruka svim prijavljenima na novosti",
+  "pass": true,
+  "detail": "/admin/poruke?ok=Poruka se šalje na 2 adresa.; poslato 2, prijavljenih 2"
+ },
+ {
+  "area": "Napuštene korpe i novosti",
+  "kind": "sec",
+  "title": "HTML u tekstu novosti je izbegnut u emailu",
+  "pass": true,
+  "detail": "provereno ručno na HTML delu poruke: HTML je izbegnut (&lt;script&gt;)"
+ },
+ {
+  "area": "Napuštene korpe i novosti",
+  "kind": "pos",
+  "title": "odjava od novosti preko linka",
+  "pass": true,
+  "detail": "žeton 5b8e494f… → true"
+ },
+ {
+  "area": "Napuštene korpe i novosti",
+  "kind": "sec",
+  "title": "odjava sa izmišljenim žetonom ne odjavljuje nikoga",
+  "pass": true,
+  "detail": "false"
+ },
+ {
+  "area": "Email o porudžbini",
+  "kind": "pos",
+  "title": "kupac dobija potvrdu porudžbine",
+  "pass": true,
+  "detail": "poruka kupcu petar@: 2"
+ },
+ {
+  "area": "Email o porudžbini",
+  "kind": "pos",
+  "title": "prodavac dobija obaveštenje o porudžbini",
+  "pass": true,
+  "detail": "poruka prodavcu: 86"
+ },
+ {
+  "area": "Email o porudžbini",
+  "kind": "sec",
+  "title": "ime kupca sa <script> je izbegnuto u emailu",
+  "pass": true,
+  "detail": "provereno ručno na HTML delu poruke: HTML je izbegnut (&lt;script&gt;)"
+ },
+ {
+  "area": "Email o porudžbini",
+  "kind": "sec",
+  "title": "…i u emailu prodavcu",
+  "pass": true,
+  "detail": "provereno ručno na HTML delu poruke: HTML je izbegnut (&lt;script&gt;)"
+ },
+ {
+  "area": "Email o porudžbini",
+  "kind": "pos",
+  "title": "nijedna porudžbina nema upisanu grešku slanja emaila",
+  "pass": true,
+  "detail": "[]"
+ },
+ {
+  "area": "Brisanje podataka kupca i dnevnik",
+  "kind": "pos",
+  "title": "brisanje podataka kupca: porudžbina ostaje bez ličnih podataka",
+  "pass": true,
+  "detail": "{\"customer_name\":\"Obrisan kupac\",\"email\":\"\",\"phone\":\"\",\"street\":\"\"}"
+ },
+ {
+  "area": "Brisanje podataka kupca i dnevnik",
+  "kind": "pos",
+  "title": "dnevnik beleži izmene (ko i šta)",
+  "pass": true,
+  "detail": "zapisa: 127"
+ },
+ {
+  "area": "Brisanje podataka kupca i dnevnik",
+  "kind": "sec",
+  "title": "dnevnik ne sadrži lozinke",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Brisanje podataka kupca i dnevnik",
+  "kind": "sec",
+  "title": "neuspele prijave u panel se beleže u dnevnik",
+  "pass": false,
+  "detail": "u dnevniku nema nijednog zapisa o pogrešnoj lozinci, iako ih je bilo preko 40"
+ },
+ {
+  "area": "Adresa sajta nije upisana: linkovi u emailovima",
+  "kind": "sec",
+  "title": "podsetnik za korpu (bez upisane adrese sajta) ne vodi na adresu koju je podmetnuo posetilac",
+  "pass": false,
+  "detail": "link u emailu poslatom na tuđu adresu: https://evil.example/korpa/vrati/9bf948a7c2af77b6da37ab4a3041b46803e1c40439a87543"
+ },
+ {
+  "area": "Pregled nesačuvanih izmena (?pregled=)",
+  "kind": "sec",
+  "title": "nacrt stranice bez žetona → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Pregled nesačuvanih izmena (?pregled=)",
+  "kind": "sec",
+  "title": "nacrt sa lažnim žetonom „1“ → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Pregled nesačuvanih izmena (?pregled=)",
+  "kind": "sec",
+  "title": "nacrt sa lažnim žetonom „9999999999999.abc“ → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Pregled nesačuvanih izmena (?pregled=)",
+  "kind": "sec",
+  "title": "nacrt sa lažnim žetonom „1791927267928.0000“ → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Pregled nesačuvanih izmena (?pregled=)",
+  "kind": "sec",
+  "title": "nacrt sa lažnim žetonom „../../x“ → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Pregled nesačuvanih izmena (?pregled=)",
+  "kind": "sec",
+  "title": "nacrt sa lažnim žetonom „999999999999999999“ → 404",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Pregled nesačuvanih izmena (?pregled=)",
+  "kind": "sec",
+  "title": "zaglavlje za pregled koje pošalje posetilac se odbacuje",
+  "pass": true,
+  "detail": "status 404"
+ },
+ {
+  "area": "Pregled nesačuvanih izmena (?pregled=)",
+  "kind": "pos",
+  "title": "nacrt sa ispravnim žetonom iz uređivača se vidi",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Jezici",
+  "kind": "pos",
+  "title": "API ?lang=en vraća Content-Language: en",
+  "pass": true,
+  "detail": "en"
+ },
+ {
+  "area": "Jezici",
+  "kind": "pos",
+  "title": "poruke o grešci na engleskom uz ?lang=en",
+  "pass": true,
+  "detail": "{\"ok\":false,\"errors\":{\"name\":\"Enter your full name.\",\"phone\":\"Enter your phone number.\",\"email\":\"Enter your email address.\",\"street\":\"Enter the street and numbe"
+ },
+ {
+  "area": "Jezici",
+  "kind": "neg",
+  "title": "nepoznat jezik u ?lang= se ignoriše",
+  "pass": true,
+  "detail": "200 sr"
+ },
+ {
+  "area": "Jezici",
+  "kind": "neg",
+  "title": "adresa sa jezikom koji prodavnica nema (/xx) → 404",
+  "pass": false,
+  "detail": "status 200 — otvara istu stranicu kao bez prefiksa (duple adrese za pretraživače)"
+ },
+ {
+  "area": "Jezici",
+  "kind": "neg",
+  "title": "adresa sa jezikom koji prodavnica nema (/de/kolekcija) → 404",
+  "pass": false,
+  "detail": "status 200 — otvara istu stranicu kao bez prefiksa (duple adrese za pretraživače)"
+ },
+ {
+  "area": "Jezici",
+  "kind": "neg",
+  "title": "adresa sa jezikom koji prodavnica nema (/zz/proizvod/stolica-test) → 404",
+  "pass": false,
+  "detail": "status 200 — otvara istu stranicu kao bez prefiksa (duple adrese za pretraživače)"
+ },
+ {
+  "area": "Kolekcija: filteri i neispravni parametri",
+  "kind": "neg",
+  "title": "/kolekcija?sortiraj=%27%3BDROP%20TABLE%20products ne ruši stranicu",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Kolekcija: filteri i neispravni parametri",
+  "kind": "neg",
+  "title": "/kolekcija?sortiraj=__proto__ ne ruši stranicu",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Kolekcija: filteri i neispravni parametri",
+  "kind": "neg",
+  "title": "/kolekcija?strana=-5 ne ruši stranicu",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Kolekcija: filteri i neispravni parametri",
+  "kind": "neg",
+  "title": "/kolekcija?strana=999999999999999999999 ne ruši stranicu",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Kolekcija: filteri i neispravni parametri",
+  "kind": "neg",
+  "title": "/kolekcija?strana=abc ne ruši stranicu",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Kolekcija: filteri i neispravni parametri",
+  "kind": "neg",
+  "title": "/kolekcija?cena-od=abc&cena-do=-1 ne ruši stranicu",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Kolekcija: filteri i neispravni parametri",
+  "kind": "neg",
+  "title": "/kolekcija?cena-od=1e400 ne ruši stranicu",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Kolekcija: filteri i neispravni parametri",
+  "kind": "neg",
+  "title": "/kolekcija?pretraga=%25%27%22%5C ne ruši stranicu",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Kolekcija: filteri i neispravni parametri",
+  "kind": "neg",
+  "title": "/kolekcija?pretraga=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ne ruši stranicu",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Kolekcija: filteri i neispravni parametri",
+  "kind": "neg",
+  "title": "/kolekcija?boja=%00 ne ruši stranicu",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Kolekcija: filteri i neispravni parametri",
+  "kind": "neg",
+  "title": "/kolekcija?sortiraj=cena-rast&cena-od=0&cena-do=999999 ne ruši stranicu",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Kolekcija: filteri i neispravni parametri",
+  "kind": "sec",
+  "title": "posle svega tabela products postoji i ima redove",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Isključen pristup spolja",
+  "kind": "sec",
+  "title": "javni API isključen → 403 za čitanje, korpu i porudžbine",
+  "pass": true,
+  "detail": "403 403 403"
+ },
+ {
+  "area": "Isključen pristup spolja",
+  "kind": "pos",
+  "title": "prodavnica radi i kada je API isključen",
+  "pass": true,
+  "detail": "status 200, obračun {\"subtotal\":10000,\"discount\":0,\"delivery\":500,\"total\":10500,\"discountText\":\"\",\"codeError\":\"\"}"
+ },
+ {
+  "area": "Šablon emaila i podešavanja",
+  "kind": "neg",
+  "title": "fajl koji nije šablon se odbija",
+  "pass": true,
+  "detail": "Fajl ne liči na šablon: treba da bude HTML sa mestima poput {{stavke}} i {{ukupno}}."
+ },
+ {
+  "area": "Šablon emaila i podešavanja",
+  "kind": "pos",
+  "title": "sopstveni šablon emaila se prima",
+  "pass": true,
+  "detail": "/admin/podesavanja?ok=Vaš šablon je ubačen. Pogledajte pregled pre nego što stigne prva porudžbina."
+ },
+ {
+  "area": "Šablon emaila i podešavanja",
+  "kind": "sec",
+  "title": "pregled šablona se prikazuje u izolaciji (CSP sandbox)",
+  "pass": true,
+  "detail": "status 200; CSP sandbox; default-src 'none'; img-src 'self' data: https:; style-src 'unsafe-inline'"
+ },
+ {
+  "area": "Šablon emaila i podešavanja",
+  "kind": "pos",
+  "title": "preuzimanje šablona",
+  "pass": true,
+  "detail": "status 200"
+ },
+ {
+  "area": "Šablon emaila i podešavanja",
+  "kind": "sec",
+  "title": "stranica podešavanja ne ispisuje SMTP lozinku ni tajnu servera",
+  "pass": true,
+  "detail": ""
+ },
+ {
+  "area": "Šablon emaila i podešavanja",
+  "kind": "sec",
+  "title": "GA4 oznaka sa HTML-om se odbija",
+  "pass": true,
+  "detail": "GA4 oznaka izgleda ovako: G-XXXXXXXXXX."
+ },
+ {
+  "area": "Šablon emaila i podešavanja",
+  "kind": "neg",
+  "title": "neispravan Google Client ID se odbija",
+  "pass": true,
+  "detail": "Google Client ID se završava sa .apps.googleusercontent.com."
+ },
+ {
+  "area": "Šablon emaila i podešavanja",
+  "kind": "sec",
+  "title": "boja teme ne može da ubaci </style><script> u stranicu",
+  "pass": true,
+  "detail": "akcija: {\"ok\":true}"
+ },
+ {
+  "area": "Rad sa više podataka (3.000 porudžbina, 1.500 proizvoda)",
+  "kind": "pos",
+  "title": "početna strana prodavnice ispod 1 s sa 1.500 proizvoda",
+  "pass": true,
+  "detail": "14 ms"
+ },
+ {
+  "area": "Rad sa više podataka (3.000 porudžbina, 1.500 proizvoda)",
+  "kind": "pos",
+  "title": "stranica kolekcije ispod 1 s sa 1.500 proizvoda",
+  "pass": true,
+  "detail": "9 ms"
+ },
+ {
+  "area": "Rad sa više podataka (3.000 porudžbina, 1.500 proizvoda)",
+  "kind": "pos",
+  "title": "spisak porudžbina u panelu ispod 2 s sa 3.000 porudžbina",
+  "pass": true,
+  "detail": "50 ms, 373 KB HTML-a"
+ },
+ {
+  "area": "Rad sa više podataka (3.000 porudžbina, 1.500 proizvoda)",
+  "kind": "pos",
+  "title": "spisak proizvoda u panelu ispod 2 s sa 1.500 proizvoda",
+  "pass": true,
+  "detail": "207 ms, 11061 KB HTML-a"
+ },
+ {
+  "area": "Rad sa više podataka (3.000 porudžbina, 1.500 proizvoda)",
+  "kind": "pos",
+  "title": "čuvanje jednog proizvoda ispod 2 s sa 1.500 proizvoda",
+  "pass": true,
+  "detail": "343 ms (ceo katalog se briše i upisuje ponovo)"
+ },
+ {
+  "area": "Rad sa više podataka (3.000 porudžbina, 1.500 proizvoda)",
+  "kind": "pos",
+  "title": "API /products ima straničenje (ne vraća svih 1.500 odjednom)",
+  "pass": false,
+  "detail": "1312 KB u jednom odgovoru, bez ?page/?limit"
+ },
+ {
+  "area": "Rad sa više podataka (3.000 porudžbina, 1.500 proizvoda)",
+  "kind": "pos",
+  "title": "porudžbina preko API-ja ispod 1 s",
+  "pass": true,
+  "detail": "11 ms, status 201"
+ },
+ {
+  "area": "Rad sa više podataka (3.000 porudžbina, 1.500 proizvoda)",
+  "kind": "pos",
+  "title": "porudžbina sa sajta ispod 1 s",
+  "pass": true,
+  "detail": "47 ms (posle upisa čita SVE porudžbine da nađe jednu)"
+ },
+ {
+  "area": "Rad sa više podataka (3.000 porudžbina, 1.500 proizvoda)",
+  "kind": "pos",
+  "title": "200 istovremenih posetilaca: svi dobijaju stranicu",
+  "pass": true,
+  "detail": "658 ms ukupno; statusi 200"
+ },
+ {
+  "area": "Rad sa više podataka (3.000 porudžbina, 1.500 proizvoda)",
+  "kind": "pos",
+  "title": "100 istovremenih obračuna korpe preko API-ja",
+  "pass": true,
+  "detail": "1176 ms; statusi 200"
+ },
+ {
+  "area": "Baza: celovitost posle svih testova",
+  "kind": "pos",
+  "title": "nema stavki bez porudžbine",
+  "pass": true,
+  "detail": "0"
+ },
+ {
+  "area": "Baza: celovitost posle svih testova",
+  "kind": "pos",
+  "title": "nema porudžbina bez stavki",
+  "pass": true,
+  "detail": "0"
+ },
+ {
+  "area": "Baza: celovitost posle svih testova",
+  "kind": "pos",
+  "title": "nema negativnog stanja",
+  "pass": true,
+  "detail": "0"
+ },
+ {
+  "area": "Baza: celovitost posle svih testova",
+  "kind": "pos",
+  "title": "svaka porudžbina: ukupno = međuzbir − popust + dostava, povraćaj ≤ ukupno",
+  "pass": true,
+  "detail": "neispravnih: 0"
+ },
+ {
+  "area": "Baza: celovitost posle svih testova",
+  "kind": "pos",
+  "title": "međuzbir svake porudžbine = zbir stavki",
+  "pass": true,
+  "detail": "neispravnih: 0"
+ },
+ {
+  "area": "Baza: celovitost posle svih testova",
+  "kind": "pos",
+  "title": "istorija stanja se vodi",
+  "pass": true,
+  "detail": "zapisa: 54"
+ },
+ {
+  "area": "Baza: celovitost posle svih testova",
+  "kind": "pos",
+  "title": "sve tabele su InnoDB i utf8mb4",
+  "pass": true,
+  "detail": "39 tabela; izuzeci: nema"
+ },
+ {
+  "area": "Baza: celovitost posle svih testova",
+  "kind": "sec",
+  "title": "žetoni za novu lozinku su u bazi kao heš",
+  "pass": true,
+  "detail": ""
+ }
+]
