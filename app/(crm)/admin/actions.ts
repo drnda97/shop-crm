@@ -606,10 +606,13 @@ export async function applyImportAction(formData: FormData) {
   redirect(`${IMPORT_PATH}?ok=${encodeURIComponent(notes.filter(Boolean).join(" "))}`);
 }
 
-/** Putanja slike iz biblioteke kada adresa pokazuje na sliku koja već postoji na ovom serveru. */
+/**
+ * Putanja slike iz biblioteke kada adresa pokazuje na sliku koja već postoji na ovom serveru.
+ * Izvoz bez upisane adrese sajta daje adresu bez domena („/media/…"), pa i nju prepoznaje.
+ */
 function localMedia(url: string): string | null {
   try {
-    const path = new URL(url).pathname;
+    const path = new URL(url, "http://localhost").pathname;
     const file = uploadPath(path);
     return file && existsSync(file) ? path : null;
   } catch {

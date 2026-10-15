@@ -14,6 +14,7 @@ import {
   type Product,
   type Variant,
 } from "@/lib/catalog";
+import { linkBase } from "@/lib/mail";
 import { imageSizes } from "@/lib/media";
 import { cardProvider } from "@/lib/payments";
 import { collectImages, SECTION_TYPES, sectionType } from "@/lib/sections";
@@ -82,14 +83,13 @@ export async function readJsonBody(request: Request): Promise<unknown> {
   }
 }
 
-/** Osnova za pune adrese slika: PUBLIC_URL, ili adresa sa koje je stigao zahtev. */
-export function baseUrl(request: Request): string {
-  const configured = process.env.PUBLIC_URL?.replace(/\/+$/, "");
-  if (configured) return configured;
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  if (!host) return new URL(request.url).origin;
-  const protocol = request.headers.get("x-forwarded-proto") ?? new URL(request.url).protocol;
-  return `${protocol.replace(/:$/, "")}://${host}`;
+/**
+ * Osnova za pune adrese slika: PUBLIC_URL ili adresa sajta iz Podešavanja (linkBase). Zaglavlja
+ * Host i X-Forwarded-Host šalje posetilac, pa se ne koriste osim na localhost-u; bez upisane
+ * adrese slike dobijaju adresu bez domena („/media/…").
+ */
+export function baseUrl(request: Request, settings: Settings): string {
+  return linkBase(settings, request.headers);
 }
 
 function mediaUrl(src: string | undefined, base: string): string | null {

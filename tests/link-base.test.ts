@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { baseUrl } from "@/lib/api";
 import { isLoopbackUrl, linkBase, publicBase } from "@/lib/mail";
 import { mergeSettings } from "@/lib/settings";
 
@@ -31,6 +32,12 @@ describe("adresa za linkove u emailu", () => {
     // X-Forwarded-Host se ne gleda ni lokalno.
     expect(linkBase(withSite(""), new Headers({ host: "localhost:3000", "x-forwarded-host": "evil.example" }))).toBe("http://localhost:3000");
     expect(linkBase(withSite(""), new Headers({ host: "localhost.evil.example" }))).toBe("");
+  });
+
+  it("adrese slika u API-ju ne uzimaju domen iz zaglavlja", () => {
+    const request = new Request("http://evil.example/api/v1/products", { headers: { host: "evil.example", "x-forwarded-host": "evil.example" } });
+    expect(baseUrl(request, withSite(""))).toBe("");
+    expect(baseUrl(request, withSite("https://mojsajt.rs"))).toBe("https://mojsajt.rs");
   });
 
   it("prepoznaje lokalne adrese", () => {

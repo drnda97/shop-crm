@@ -13,6 +13,6 @@ export async function GET(request: Request) {
   const [products, categories, settings] = await Promise.all([getProducts(), getCategories(), getSettings()]);
   return csvResponse(
     "proizvodi.csv",
-    exportRows(products, categories, settings.store.currencyDecimals, baseUrl(request)),
+    exportRows(products, categories, settings.store.currencyDecimals, baseUrl(request, settings)),
   );
 }

@@ -64,7 +64,7 @@ export async function GET(request: Request, { params }: Context) {
   }
 
   if (resource === "products" && !id) {
-    const base = baseUrl(request);
+    const base = baseUrl(request, await getSettings());
     return json({
       products: (await getProducts()).map((product) => ({
         ...publicProduct(product, base),

@@ -114,7 +114,7 @@ export async function GET(request: Request, { params }: Context) {
   const settings = await getSettings();
   const off = apiOff(request, settings);
   if (off) return off;
-  const base = baseUrl(request);
+  const base = baseUrl(request, settings);
   if (extra !== undefined) return notFound(request, settings);
 
   if (resource === "store" && !id) {
@@ -240,7 +240,7 @@ export async function POST(request: Request, { params }: Context) {
   const body = (parsed ?? {}) as Record<string, unknown>;
 
   if (route === "cart") {
-    const base = baseUrl(request);
+    const base = baseUrl(request, settings);
     const items = parseItems(body.items);
     const lines = toLines(items, await getProducts());
     const removed = items.filter(
