@@ -261,8 +261,6 @@ U bazi su lični podaci kupaca, pa kopije ne treba držati na javnom mestu. SMTP
 | Veza za sajt | `public/sdk.js`, primer `public/demo.html` |
 | Testovi | `tests/` (`npm test`) |
 
-Plan razvoja je u `PLAN.md`.
-
 ## Ograničenja
 
 - Proizvod može imati najviše 100 varijanti.
