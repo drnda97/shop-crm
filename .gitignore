@@ -47,3 +47,7 @@ next-env.d.ts
 
 # radni spisak tekstova za prevod
 /keys-last.json
+
+# uputstva za AI asistente koja next dev sam pravi
+/AGENTS.md
+/CLAUDE.md
