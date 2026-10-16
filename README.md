@@ -181,7 +181,8 @@ pokreće aplikaciju i MariaDB; zatim otvorite `http://localhost:3000/admin` i na
 Uz panel ide i gotova javna prodavnica (rute u `app/(shop)/`, izgled u `themes/default`, na adresi `/`). Izgled je tema: folder u `themes/`; može ih biti više, a aktivna se bira u panelu (Podešavanja → Tema sajta), bez diranja panela i jezgra — vidi [themes/README.md](themes/README.md). Čita proizvode, kategorije, popuste i podešavanja direktno iz baze i šalje porudžbine istim putem kao API (`submitOrder`). Stilovi teme su odvojeni od panela.
 
 ```bash
-npm run seed:demo   # 11 proizvoda iz dizajna, kategorije, oznake, kod DOBRODOSLI10, dostava i plaćanje
+npm run seed:demo   # 11 proizvoda sa opisima, kategorije, oznake, kod DOBRODOSLI10, dostava i plaćanje,
+                    # popunjene stranice, blog, 10 kupaca sa porudžbinama i utiscima (scripts/demo-content.mjs)
 ```
 
 Skripta dodaje samo ono čega nema, pa postojeći sadržaj ne dira.
