@@ -65,6 +65,7 @@ export default async function AdminPagePage({ params }: AdminPagePageProps) {
           links: [
             ...pages.map((item) => ({ value: pagePath(item.slug), label: item.title })),
             { value: "/kolekcija", label: t("Kolekcija (svi proizvodi)") },
+            ...collections.map((item) => ({ value: `/kolekcija/${item.id}`, label: `${t("Kolekcija")}: ${item.name}` })),
             { value: "/nalog", label: t("Nalog kupca") },
           ],
           media: media.map((file) => file.src),

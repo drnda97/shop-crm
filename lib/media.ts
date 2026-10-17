@@ -42,3 +42,20 @@ export function imageSizes(src: string): Record<"thumb" | "small" | "medium" | "
   const [thumb, small, medium, large] = IMAGE_WIDTHS.map((width) => sizedSrc(src, width));
   return { thumb, small, medium, large, full: src };
 }
+
+/**
+ * Ime slike za biblioteku, bez dodatka koji panel dodaje pri ubacivanju:
+ * „/media/fotelja-mio-mf3k2a9b1c4d-full.webp" → „fotelja-mio".
+ */
+export function mediaName(src: string): string {
+  return (src.split("/").pop() ?? src)
+    .replace(/\.[a-z]+$/, "")
+    .replace(/-full$/, "")
+    .replace(/-(?=[a-z]*\d)[a-z0-9]{9,12}$/, "");
+}
+
+/** Format fajla za prikaz: „WebP", „JPG", „PNG" ili „SVG". */
+export function mediaFormat(src: string): string {
+  const extension = src.split(".").pop()?.toLowerCase() ?? "";
+  return extension === "webp" ? "WebP" : extension.toUpperCase();
+}

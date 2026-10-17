@@ -48,9 +48,17 @@ export async function audit(action: string, detail?: FormData | string, as?: { i
 }
 
 /** Poslednji zapisi, najnoviji prvi; stariji od pola godine se brišu. */
-export async function getAuditLog(limit = 300): Promise<AuditEntry[]> {
+/** Jedna strana dnevnika, najnoviji prvi, i koliko zapisa ima ukupno. Stariji od KEEP_DAYS se brišu. */
+export async function getAuditLog(page = 1, size = 20): Promise<{ entries: AuditEntry[]; total: number }> {
   const db = await getDb();
   await db.query("DELETE FROM audit_log WHERE at < ?", [new Date(Date.now() - KEEP_DAYS * 86_400_000)]);
-  const [rows] = await db.query<RowDataPacket[]>("SELECT * FROM audit_log ORDER BY id DESC LIMIT ?", [limit]);
-  return rows.map((row) => ({ at: (row.at as Date).toISOString(), userName: row.user_name, action: row.action, detail: row.detail }));
+  const [count] = await db.query<RowDataPacket[]>("SELECT COUNT(*) AS total FROM audit_log");
+  const [rows] = await db.query<RowDataPacket[]>("SELECT * FROM audit_log ORDER BY id DESC LIMIT ? OFFSET ?", [
+    size,
+    (Math.max(1, page) - 1) * size,
+  ]);
+  return {
+    entries: rows.map((row) => ({ at: (row.at as Date).toISOString(), userName: row.user_name, action: row.action, detail: row.detail })),
+    total: Number(count[0].total),
+  };
 }

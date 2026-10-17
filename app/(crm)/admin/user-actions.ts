@@ -22,13 +22,20 @@ import {
   PASSWORD_MIN,
   requireAdmin,
   resetAdminPassword,
-  roleLabels,
+  getRoles,
+  listAdmins,
+  normalizeRoles,
+  OWNER_ROLE,
+  ROLE_AREAS,
+  roleName,
+  saveRoles,
   setAdminEmail,
   setAdminPassword,
   updateAdmin,
   type Role,
 } from "@/lib/admin-auth";
 import { audit } from "@/lib/audit";
+import { slugify } from "@/lib/catalog";
 import { getSettings, updateContent } from "@/lib/content";
 import { getPanelT } from "@/lib/i18n/server";
 import { isMailReady, linkBase, NO_SITE_URL, sendMails, simpleEmail } from "@/lib/mail";
@@ -60,9 +67,11 @@ function back(path: string, kind: "greska" | "ok", message: string): never {
   redirect(`${path}?${kind}=${encodeURIComponent(message)}`);
 }
 
-function role(formData: FormData): Role {
+/** Uloga iz forme, samo ako postoji; inače prva uloga posle vlasnika (ili vlasnik, kada drugih nema). */
+async function role(formData: FormData): Promise<Role> {
+  const roles = await getRoles();
   const value = text(formData, "role");
-  return value in roleLabels ? (value as Role) : "sales";
+  return roles.some((item) => item.id === value) ? value : (roles[1] ?? OWNER_ROLE).id;
 }
 
 function passwordProblem(password: string): string | null {
@@ -261,9 +270,9 @@ export async function createUserAction(formData: FormData) {
   const email = userEmail(formData);
   if (email === null) back(USERS_PATH, "greska", "Email adresa nije ispravna.");
 
-  const user = await createAdmin({ username, name, email, password, role: role(formData) });
+  const user = await createAdmin({ username, name, email, password, role: await role(formData) });
   if (!user) back(USERS_PATH, "greska", "Korisnik sa tim imenom već postoji.");
-  await audit("Dodat korisnik panela", `${user.username} (${roleLabels[user.role]})`);
+  await audit("Dodat korisnik panela", `${user.username} (${roleName(user.role, await getRoles())})`);
   back(USERS_PATH, "ok", `Korisnik ${user.username} je dodat. Lozinku mu javite sami; može da je promeni u svom nalogu.`);
 }
 
@@ -277,10 +286,60 @@ export async function updateUserAction(formData: FormData) {
   const email = userEmail(formData);
   if (email === null) back(USERS_PATH, "greska", "Email adresa nije ispravna.");
 
-  const result = await updateAdmin(id, { name, email, role: role(formData), disabled });
+  const chosen = await role(formData);
+  const result = await updateAdmin(id, { name, email, role: chosen, disabled });
   if (result === "last-owner") back(USERS_PATH, "greska", "Mora ostati bar jedan aktivan vlasnik.");
-  await audit("Izmenjen korisnik panela", `${name} (${roleLabels[role(formData)]}${disabled ? ", isključen" : ""})`);
+  await audit("Izmenjen korisnik panela", `${name} (${roleName(chosen, await getRoles())}${disabled ? ", isključen" : ""})`);
   back(USERS_PATH, "ok", "Korisnik je sačuvan.");
+}
+
+/* ---------- Uloge ---------- */
+
+/** Delovi panela označeni u formi uloge. */
+function roleAreas(formData: FormData) {
+  return ROLE_AREAS.filter((area) => formData.getAll("areas").includes(area));
+}
+
+/** Nova uloga: naziv i delovi panela koje vidi. Oznaka se pravi iz naziva i ne menja se. */
+export async function createRoleAction(formData: FormData) {
+  await requireAdmin("users");
+  const name = text(formData, "name").slice(0, 60);
+  if (!name) back(USERS_PATH, "greska", "Upišite naziv uloge.");
+  const roles = await getRoles();
+  const base = slugify(name) || "uloga";
+  let id = base;
+  for (let n = 2; roles.some((item) => item.id === id); n++) id = `${base}-${n}`;
+  await saveRoles(normalizeRoles([...roles, { id, name, areas: roleAreas(formData) }]));
+  await audit("Dodata uloga", name);
+  back(USERS_PATH, "ok", `Uloga „${name}" je dodata. Dodelite je korisniku u njegovom redu.`);
+}
+
+export async function saveRoleAction(formData: FormData) {
+  await requireAdmin("users");
+  const id = text(formData, "id");
+  const name = text(formData, "name").slice(0, 60);
+  const roles = await getRoles();
+  if (id === OWNER_ROLE.id || !roles.some((item) => item.id === id)) back(USERS_PATH, "greska", "Ta uloga ne može da se menja.");
+  if (!name) back(USERS_PATH, "greska", "Upišite naziv uloge.");
+  await saveRoles(roles.map((item) => (item.id === id ? { ...item, name, areas: roleAreas(formData) } : item)));
+  await audit("Izmenjena uloga", name);
+  back(USERS_PATH, "ok", "Uloga je sačuvana. Korisnici sa njom odmah vide izmene.");
+}
+
+/** Briše ulogu koju nijedan korisnik nema. */
+export async function deleteRoleAction(formData: FormData) {
+  await requireAdmin("users");
+  const id = text(formData, "id");
+  const roles = await getRoles();
+  const target = roles.find((item) => item.id === id);
+  if (!target || id === OWNER_ROLE.id) back(USERS_PATH, "greska", "Ta uloga ne može da se obriše.");
+  const users = (await listAdmins()).filter((user) => user.role === id);
+  if (users.length > 0) {
+    back(USERS_PATH, "greska", `Uloga „${target.name}" je dodeljena korisnicima (${users.map((user) => user.name).join(", ")}). Prvo im dodelite drugu ulogu.`);
+  }
+  await saveRoles(roles.filter((item) => item.id !== id));
+  await audit("Obrisana uloga", target.name);
+  back(USERS_PATH, "ok", "Uloga je obrisana.");
 }
 
 /** Vlasnik postavlja novu lozinku drugom korisniku (npr. kada je zaboravi). */

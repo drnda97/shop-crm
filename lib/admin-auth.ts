@@ -24,31 +24,76 @@ const SESSION_SECONDS = 60 * 60 * 24 * 7;
 
 /* ---------- Uloge ---------- */
 
-export type Role = "owner" | "sales" | "content";
+/**
+ * Uloga: naziv i delovi panela koje vidi. „Vlasnik" je stalna i vidi sve; ostale uloge pravi i
+ * menja vlasnik (Korisnici → Uloge), kao „Staff permissions" u Shopify-ju. Korisnike i uloge
+ * vidi samo vlasnik, da niko ne može sam sebi da poveća prava.
+ */
+export type Role = string;
 /** Delovi panela za koje se proverava pristup. */
 export type Area = "orders" | "catalog" | "discounts" | "content" | "settings" | "users";
 
-export const roleLabels: Record<Role, string> = {
-  owner: "Vlasnik",
-  sales: "Prodaja",
-  content: "Sadržaj",
+export const AREAS: Area[] = ["orders", "catalog", "discounts", "content", "settings", "users"];
+/** Delovi koje vlasnik može da da ulozi; korisnici, uloge i dnevnik ostaju samo vlasniku. */
+export const ROLE_AREAS: Area[] = ["orders", "catalog", "discounts", "content", "settings"];
+
+export const areaLabels: Record<Area, { label: string; hint: string }> = {
+  orders: { label: "Prodaja", hint: "Pregled, porudžbine, kupci, korpe, poruke, utisci i izveštaji" },
+  catalog: { label: "Katalog", hint: "Proizvodi, kategorije i kolekcije" },
+  discounts: { label: "Popusti", hint: "Popusti i kodovi (odluka o novcu, pa posebno od kataloga)" },
+  content: { label: "Sajt", hint: "Stranice, blog, izgled sajta, slike i prevodi" },
+  settings: { label: "Podešavanja", hint: "Podešavanja prodavnice i integracije" },
+  users: { label: "Korisnici", hint: "Korisnici, uloge i dnevnik" },
 };
 
-export const roleHints: Record<Role, string> = {
-  owner: "sve, uključujući podešavanja i korisnike",
-  sales: "porudžbine, kupci, poruke, utisci, izveštaji, proizvodi i popusti",
-  content: "stranice, izgled sajta, slike i proizvodi",
-};
+export type RoleDefinition = { id: Role; name: string; areas: Area[] };
 
-const roleAreas: Record<Role, Area[]> = {
-  owner: ["orders", "catalog", "discounts", "content", "settings", "users"],
-  // Popusti su odvojeni od kataloga: kod od 100% je odluka o novcu, ne o sadržaju.
-  sales: ["orders", "catalog", "discounts"],
-  content: ["content", "catalog"],
-};
+export const OWNER_ROLE: RoleDefinition = { id: "owner", name: "Vlasnik", areas: AREAS };
 
-export function roleCan(role: Role, area: Area): boolean {
-  return roleAreas[role].includes(area);
+/** Uloge koje panel ima dok vlasnik ne promeni spisak. */
+export const DEFAULT_ROLES: RoleDefinition[] = [
+  OWNER_ROLE,
+  { id: "sales", name: "Prodaja", areas: ["orders", "catalog", "discounts"] },
+  { id: "content", name: "Sadržaj", areas: ["content", "catalog"] },
+];
+
+const ROLES_KEY = "admin_roles";
+
+/** Spisak uloga iz zapisa, sveden na ispravne vrednosti; Vlasnik je uvek prvi i ne menja se. */
+export function normalizeRoles(value: unknown): RoleDefinition[] {
+  const list = Array.isArray(value) ? value : [];
+  const roles = list
+    .filter((role): role is RoleDefinition => typeof role?.id === "string" && typeof role?.name === "string" && role.id !== OWNER_ROLE.id)
+    .map((role) => ({
+      id: role.id.slice(0, 60),
+      name: role.name.trim().slice(0, 60) || role.id,
+      areas: ROLE_AREAS.filter((area) => Array.isArray(role.areas) && role.areas.includes(area)),
+    }));
+  return [OWNER_ROLE, ...roles];
+}
+
+export const getRoles = cache(async (): Promise<RoleDefinition[]> => {
+  const stored = await getStoredValue(ROLES_KEY);
+  if (stored === null) return DEFAULT_ROLES;
+  try {
+    return normalizeRoles(JSON.parse(stored));
+  } catch {
+    return DEFAULT_ROLES;
+  }
+});
+
+export async function saveRoles(roles: RoleDefinition[]) {
+  await setStoredValue(ROLES_KEY, JSON.stringify(normalizeRoles(roles).slice(1)));
+}
+
+export function roleCan(role: Role, area: Area, roles: RoleDefinition[] = DEFAULT_ROLES): boolean {
+  if (role === OWNER_ROLE.id) return true;
+  return roles.find((item) => item.id === role)?.areas.includes(area) ?? false;
+}
+
+/** Naziv uloge; uloga koje više nema (obrisana) se prikazuje po oznaci. */
+export function roleName(role: Role, roles: RoleDefinition[] = DEFAULT_ROLES): string {
+  return roles.find((item) => item.id === role)?.name ?? role;
 }
 
 export type AdminUser = {
@@ -287,7 +332,7 @@ export async function isAdmin(): Promise<boolean> {
 /** Da li prijavljeni korisnik sme u dati deo panela; za rute koje vraćaju fajl. */
 export async function hasAccess(area: Area): Promise<boolean> {
   const user = await getCurrentAdmin();
-  return user !== null && roleCan(user.role, area);
+  return user !== null && roleCan(user.role, area, await getRoles());
 }
 
 /**
@@ -297,7 +342,7 @@ export async function hasAccess(area: Area): Promise<boolean> {
 export async function requireAdmin(area?: Area): Promise<AdminUser> {
   const user = await getCurrentAdmin();
   if (!user) redirect(ADMIN_PATH);
-  if (area && !roleCan(user.role, area)) {
+  if (area && !roleCan(user.role, area, await getRoles())) {
     redirect(`${ADMIN_PATH}/nalog?greska=${encodeURIComponent("Vaša uloga nema pristup tom delu panela.")}`);
   }
   return user;

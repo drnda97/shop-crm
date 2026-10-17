@@ -4,7 +4,8 @@ import { shopT } from "@/lib/i18n/server";
 import { saveTranslations } from "@/lib/translations";
 import { renamePage, translateContent } from "@/lib/i18n/content";
 import { isLang, langCode, type Lang } from "@/lib/i18n";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { headers } from "next/headers";
@@ -76,15 +77,14 @@ import {
 } from "@/lib/order-store";
 import { getDb } from "@/lib/db";
 import { customerKey, orderStatusLabels, refundable, validateCustomer, type OrderStatus } from "@/lib/orders";
-import { applyImport, parseImport, type ParsedImport } from "@/lib/product-import";
+import { applyImport, parseImportFile, type ImportProduct, type ParsedImport } from "@/lib/product-import";
 import { clientIp, TOO_MANY, tooMany } from "@/lib/rate-limit";
 import { fetchImage } from "@/lib/remote-image";
 import { newSection, normalizeData, normalizeSections } from "@/lib/sections";
 import { findProvider } from "@/lib/payments";
-import { currencyOf, defaultSettings, INVOICE_EMAILS, mergeSettings, PRODUCTS_PER_PAGE, productsPerPage, STATUS_EMAILS,
+import { bankText, currencyOf, legalText, type BankDetails, type CompanyDetails, defaultSettings, INVOICE_EMAILS, mergeSettings, PRODUCTS_PER_PAGE, productsPerPage, safeCss, STATUS_EMAILS,
   storeLanguages,
 } from "@/lib/settings";
-import { THEME_LIST } from "@/themes/list";
 import { normalizeMethods } from "@/lib/shipping";
 import { sendDueReminders } from "@/lib/abandoned";
 import { audit } from "@/lib/audit";
@@ -199,6 +199,29 @@ const PRODUCTS_PATH = `${ADMIN_PATH}/proizvodi`;
 /** „Naslov: tekst" po redu → dodatne sekcije stranice proizvoda. */
 function parseAttributes(value: string): Product["attributes"] {
   return parsePairs(value).map(([title, text]) => ({ title, text }));
+}
+
+/**
+ * Redovi iz forme (RowsEditor u pickers.tsx): JSON niz objekata sa datim poljima. Polja su
+ * tekst, skraćen na `max` znakova; red bez prvog polja se preskače. null: polja nema u formi.
+ */
+function jsonRows<Key extends string>(formData: FormData, name: string, keys: Record<Key, number>): Record<Key, string>[] | null {
+  const raw = formData.get(name);
+  if (typeof raw !== "string") return null;
+  let rows: unknown;
+  try {
+    rows = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  const [first] = Object.keys(keys) as Key[];
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) =>
+      Object.fromEntries(
+        (Object.entries(keys) as [Key, number][]).map(([key, max]) => [key, typeof row?.[key] === "string" ? row[key].trim().slice(0, max) : ""]),
+      ) as Record<Key, string>,
+    )
+    .filter((row) => row[first] !== "");
 }
 
 export async function saveProductAction(formData: FormData) {
@@ -318,8 +341,10 @@ export async function saveProductAction(formData: FormData) {
     if (Number.isNaN(own) || Number.isNaN(sale)) {
       backWithError(formPath, `Varijanta „${label}": cena je broj, npr. 1250 ili 12,50.`);
     }
-    if (sale !== null && (own === null || sale >= own)) {
-      backWithError(formPath, `Varijanta „${label}": cena na akciji traži upisanu cenu varijante i mora biti niža od nje.`);
+    // Akcija varijante je niža od njene cene, a bez nje od cene proizvoda.
+    const base = own ?? price;
+    if (sale !== null && (base === null || sale >= base)) {
+      backWithError(formPath, `Varijanta „${label}": cena na akciji mora biti niža od cene varijante (ili proizvoda, kada varijanta nema svoju).`);
     }
     const stock = String(row.stockQty ?? "").trim();
     const qty = stock === "" ? null : Number(stock);
@@ -355,7 +380,7 @@ export async function saveProductAction(formData: FormData) {
     active: text(formData, "status") !== "draft",
     summary: text(formData, "summary").slice(0, 500),
     description: text(formData, "description"),
-    attributes: parseAttributes(text(formData, "attributes")),
+    attributes: jsonRows(formData, "attributesJson", { title: 120, text: 5000 }) ?? parseAttributes(text(formData, "attributes")),
     price,
     salePrice,
     weight: wholeNumber(formData, "weight"),
@@ -370,16 +395,28 @@ export async function saveProductAction(formData: FormData) {
     highlight: {
       heading: text(formData, "highlightHeading").slice(0, 200),
       text: text(formData, "highlightText").slice(0, 2000),
-      specs: parsePairs(text(formData, "highlightSpecs"))
-        .slice(0, 8)
-        .map(([label, value]) => ({ label, value })),
+      specs: (
+        jsonRows(formData, "highlightSpecsJson", { label: 80, value: 200 }) ??
+        parsePairs(text(formData, "highlightSpecs")).map(([label, value]) => ({ label, value }))
+      ).slice(0, 8),
       ...(highlightImage ? { image: highlightImage } : {}),
     },
   };
+  // Kolekcije iz forme (samo kada ih forma ima): proizvod ulazi u izabrane i izlazi iz ostalih.
+  const chosenCollections = formData.has("collectionsField")
+    ? formData.getAll("collections").filter((value): value is string => typeof value === "string")
+    : null;
   await updateContent((content) => {
     content.products = existing
       ? content.products.map((item) => (item.slug === slug ? product : item))
       : [...content.products, product];
+    if (chosenCollections) {
+      for (const collection of content.collections) {
+        const inside = collection.productSlugs.includes(slug);
+        if (chosenCollections.includes(collection.id) && !inside) collection.productSlugs.push(slug);
+        if (!chosenCollections.includes(collection.id) && inside) collection.productSlugs = collection.productSlugs.filter((item) => item !== slug);
+      }
+    }
   });
   if (file) await removeUpload(existing?.image);
   if (highlightImage !== existing?.highlight.image) await removeUpload(existing?.highlight.image);
@@ -390,6 +427,71 @@ export async function saveProductAction(formData: FormData) {
   refresh();
   await audit("Sačuvan proizvod", formData);
   redirect(PRODUCTS_PATH);
+}
+
+/**
+ * Čuva jednu varijantu sa njene stranice (proizvodi/{slug}/varijanta/{id}): cena, akcija samo
+ * za nju, šifra, stanje, da li je u ponudi i slika. Nova slika se dodaje među slike proizvoda.
+ */
+export async function saveVariantAction(formData: FormData) {
+  await requireAdmin("catalog");
+  const slug = text(formData, "slug");
+  const id = text(formData, "id");
+  const [products, settings] = await Promise.all([getProducts(), getSettings()]);
+  const product = products.find((candidate) => candidate.slug === slug);
+  const variant = product?.variants.find((candidate) => candidate.id === id);
+  if (!product || !variant) backWithError(PRODUCTS_PATH, "Varijanta više ne postoji.");
+  const formPath = `${PRODUCTS_PATH}/${slug}/varijanta/${id}`;
+
+  const decimals = settings.store.currencyDecimals;
+  const price = toMinor(text(formData, "price"), decimals);
+  const salePrice = toMinor(text(formData, "salePrice"), decimals);
+  if (Number.isNaN(price) || Number.isNaN(salePrice)) backWithError(formPath, "Cena je broj, npr. 1250 ili 12,50.");
+  const base = price ?? product.price;
+  if (salePrice !== null && (base === null || salePrice >= base)) {
+    backWithError(formPath, "Cena na akciji mora biti niža od cene varijante, odnosno proizvoda kada varijanta nema svoju.");
+  }
+  const stockQty = optionalCount(formData, "stockQty");
+  if (stockQty === false) backWithError(formPath, "Broj komada na stanju je ceo broj, nula ili više.");
+
+  // Slika: nova se dodaje među slike proizvoda, inače se bira jedna od postojećih (ili nijedna).
+  const images = [product.image, ...product.gallery].filter((src): src is string => Boolean(src));
+  let picked = text(formData, "image");
+  if (picked && !images.includes(picked)) picked = "";
+  let added: string | null = null;
+  const file = image(formData, "imageFile");
+  if (file) {
+    const upload = await saveUpload(file, `${slug}-${id}`);
+    if (!upload.ok) backWithError(formPath, upload.error);
+    added = upload.src;
+    picked = upload.src;
+  }
+
+  await updateContent((content) => {
+    const item = content.products.find((candidate) => candidate.slug === slug);
+    if (!item) return;
+    if (added) {
+      if (item.image) item.gallery.push(added);
+      else item.image = added;
+    }
+    item.variants = item.variants.map((candidate) =>
+      candidate.id === id
+        ? {
+            id: candidate.id,
+            values: candidate.values,
+            price,
+            salePrice,
+            sku: text(formData, "sku").slice(0, 64),
+            stockQty,
+            enabled: formData.get("enabled") === "on",
+            ...(picked ? { image: picked } : {}),
+          }
+        : candidate,
+    );
+  });
+  refresh();
+  await audit("Sačuvana varijanta", `${product.name} — ${variant.values.join(", ")}`);
+  redirect(`${formPath}?ok=${encodeURIComponent("Varijanta je sačuvana.")}`);
 }
 
 export async function deleteProductAction(formData: FormData) {
@@ -410,26 +512,6 @@ export async function deleteProductAction(formData: FormData) {
     refresh();
   }
   await audit("Obrisan proizvod", formData);
-  redirect(productsBack(formData));
-}
-
-/** Brza izmena stanja iz spiska proizvoda: klik menja ručno stanje, a broj se upisuje direktno. */
-export async function setStockAction(formData: FormData) {
-  await requireAdmin("catalog");
-
-  const slug = text(formData, "slug");
-  const stockQty = formData.has("stockQty") ? optionalCount(formData, "stockQty") : undefined;
-  if (stockQty === false)
-    backWithError(productsBack(formData), "Broj komada na stanju je ceo broj, nula ili više.");
-
-  await updateContent((content) => {
-    const product = content.products.find((item) => item.slug === slug);
-    if (!product) return;
-    if (stockQty === undefined) product.inStock = !product.inStock;
-    else product.stockQty = stockQty;
-  });
-  refresh();
-  await audit("Promenjeno stanje proizvoda", formData);
   redirect(productsBack(formData));
 }
 
@@ -538,15 +620,15 @@ const MAX_IMPORT_IMAGES = 400;
 export async function startImportAction(formData: FormData) {
   await requireAdmin("catalog");
   const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) backWithError(IMPORT_PATH, "Izaberite CSV fajl.");
+  if (!(file instanceof File) || file.size === 0) backWithError(IMPORT_PATH, "Izaberite CSV ili Excel fajl.");
   if (file.size > MAX_IMPORT_BYTES) backWithError(IMPORT_PATH, "Fajl je veći od 10 MB. Podelite ga na više manjih.");
 
   const settings = await getSettings();
-  const parsed = parseImport(await file.text(), settings.store.currencyDecimals);
+  const parsed = parseImportFile(new Uint8Array(await file.arrayBuffer()), settings.store.currencyDecimals);
   if (!parsed) {
     backWithError(
       IMPORT_PATH,
-      "Fajl nije prepoznat. Uvozi se CSV izvoz proizvoda iz Shopify-ja, WooCommerce-a ili ovog panela.",
+      "Fajl nije prepoznat. Uvozi se CSV ili Excel (.xlsx) sa primera iz ovog panela, ili CSV izvoz proizvoda iz Shopify-ja i WooCommerce-a.",
     );
   }
   await setStoredValue(IMPORT_KEY, JSON.stringify({ ...parsed, fileName: file.name.slice(0, 120) }));
@@ -571,7 +653,8 @@ export async function applyImportAction(formData: FormData) {
   const images = new Map<string, string>();
   let failed = 0;
   let skipped = 0;
-  const urls = [...new Set(pending.products.flatMap((item) => item.images))];
+  const imagesOf = (item: ImportProduct) => [...item.images, ...(item.highlight?.image ? [item.highlight.image] : [])];
+  const urls = [...new Set(pending.products.flatMap(imagesOf))];
   for (const url of urls) {
     const local = localMedia(url);
     if (local) {
@@ -583,14 +666,15 @@ export async function applyImportAction(formData: FormData) {
       skipped++;
       continue;
     }
-    const bytes = await fetchImage(url);
-    const owner = pending.products.find((item) => item.images.includes(url));
+    // Slike teme sa ovog sajta (/shop/…, npr. iz primera za uvoz) čitaju se sa diska.
+    const bytes = themePhoto(url) ?? (await fetchImage(url));
+    const owner = pending.products.find((item) => imagesOf(item).includes(url));
     const saved = bytes ? await saveImage(bytes, owner?.slug || "slika") : null;
     if (saved?.ok) images.set(url, saved.src);
     else failed++;
   }
 
-  let stats = { created: 0, updated: 0, categories: 0 };
+  let stats = { created: 0, updated: 0, categories: 0, collections: 0 };
   await updateContent((content) => {
     stats = applyImport(content, pending.products, images);
   }, "Uvoz proizvoda");
@@ -598,7 +682,7 @@ export async function applyImportAction(formData: FormData) {
 
   refreshSite();
   const notes = [
-    `Uvezeno: novih proizvoda ${stats.created}, izmenjenih ${stats.updated}, novih kategorija ${stats.categories}.`,
+    `Uvezeno: novih proizvoda ${stats.created}, izmenjenih ${stats.updated}, novih kategorija ${stats.categories}, novih kolekcija ${stats.collections}.`,
     failed > 0 ? `Slika koje nisu preuzete: ${failed}.` : "",
     skipped > 0 ? `Preskočeno slika preko granice od ${MAX_IMPORT_IMAGES}: ${skipped}.` : "",
   ];
@@ -620,48 +704,68 @@ function localMedia(url: string): string | null {
   }
 }
 
+/** Fotografija iz public/shop (slike teme) kada adresa pokazuje na nju; inače null. */
+function themePhoto(url: string): Buffer | null {
+  try {
+    const name = new URL(url, "http://localhost").pathname.match(/^\/shop\/([a-z0-9-]+\.(jpg|jpeg|png|webp))$/i)?.[1];
+    if (!name) return null;
+    const file = path.join(process.cwd(), "public", "shop", name);
+    return existsSync(file) ? readFileSync(file) : null;
+  } catch {
+    return null;
+  }
+}
+
 /* ---------- Kolekcije ---------- */
 
 const COLLECTIONS_PATH = `${ADMIN_PATH}/kolekcije`;
 
-export async function createCollectionAction(formData: FormData) {
-  await requireAdmin("catalog");
-
-  const name = text(formData, "name");
-  const id = uniqueSlug(
-    name,
-    (await getCollections()).map((collection) => collection.id),
-  );
-  if (!id) backWithError(COLLECTIONS_PATH, "Upišite naziv kolekcije.");
-
-  await updateContent((content) => {
-    content.collections.push({ id, name, description: "", productSlugs: [] });
-  });
-  refresh();
-  await audit("Napravljena kolekcija", formData);
-  redirect(`${COLLECTIONS_PATH}/${id}`);
-}
-
+/**
+ * Čuva kolekciju iz forme. Bez id-ja je to nova kolekcija (forma na /kolekcije/nova): nastaje
+ * tek sada, sa svim upisanim, a oznaka (i adresa /kolekcija/{id}) se pravi iz naziva.
+ */
 export async function saveCollectionAction(formData: FormData) {
   await requireAdmin("catalog");
 
-  const id = text(formData, "id");
+  const isNew = text(formData, "id") === "";
   const name = text(formData, "name");
-  if (!name) backWithError(`${COLLECTIONS_PATH}/${id}`, "Upišite naziv kolekcije.");
+  const all = await getCollections();
+  const id = isNew ? uniqueSlug(name, ["nova", ...all.map((collection) => collection.id)]) : text(formData, "id");
+  const formPath = `${COLLECTIONS_PATH}/${isNew ? "nova" : id}`;
+  if (!name || !id) backWithError(formPath, "Upišite naziv kolekcije.");
   const chosen = formData.getAll("products").filter((value) => typeof value === "string");
+  const existing = isNew
+    ? { id, name, description: "", image: "", imageAlt: "", productSlugs: [] }
+    : all.find((candidate) => candidate.id === id);
+  if (!existing) backWithError(COLLECTIONS_PATH, "Kolekcija ne postoji.");
+
+  // Fotografija banera: nova zamenjuje staru, a „Ukloni" vraća zajedničku iz Izgleda sajta.
+  let image = existing.image;
+  const file = formData.get("image");
+  if (file instanceof File && file.size > 0) {
+    const upload = await saveUpload(file, `kolekcija-${id}`);
+    if (!upload.ok) backWithError(formPath, upload.error);
+    image = upload.src;
+  } else if (formData.get("imageRemove") === "on") {
+    image = "";
+  }
 
   await updateContent((content) => {
+    if (isNew) content.collections.push({ ...existing });
     const collection = content.collections.find((candidate) => candidate.id === id);
     if (!collection) return;
     collection.name = name;
     collection.description = text(formData, "description");
+    collection.image = image;
+    collection.imageAlt = text(formData, "imageAlt").slice(0, 255);
     // Redosled u kolekciji prati redosled proizvoda u prodavnici.
     collection.productSlugs = content.products
       .map((product) => product.slug)
       .filter((slug) => chosen.includes(slug));
   });
+  if (existing.image && existing.image !== image) await removeUpload(existing.image);
   refresh();
-  await audit("Sačuvana kolekcija", formData);
+  await audit(isNew ? "Napravljena kolekcija" : "Sačuvana kolekcija", formData);
   redirect(COLLECTIONS_PATH);
 }
 
@@ -669,9 +773,11 @@ export async function deleteCollectionAction(formData: FormData) {
   await requireAdmin("catalog");
 
   const id = text(formData, "id");
+  const image = (await getCollections()).find((collection) => collection.id === id)?.image;
   await updateContent((content) => {
     content.collections = content.collections.filter((collection) => collection.id !== id);
   });
+  await removeUpload(image);
   refresh();
   await audit("Obrisana kolekcija", formData);
   redirect(COLLECTIONS_PATH);
@@ -727,9 +833,6 @@ export async function saveCategoryAction(formData: FormData) {
     Object.assign(category, {
       label,
       parent: content.categories.some((candidate) => candidate.id === parent) ? parent : "",
-      description: text(formData, "description").slice(0, 2000),
-      seoTitle: text(formData, "seoTitle").slice(0, 255),
-      seoDescription: text(formData, "seoDescription").slice(0, 500),
     });
   });
   refreshSite();
@@ -1033,8 +1136,11 @@ export type SettingsPart =
   | { part: "site"; value: unknown }
   | { part: "template"; id: string; value: unknown };
 
-/** Podaci iz pregledača svedeni na ono što sme u podešavanja; null kada deo ne postoji. */
-function settingsPart(input: SettingsPart): { kind: "settings"; settings: SettingsDraft } | null {
+/**
+ * Podaci iz pregledača svedeni na ono što sme u podešavanja; null kada deo ne postoji.
+ * Zaglavlje i podnožje šalju samo svoja polja, pa se spajaju sa sačuvanim delom sajta.
+ */
+async function settingsPart(input: SettingsPart): Promise<{ kind: "settings"; settings: SettingsDraft } | null> {
   const value = (typeof input?.value === "object" && input.value !== null ? input.value : {}) as Record<string, unknown>;
   if (input.part === "theme") {
     const colors = Object.fromEntries(
@@ -1051,9 +1157,12 @@ function settingsPart(input: SettingsPart): { kind: "settings"; settings: Settin
         body: isFontId(value.fontBody) ? value.fontBody : defaultSettings.fonts.body,
       },
     });
-    return { kind: "settings", settings: { colors: merged.colors, fonts: merged.fonts } };
+    return { kind: "settings", settings: { colors: merged.colors, fonts: merged.fonts, customCss: safeCss(value.customCss) } };
   }
-  if (input.part === "site") return { kind: "settings", settings: { site: mergeSite(value) } };
+  if (input.part === "site") {
+    const saved = (await getSettings()).site;
+    return { kind: "settings", settings: { site: mergeSite({ ...saved, ...value }) } };
+  }
   const definition = template(input.id);
   if (!definition) return null;
   return {
@@ -1077,24 +1186,24 @@ export async function savePreviewAction(slug: string, sections: unknown): Promis
 
 export async function saveSettingsPreviewAction(input: SettingsPart): Promise<void> {
   await requireAdmin("content");
-  const draft = settingsPart(input);
+  const draft = await settingsPart(input);
   if (draft) await setStoredValue(PREVIEW_KEY, JSON.stringify(draft));
 }
 
 /** Čuva temu, meni i podnožje, ili tekstove jednog šablona. */
 export async function saveSettingsPartAction(input: SettingsPart): Promise<SaveResult> {
   await requireAdmin("content");
-  const draft = settingsPart(input);
+  const draft = await settingsPart(input);
   if (!draft) return { ok: false, error: "Ovaj deo sajta više ne postoji." };
-  const { colors, fonts, site, templates } = draft.settings;
+  const { colors, fonts, site, templates, customCss } = draft.settings;
   await updateContent((content) => {
-    if (input.part === "theme" && colors && fonts) Object.assign(content.settings, { colors, fonts });
+    if (input.part === "theme" && colors && fonts) Object.assign(content.settings, { colors, fonts, customCss: customCss ?? "" });
     if (site) content.settings.site = site;
     if (templates) content.settings.templates = { ...content.settings.templates, ...templates };
   });
   await setStoredValue(PREVIEW_KEY, null);
   refreshSite();
-  await audit("Sačuvan izgled sajta", input.part === "template" ? `tekstovi: ${input.id}` : input.part === "theme" ? "tema" : "meni i podnožje");
+  await audit("Sačuvan izgled sajta", input.part === "template" ? `tekstovi: ${input.id}` : input.part === "theme" ? "tema" : "zaglavlje i podnožje");
   return { ok: true };
 }
 
@@ -1364,7 +1473,7 @@ export async function reviewStatusAction(formData: FormData) {
   if (id !== null && (status === "approved" || status === "rejected" || status === "pending")) await setReviewStatus(id, status);
   refreshSite();
   await audit("Promenjen status utiska", formData);
-  redirect(REVIEWS_PATH);
+  redirect(returnPath(formData, REVIEWS_PATH));
 }
 
 export async function deleteReviewAction(formData: FormData) {
@@ -1373,7 +1482,7 @@ export async function deleteReviewAction(formData: FormData) {
   if (id !== null) await deleteReview(id);
   refreshSite();
   await audit("Obrisan utisak", formData);
-  redirect(REVIEWS_PATH);
+  redirect(returnPath(formData, REVIEWS_PATH));
 }
 
 /* ---------- Podaci kupca na zahtev ---------- */
@@ -1390,7 +1499,8 @@ export async function eraseCustomerAction(formData: FormData) {
 
 /* ---------- Novosti ---------- */
 
-const MESSAGES_PATH = `${ADMIN_PATH}/poruke`;
+/** Novosti (poruka svim prijavljenima) su na svojoj stranici dela Poruke. */
+const MESSAGES_PATH = `${ADMIN_PATH}/poruke/novosti`;
 
 /** Poruka svim prijavljenima na novosti. Slanje ide u pozadini; tok se vidi na stranici Poruke. */
 export async function sendCampaignAction(formData: FormData) {
@@ -1420,14 +1530,14 @@ export async function saveAnalyticsAction(formData: FormData) {
   const ga4 = text(formData, "ga4").toUpperCase();
   const metaPixel = text(formData, "metaPixel");
   // Oznake idu u kod stranice, pa prolazi samo njihov tačan oblik.
-  if (ga4 !== "" && !/^G-[A-Z0-9]{4,20}$/.test(ga4)) backWithError(SETTINGS_PATH, "GA4 oznaka izgleda ovako: G-XXXXXXXXXX.");
-  if (metaPixel !== "" && !/^\d{5,20}$/.test(metaPixel)) backWithError(SETTINGS_PATH, "Meta Pixel ID je broj, npr. 123456789012345.");
+  if (ga4 !== "" && !/^G-[A-Z0-9]{4,20}$/.test(ga4)) backWithError(settingsBack(formData), "GA4 oznaka izgleda ovako: G-XXXXXXXXXX.");
+  if (metaPixel !== "" && !/^\d{5,20}$/.test(metaPixel)) backWithError(settingsBack(formData), "Meta Pixel ID je broj, npr. 123456789012345.");
   await updateContent((content) => {
     content.settings.analytics = { ga4, metaPixel };
   });
   refreshSite();
   await audit("Sačuvana analitika", formData);
-  backWithNotice("Analitika je sačuvana.");
+  backWithNotice(formData, "Analitika je sačuvana.");
 }
 
 /* ---------- Prijava kupaca ---------- */
@@ -1437,7 +1547,7 @@ export async function saveAuthAction(formData: FormData) {
   const googleClientId = text(formData, "googleClientId").slice(0, 200);
   const secret = text(formData, "googleClientSecret").slice(0, 200);
   if (googleClientId !== "" && !/^[\w.-]+\.apps\.googleusercontent\.com$/.test(googleClientId)) {
-    backWithError(SETTINGS_PATH, "Google Client ID se završava sa .apps.googleusercontent.com.");
+    backWithError(settingsBack(formData), "Google Client ID se završava sa .apps.googleusercontent.com.");
   }
   await updateContent((content) => {
     // Tajna se ne šalje nazad u formu: prazno polje je ostavlja kakva jeste, a bez ID-ja se briše.
@@ -1446,7 +1556,7 @@ export async function saveAuthAction(formData: FormData) {
   });
   refreshSite();
   await audit("Sačuvana prijava kupaca", formData);
-  backWithNotice("Prijava kupaca je sačuvana.");
+  backWithNotice(formData, "Prijava kupaca je sačuvana.");
 }
 
 /* ---------- Napuštene korpe ---------- */
@@ -1488,21 +1598,30 @@ export async function deleteMessageAction(formData: FormData) {
   const id = wholeNumber(formData, "id");
   if (id !== null) await deleteMessage(id);
   await audit("Obrisana poruka", formData);
-  redirect(`${ADMIN_PATH}/poruke`);
+  redirect(returnPath(formData, `${ADMIN_PATH}/poruke`));
 }
 
 /* ---------- Podešavanja ---------- */
 
 const SETTINGS_PATH = `${ADMIN_PATH}/podesavanja`;
 
-function backWithNotice(message: string): never {
-  redirect(`${SETTINGS_PATH}?ok=${encodeURIComponent(message)}`);
+/**
+ * Podstranica Podešavanja sa koje je forma poslata (skriveno polje „back"), da se posle
+ * čuvanja vrati na nju; bez njega na Podešavanja → Prodavnica.
+ */
+function settingsBack(formData: FormData): string {
+  const path = returnPath(formData, SETTINGS_PATH);
+  return path.startsWith(SETTINGS_PATH) ? path.split("?")[0] : SETTINGS_PATH;
+}
+
+function backWithNotice(formData: FormData, message: string): never {
+  redirect(`${settingsBack(formData)}?ok=${encodeURIComponent(message)}`);
 }
 
 function emailAddress(formData: FormData, name: string, label: string): string {
   const value = text(formData, name);
   if (value !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-    backWithError(SETTINGS_PATH, `Proverite adresu u polju „${label}".`);
+    backWithError(settingsBack(formData), `Proverite adresu u polju „${label}".`);
   }
   return value;
 }
@@ -1511,10 +1630,10 @@ export async function saveStoreAction(formData: FormData) {
   await requireAdmin("settings");
 
   const name = text(formData, "name");
-  if (!name) backWithError(SETTINGS_PATH, "Upišite naziv prodavnice.");
+  if (!name) backWithError(settingsBack(formData), "Upišite naziv prodavnice.");
   const currency = text(formData, "currency");
   if (!currency || currency.length > 8) {
-    backWithError(SETTINGS_PATH, "Upišite oznaku valute, npr. RSD ili €.");
+    backWithError(settingsBack(formData), "Upišite oznaku valute, npr. RSD ili €.");
   }
 
   // Jezik i zona idu pravo u zapis datuma; neispravna vrednost bi srušila svaku stranicu panela.
@@ -1524,23 +1643,35 @@ export async function saveStoreAction(formData: FormData) {
     new Intl.DateTimeFormat(locale, { timeZone }).format(new Date());
   } catch {
     backWithError(
-      SETTINGS_PATH,
+      settingsBack(formData),
       "Proverite jezik (npr. sr-Latn-RS) i vremensku zonu (npr. Europe/Belgrade).",
     );
   }
 
-  const origins = text(formData, "allowedOrigins");
+  // Sajtovi za API stižu kao redovi iz forme (po jedna adresa), a u starijem obliku kao tekst.
+  const originRows = formData.get("allowedOriginsJson");
+  let origins = text(formData, "allowedOrigins");
+  if (typeof originRows === "string") {
+    try {
+      origins = (JSON.parse(originRows) as { url?: unknown }[])
+        .map((row) => (typeof row?.url === "string" ? row.url.trim().replace(/\/+$/, "") : ""))
+        .filter(Boolean)
+        .join("\n");
+    } catch {
+      origins = "";
+    }
+  }
   for (const origin of origins.split(/[\s,]+/).filter(Boolean)) {
     if (!/^https?:\/\/[^/\s]+\/?$/.test(origin)) {
       backWithError(
-        SETTINGS_PATH,
+        settingsBack(formData),
         `Adresa sajta „${origin}" nije ispravna. Upisuje se u obliku https://mojsajt.rs, bez putanje.`,
       );
     }
   }
   const storefrontUrl = text(formData, "storefrontUrl");
   if (storefrontUrl !== "" && !/^https?:\/\//.test(storefrontUrl)) {
-    backWithError(SETTINGS_PATH, "Adresa sajta počinje sa https:// ili http://.");
+    backWithError(settingsBack(formData), "Adresa sajta počinje sa https:// ili http://.");
   }
 
   const email = emailAddress(formData, "email", "Email prodavnice");
@@ -1553,10 +1684,12 @@ export async function saveStoreAction(formData: FormData) {
       email,
       address: text(formData, "address"),
       legal: content.settings.store.legal,
+      company: content.settings.store.company,
       currency,
       currencyDecimals: text(formData, "currencyDecimals") === "2" ? 2 : 0,
       language: mainLanguage,
-      languages: storeLanguages(text(formData, "languages"), mainLanguage),
+      // Izbor u panelu šalje svaki jezik posebno; stariji oblik je jedno polje „en, de".
+      languages: storeLanguages(formData.getAll("languages").filter((value) => typeof value === "string").join(","), mainLanguage),
       panelLanguage: isLang(formData.get("panelLanguage")) ? (formData.get("panelLanguage") as Lang) : content.settings.store.panelLanguage,
       locale,
       timeZone,
@@ -1573,23 +1706,10 @@ export async function saveStoreAction(formData: FormData) {
   });
   refresh();
   await audit("Sačuvani podaci prodavnice", formData);
-  backWithNotice("Podaci o prodavnici su sačuvani.");
+  backWithNotice(formData, "Podaci o prodavnici su sačuvani.");
 }
 
 /** Izbor teme sajta; važi odmah, za sve stranice prodavnice. */
-export async function saveThemeAction(formData: FormData) {
-  await requireAdmin("settings");
-  const wanted = text(formData, "themeId");
-  const theme = THEME_LIST.find((candidate) => candidate.id === wanted);
-  if (!theme) backWithError(SETTINGS_PATH, "Izaberite temu sa spiska.");
-  await updateContent((content) => {
-    content.settings.themeId = theme.id;
-  });
-  refreshSite();
-  await audit("Promenjena tema sajta", theme.name);
-  backWithNotice(`Tema „${theme.name}“ je izabrana.`);
-}
-
 export async function saveAppearanceAction(formData: FormData) {
   await requireAdmin("settings");
   const current = await getSettings();
@@ -1601,7 +1721,7 @@ export async function saveAppearanceAction(formData: FormData) {
     const file = image(formData, key);
     if (file) {
       const upload = await saveUpload(file, key, { original: true });
-      if (!upload.ok) backWithError(SETTINGS_PATH, upload.error);
+      if (!upload.ok) backWithError(settingsBack(formData), upload.error);
       replaced.push(images[key]);
       images[key] = upload.src;
     } else if (formData.get(`${key}Remove`) === "on") {
@@ -1617,7 +1737,7 @@ export async function saveAppearanceAction(formData: FormData) {
 
   refresh();
   await audit("Sačuvan logo i favicon", formData);
-  backWithNotice("Logo i favicon su sačuvani.");
+  backWithNotice(formData, "Logo i favicon su sačuvani.");
 }
 
 /** Načini dostave iz uređivača: iznosi stižu kao tekst, granice težine u kilogramima. */
@@ -1670,31 +1790,53 @@ export async function savePaymentAction(formData: FormData) {
   const bank = formData.get("bank") === "on";
   const card = formData.get("card") === "on";
   const cardProvider = findProvider(text(formData, "cardProvider"))?.id ?? "";
-  const bankInstructions = text(formData, "bankInstructions").slice(0, 2000);
+  // Podaci za uplatu po poljima; tekst za kupca se sastavlja od njih.
+  const bankDetails: BankDetails = {
+    recipient: text(formData, "bankRecipient").slice(0, 255),
+    account: text(formData, "bankAccount").slice(0, 60),
+    bank: text(formData, "bankName").slice(0, 120),
+    purpose: text(formData, "bankPurpose").slice(0, 255),
+    note: text(formData, "bankNote").slice(0, 500),
+  };
+  const bankInstructions = bankText(bankDetails);
   // Kartica se računa kao način plaćanja samo kada je procesor zaista povezan.
   const cardReady = card && findProvider(cardProvider)?.ready() === true;
   if (!cod && !bank && !cardReady) {
-    backWithError(SETTINGS_PATH, "Bar jedan način plaćanja mora biti uključen. Kartica se računa tek kada je procesor povezan.");
+    backWithError(settingsBack(formData), "Bar jedan način plaćanja mora biti uključen. Kartica se računa tek kada je procesor povezan.");
   }
-  if (bank && bankInstructions === "") {
-    backWithError(SETTINGS_PATH, "Za uplatu na račun upišite podatke za uplatu.");
+  if (bank && (bankDetails.recipient === "" || bankDetails.account === "")) {
+    backWithError(settingsBack(formData), "Za uplatu na račun upišite primaoca i broj računa.");
+  }
+  if (bankDetails.account !== "" && !/^[A-Z0-9][A-Z0-9 -]{6,40}$/i.test(bankDetails.account)) {
+    backWithError(settingsBack(formData), "Broj računa sadrži cifre i crtice, npr. 160-0000000000000-00 (ili IBAN).");
   }
   await updateContent((content) => {
-    content.settings.payment = { cod, bank, bankInstructions, card, cardProvider, returns: formData.get("returns") === "on" };
+    content.settings.payment = { cod, bank, bankInstructions, bankDetails, card, cardProvider, returns: formData.get("returns") === "on" };
   });
   refreshSite();
   await audit("Sačuvani načini plaćanja", formData);
-  backWithNotice("Plaćanje i povrat su sačuvani.");
+  backWithNotice(formData, "Plaćanje i povrat su sačuvani.");
 }
 
 export async function saveTaxAction(formData: FormData) {
   await requireAdmin("settings");
   const percent = Number(text(formData, "taxPercent").replace(",", "."));
   if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
-    backWithError(SETTINGS_PATH, "Stopa PDV-a je broj od 0 do 100.");
+    backWithError(settingsBack(formData), "Stopa PDV-a je broj od 0 do 100.");
   }
+  // Podaci firme po poljima; tekst za račun se sastavlja od njih.
+  const company: CompanyDetails = {
+    name: text(formData, "companyName").slice(0, 255),
+    address: text(formData, "companyAddress").slice(0, 255),
+    pib: text(formData, "companyPib").replace(/\s/g, "").slice(0, 20),
+    mb: text(formData, "companyMb").replace(/\s/g, "").slice(0, 20),
+    account: text(formData, "companyAccount").slice(0, 60),
+  };
+  if (company.pib !== "" && !/^\d{8,13}$/.test(company.pib)) backWithError(settingsBack(formData), "PIB je broj od 9 cifara (npr. 100000000).");
+  if (company.mb !== "" && !/^\d{6,10}$/.test(company.mb)) backWithError(settingsBack(formData), "Matični broj je broj od 8 cifara (npr. 20000000).");
   await updateContent((content) => {
-    content.settings.store.legal = text(formData, "legal").slice(0, 1000);
+    content.settings.store.company = company;
+    content.settings.store.legal = legalText(company);
     content.settings.tax = {
       enabled: formData.get("taxEnabled") === "on",
       percent,
@@ -1702,7 +1844,7 @@ export async function saveTaxAction(formData: FormData) {
     };
   });
   await audit("Sačuvan račun i PDV", formData);
-  backWithNotice("Račun i PDV su sačuvani.");
+  backWithNotice(formData, "Račun i PDV su sačuvani.");
 }
 
 export async function saveStatusEmailsAction(formData: FormData) {
@@ -1717,7 +1859,7 @@ export async function saveStatusEmailsAction(formData: FormData) {
     }
   });
   await audit("Sačuvane poruke o statusu", formData);
-  backWithNotice("Poruke o statusu su sačuvane.");
+  backWithNotice(formData, "Poruke o statusu su sačuvane.");
 }
 
 export async function saveMailAction(formData: FormData) {
@@ -1727,7 +1869,7 @@ export async function saveMailAction(formData: FormData) {
   const fromEmail = emailAddress(formData, "fromEmail", "Adresa pošiljaoca");
   const port = Number(text(formData, "smtpPort"));
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    backWithError(SETTINGS_PATH, "Port je broj, najčešće 587 ili 465.");
+    backWithError(settingsBack(formData), "Port je broj, najčešće 587 ili 465.");
   }
   const password = formData.get("smtpPassword");
 
@@ -1748,7 +1890,7 @@ export async function saveMailAction(formData: FormData) {
     };
   });
   await audit("Sačuvana podešavanja emaila", formData);
-  backWithNotice("Podešavanja emaila su sačuvana.");
+  backWithNotice(formData, "Podešavanja emaila su sačuvana.");
 }
 
 export async function uploadTemplateAction(formData: FormData) {
@@ -1756,13 +1898,13 @@ export async function uploadTemplateAction(formData: FormData) {
 
   const file = formData.get("template");
   if (!(file instanceof File) || file.size === 0) {
-    backWithError(SETTINGS_PATH, "Izaberite HTML fajl sa šablonom.");
+    backWithError(settingsBack(formData), "Izaberite HTML fajl sa šablonom.");
   }
-  if (file.size > MAX_TEMPLATE_BYTES) backWithError(SETTINGS_PATH, "Šablon je veći od 300 KB.");
+  if (file.size > MAX_TEMPLATE_BYTES) backWithError(settingsBack(formData), "Šablon je veći od 300 KB.");
   const html = await file.text();
   if (!html.includes("<") || !html.includes("{{")) {
     backWithError(
-      SETTINGS_PATH,
+      settingsBack(formData),
       "Fajl ne liči na šablon: treba da bude HTML sa mestima poput {{stavke}} i {{ukupno}}.",
     );
   }
@@ -1772,10 +1914,10 @@ export async function uploadTemplateAction(formData: FormData) {
     content.settings.mail.customTemplate = true;
   });
   await audit("Ubačen šablon emaila", formData);
-  backWithNotice("Vaš šablon je ubačen. Pogledajte pregled pre nego što stigne prva porudžbina.");
+  backWithNotice(formData, "Vaš šablon je ubačen. Pogledajte pregled pre nego što stigne prva porudžbina.");
 }
 
-export async function resetTemplateAction() {
+export async function resetTemplateAction(formData: FormData) {
   await requireAdmin("settings");
 
   await updateContent((content) => {
@@ -1783,15 +1925,15 @@ export async function resetTemplateAction() {
   });
   await removeCustomTemplate();
   await audit("Vraćen podrazumevani šablon emaila");
-  backWithNotice("Koristi se naš šablon.");
+  backWithNotice(formData, "Koristi se naš šablon.");
 }
 
-export async function sendTestEmailAction() {
+export async function sendTestEmailAction(formData: FormData) {
   await requireAdmin("settings");
 
   const error = await sendTestEmail();
-  if (error) backWithError(SETTINGS_PATH, `Probni email nije poslat — ${error}`);
-  backWithNotice(
+  if (error) backWithError(settingsBack(formData), `Probni email nije poslat — ${error}`);
+  backWithNotice(formData, 
     "Probni email je poslat na vašu adresu: jedna poruka kakvu dobijate vi, jedna kakvu dobija kupac.",
   );
 }

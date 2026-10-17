@@ -5,7 +5,6 @@ import {
   categoryTree,
   currentPrice,
   hasPrice,
-  hasStock,
   isOnSale,
   isSoldOut,
   lowStockLabel,
@@ -16,8 +15,9 @@ import {
 import { getCategories, getProducts, getSettings } from "@/lib/content";
 import { formatMoney } from "@/lib/format";
 import { currencyOf, PRODUCTS_PER_PAGE } from "@/lib/settings";
-import { deleteProductAction, moveProductAction, saveProductsPerPageAction, setStockAction } from "../actions";
+import { deleteProductAction, moveProductAction, saveProductsPerPageAction } from "../actions";
 import { ConfirmButton } from "../confirm-button";
+import { MenuButton } from "../menu-button";
 import { BulkBar } from "./bulk-bar";
 import {
   buttonClass,
@@ -76,16 +76,21 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     <>
       <PageHeader
         title={t("Proizvodi")}
-        hint={t("Stanje se menja ovde na klik, ili upisom broja komada kod proizvoda kojima se broj vodi. Strelice menjaju redosled kojim se proizvodi prikazuju na sajtu.")}
+        hint={t("Strelice menjaju redosled kojim se proizvodi prikazuju na sajtu. Stanje, cena i varijante se menjaju u formi proizvoda (Izmeni).")}
         error={greska}
         action={
           <div className="flex flex-wrap gap-[8px]">
             <Link href={`${ADMIN_PATH}/proizvodi/uvoz`} className={quietButtonClass}>
               {t("Uvoz")}
             </Link>
-            <a href={`${ADMIN_PATH}/proizvodi/izvoz`} className={quietButtonClass}>
-              {t("Izvoz")}
-            </a>
+            <MenuButton
+              label={t("Izvoz")}
+              className={quietButtonClass}
+              items={[
+                { label: t("Excel (.xlsx)"), href: `${ADMIN_PATH}/proizvodi/izvoz?format=xlsx`, hint: t("Sa listom Uputstvo; otvara se odmah u Excel-u") },
+                { label: t("CSV"), href: `${ADMIN_PATH}/proizvodi/izvoz`, hint: t("Za druge programe i prodavnice") },
+              ]}
+            />
             <Link href={`${ADMIN_PATH}/proizvodi/novi`} className={buttonClass}>
               {t("+ Novi proizvod")}
             </Link>
@@ -202,45 +207,23 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                     ))}
                 </div>
               </div>
-              {/* Stanje bez otvaranja forme: broj komada ako se vodi, inače prekidač na klik. */}
-              {product.variants.length > 0 ? (
-                // Stanje varijanti se menja u formi proizvoda; ovde je zbir onih kojima se vodi broj.
-                <span className="text-[14px] text-muted">
-                  {product.variants.some((variant) => variant.enabled && variant.stockQty !== null)
-                    ? `ukupno ${product.variants
-                        .filter((variant) => variant.enabled)
-                        .reduce((sum, variant) => sum + (variant.stockQty ?? 0), 0)} kom. po varijantama`
-                    : t("stanje po varijantama se ne vodi")}
-                </span>
-              ) : product.stockQty !== null ? (
-                <form action={setStockAction} className="flex items-center gap-[6px]">
-                  <input type="hidden" name="slug" value={product.slug} />
-                  {backField}
-                  <div className="w-[84px] shrink-0">
-                    <input
-                      name="stockQty"
-                      type="number"
-                      min="0"
-                      step="1"
-                      required
-                      defaultValue={product.stockQty}
-                      aria-label={t("Broj komada na stanju: {a}", { a: product.name })}
-                      className={inputClass}
-                    />
-                  </div>
-                  <button type="submit" className={`${quietButtonClass} whitespace-nowrap`}>
-                    {t("Sačuvaj")}
-                  </button>
-                </form>
-              ) : (
-                <form action={setStockAction}>
-                  <input type="hidden" name="slug" value={product.slug} />
-                  {backField}
-                  <button type="submit" className={quietButtonClass}>
-                    {hasStock(product) ? t("Označi da nema") : t("Vrati na stanje")}
-                  </button>
-                </form>
-              )}
+              {/* Broj komada, kada se vodi; stanje se menja u formi proizvoda. */}
+              {(() => {
+                const tracked = product.variants.length > 0
+                  ? product.variants.filter((variant) => variant.enabled && variant.stockQty !== null)
+                  : [];
+                const pieces =
+                  product.variants.length > 0
+                    ? tracked.length > 0
+                      ? tracked.reduce((sum, variant) => sum + (variant.stockQty ?? 0), 0)
+                      : null
+                    : product.stockQty;
+                return pieces === null ? null : (
+                  <span className="text-[14px] whitespace-nowrap text-muted">
+                    {product.variants.length > 0 ? t("{a} kom. po varijantama", { a: pieces }) : t("{a} kom.", { a: pieces })}
+                  </span>
+                );
+              })()}
               <Link href={`${ADMIN_PATH}/proizvodi/${product.slug}`} className={quietButtonClass}>
                 {t("Izmeni")}
               </Link>

@@ -12,6 +12,8 @@ import { ICONS, normalizeData, type Field, type ImageValue } from "@/lib/section
 export type Templates = {
   collection: {
     image: ImageValue;
+    /** Baner na stranici kolekcije: „own" je fotografija kolekcije (bez nje ova), „same" uvek ova. */
+    bannerSource: "own" | "same";
     title: string;
     text: string;
     searchPlaceholder: string;
@@ -71,9 +73,19 @@ export const TEMPLATES: Template[] = [
     id: "collection",
     slug: "kolekcija",
     label: "Kolekcija",
-    hint: "Stranica sa svim proizvodima: baner na vrhu i poziv ispod mreže proizvoda.",
+    hint: "Stranica sa svim proizvodima, stranice kategorija i kolekcija: baner na vrhu i poziv ispod mreže proizvoda.",
     fields: [
       { key: "image", label: "Fotografija banera", kind: "image", initial: photo("ds-green-sofa.jpg", "Zelena sofa u svetloj sobi", "center 55%") },
+      {
+        key: "bannerSource",
+        label: "Baner na stranici kolekcije",
+        kind: "select",
+        options: [
+          { value: "own", label: "Fotografija kolekcije; bez nje ova iznad" },
+          { value: "same", label: "Ova fotografija na svim kolekcijama" },
+        ],
+        hint: "Fotografiju kolekcije ubacujete u delu Kolekcije.",
+      },
       { key: "title", label: "Naslov", kind: "text", initial: "Sedenje" },
       { key: "text", label: "Tekst uz naslov", kind: "textarea", initial: "Fotelje, stolice i barske stolice. Svaki model dolazi u više tkanina i završnih obrada drveta." },
       { key: "searchPlaceholder", label: "Tekst u polju za pretragu", kind: "text", initial: "Naziv, kategorija ili tkanina" },

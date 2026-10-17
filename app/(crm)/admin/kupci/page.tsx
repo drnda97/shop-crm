@@ -15,18 +15,19 @@ import {
   chipOnClass,
   inputClass,
   PageHeader,
+  Pager,
+  paginate,
   quietButtonClass,
 } from "../ui";
 
-type CustomersPageProps = { searchParams: Promise<{ q?: string; red?: string }> };
+type CustomersPageProps = { searchParams: Promise<{ q?: string; red?: string; strana?: string }> };
 
 const CUSTOMERS_PATH = `${ADMIN_PATH}/kupci`;
-const SHOWN = 200;
 
 export default async function CustomersPage({ searchParams }: CustomersPageProps) {
   const t = await getPanelT();
   await requireAdmin("orders");
-  const { q = "", red } = await searchParams;
+  const { q = "", red, strana } = await searchParams;
   const search = q.trim().toLocaleLowerCase();
 
   const [orders, settings, noted] = await Promise.all([
@@ -50,6 +51,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
   const bySpent = red === "potrosnja";
   const customers = bySpent ? [...found].sort((a, b) => b.spent - a.spent) : found;
   const returning = all.filter((customer) => customer.orderCount > 1).length;
+  const list = paginate(customers, strana);
 
   return (
     <>
@@ -113,18 +115,19 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
           <table className="w-full min-w-[640px] text-[15px]">
             <thead>
               <tr className="text-left text-[13px] text-muted">
-                <th className="pb-[8px] font-normal">{t("Kupac")}</th>
+                <th className="pb-[8px] pl-[8px] font-normal">{t("Kupac")}</th>
                 <th className="pb-[8px] font-normal">{t("Kontakt")}</th>
                 <th className="pb-[8px] font-normal">{t("Porudžbine")}</th>
                 <th className="pb-[8px] text-right font-normal">{t("Potrošeno")}</th>
-                <th className="pb-[8px] text-right font-normal">{t("Poslednja")}</th>
+                <th className="pb-[8px] pr-[8px] text-right font-normal">{t("Poslednja")}</th>
               </tr>
             </thead>
             <tbody>
-              {customers.slice(0, SHOWN).map((customer) => (
-                <tr key={customer.key} className="border-t border-line align-top">
-                  <td className="py-[10px] pr-[12px]">
-                    <Link href={`${CUSTOMERS_PATH}/${customer.key}`} className="underline">
+              {list.shown.map((customer) => (
+                // Ceo red vodi na stranicu kupca: link sa imena prekriva red.
+                <tr key={customer.key} className="relative border-t border-line align-top transition-colors duration-200 hover:bg-band">
+                  <td className="py-[10px] pr-[12px] pl-[8px]">
+                    <Link href={`${CUSTOMERS_PATH}/${customer.key}`} className="font-medium after:absolute after:inset-0 after:content-['']">
                       {customer.name}
                     </Link>
                     <div className="text-[13px] text-muted">
@@ -140,7 +143,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                   <td className="py-[10px] pr-[12px] text-right whitespace-nowrap">
                     {formatMoney(customer.spent, currency)}
                   </td>
-                  <td className="py-[10px] text-right text-[14px] whitespace-nowrap text-muted">
+                  <td className="py-[10px] pr-[8px] text-right text-[14px] whitespace-nowrap text-muted">
                     {orderDate(customer.lastOrderAt)}
                   </td>
                 </tr>
@@ -149,10 +152,14 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
           </table>
         )}
       </div>
-      {customers.length > SHOWN && (
-        <p className="mt-[12px] text-[14px] text-muted">
-          {t("Prikazano je prvih")} {SHOWN} {t("od")} {customers.length}{t(". Suzite spisak pretragom, ili preuzmite CSV sa svim kupcima.")}
-        </p>
+      {customers.length > 0 && (
+        <Pager
+          path={CUSTOMERS_PATH}
+          params={{ q: q.trim(), red: red ?? "" }}
+          page={list.page}
+          pages={list.pages}
+          summary={t("Kupaca: {a}", { a: customers.length })}
+        />
       )}
     </>
   );

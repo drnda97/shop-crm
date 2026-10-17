@@ -3,21 +3,22 @@ import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { pagePath } from "@/lib/catalog";
 import { getPages } from "@/lib/content";
-import { buttonClass, cardClass, PageHeader, quietButtonClass, rowClass } from "../ui";
+import { buttonClass, cardClass, PageHeader, Pager, paginate, quietButtonClass, rowClass } from "../ui";
 
-type PagesPageProps = { searchParams: Promise<{ greska?: string }> };
+type PagesPageProps = { searchParams: Promise<{ greska?: string; strana?: string }> };
 
 export default async function PagesPage({ searchParams }: PagesPageProps) {
   const t = await getPanelT();
   await requireAdmin("content");
-  const { greska } = await searchParams;
+  const { greska, strana } = await searchParams;
   const pages = await getPages();
+  const list = paginate(pages, strana);
 
   return (
     <>
       <PageHeader
         title={t("Stranice")}
-        hint={t("Stranice sajta: početna, o nama, pitanja, kontakt, uslovi kupovine. Svaka je složena od sekcija koje dodajete, pomerate i menjate. Meni i podnožje su u delu Izgled sajta.")}
+        hint={t("Stranice sajta: početna, o nama, pitanja, kontakt, uslovi kupovine. Svaka je složena od sekcija koje dodajete, pomerate i menjate. Zaglavlje (traka i meni) i podnožje su isti na svim stranicama i menjaju se u delu Izgled sajta.")}
         error={greska}
         action={
           <Link href={`${ADMIN_PATH}/stranice/nova`} className={buttonClass}>
@@ -26,7 +27,7 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
         }
       />
       <div className={cardClass}>
-        {pages.map((page) => (
+        {list.shown.map((page) => (
           <div key={page.slug} className={rowClass}>
             <div className="min-w-[180px] grow">
               <div className="flex flex-wrap items-center gap-[10px] text-[17px]">
@@ -48,6 +49,9 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
         ))}
         {pages.length === 0 && <p className="text-[15px] text-muted">{t("Još nema stranica.")}</p>}
       </div>
+      {pages.length > 0 && (
+        <Pager path={`${ADMIN_PATH}/stranice`} page={list.page} pages={list.pages} summary={t("Stranica: {a}", { a: pages.length })} />
+      )}
     </>
   );
 }

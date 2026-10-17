@@ -6,18 +6,17 @@ import { getPanelT } from "@/lib/i18n/server";
 import { TRANSLATION_GROUPS, translationSources, type TranslationGroup } from "@/lib/i18n/sources";
 import { getTranslations } from "@/lib/translations";
 import { saveTranslationsAction } from "../actions";
-import { buttonClass, cardClass, chipClass, chipOffClass, chipOnClass, inputClass, PageHeader, quietButtonClass, textLinkClass } from "../ui";
+import { buttonClass, cardClass, chipClass, chipOffClass, chipOnClass, inputClass, PageHeader, Pager, paginate, quietButtonClass, textLinkClass } from "../ui";
 
-type TranslationsPageProps = { searchParams: Promise<{ jezik?: string; grupa?: string; q?: string; samo?: string; greska?: string; ok?: string }> };
+type TranslationsPageProps = { searchParams: Promise<{ jezik?: string; grupa?: string; q?: string; samo?: string; strana?: string; greska?: string; ok?: string }> };
 
 /** Najviše redova na stranici; ostali se nalaze pretragom ili filterom „samo neprevedeno". */
-const PAGE_SIZE = 150;
 
 /** Prevodi prodavnice na dodatne jezike: tekstovi teme, sadržaj sajta i katalog. */
 export default async function TranslationsPage({ searchParams }: TranslationsPageProps) {
   const t = await getPanelT();
   await requireAdmin("content");
-  const [{ jezik, grupa, q = "", samo, greska, ok }, settings] = await Promise.all([searchParams, getSettings()]);
+  const [{ jezik, grupa, q = "", samo, strana, greska, ok }, settings] = await Promise.all([searchParams, getSettings()]);
   const { language, languages } = settings.store;
 
   if (languages.length === 0) {
@@ -45,7 +44,7 @@ export default async function TranslationsPage({ searchParams }: TranslationsPag
     .map((row) => ({ ...row, value: saved[row.source] ?? "" }))
     .filter((row) => (samo ? row.value === "" && row.builtIn === "" : true))
     .filter((row) => !needle || `${row.source} ${row.value} ${row.builtIn}`.toLocaleLowerCase().includes(needle));
-  const shown = rows.slice(0, PAGE_SIZE);
+  const { shown, page, pages } = paginate(rows, strana);
   const missing = sources.filter((row) => !saved[row.source] && row.builtIn === "").length;
   const url = (next: { jezik?: string; grupa?: string; samo?: string }) => {
     const query = new URLSearchParams({ jezik: next.jezik ?? lang, grupa: next.grupa ?? group });
@@ -100,7 +99,7 @@ export default async function TranslationsPage({ searchParams }: TranslationsPag
       ) : (
         <form action={saveTranslationsAction} className="flex flex-col gap-[10px]">
           <input type="hidden" name="lang" value={lang} />
-          <input type="hidden" name="back" value={`${url({})}${q ? `&q=${encodeURIComponent(q)}` : ""}`} />
+          <input type="hidden" name="back" value={`${url({})}${q ? `&q=${encodeURIComponent(q)}` : ""}${page > 1 ? `&strana=${page}` : ""}`} />
           {shown.map((row, index) => {
             const long = row.source.length > 70 || row.source.includes("\n");
             return (
@@ -115,17 +114,22 @@ export default async function TranslationsPage({ searchParams }: TranslationsPag
               </div>
             );
           })}
-          {rows.length > shown.length && (
-            <p className="text-[14px] text-muted">
-              {t("Prikazano je prvih {a} od {b}. Suzite spisak pretragom ili filterom.", { a: shown.length, b: rows.length })}
-            </p>
-          )}
+          <p className="text-[14px] text-muted">{t("Čuvaju se prevodi sa ove strane; pre prelaska na sledeću sačuvajte.")}</p>
           <div className="sticky bottom-[16px]">
             <button type="submit" className={buttonClass}>
               {t("Sačuvaj prevode")}
             </button>
           </div>
         </form>
+      )}
+      {rows.length > 0 && (
+        <Pager
+          path="/admin/prevodi"
+          params={{ jezik: lang, grupa: group, q: q.trim(), samo: samo === "1" ? "1" : "" }}
+          page={page}
+          pages={pages}
+          summary={t("Tekstova: {a}", { a: rows.length })}
+        />
       )}
     </>
   );

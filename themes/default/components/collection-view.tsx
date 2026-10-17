@@ -1,9 +1,7 @@
 import { getShopPath } from "@/lib/i18n/server";
 import { getShopT } from "@/lib/i18n/server";
 import Link from "next/link";
-import { Fragment } from "react";
-import { categoryPath, type Category } from "@/lib/catalog";
-import { getShopCategories } from "@/lib/storefront/catalog";
+import type { Collection } from "@/lib/catalog";
 import type { Listing } from "@/lib/storefront/collection";
 import { getShopSettings } from "@/lib/storefront/pages";
 import type { CardProduct } from "@/lib/storefront/products";
@@ -13,8 +11,8 @@ import { Header } from "./header";
 import { ArrowIcon, DS_STYLE, Photo } from "./ui";
 
 type CollectionViewProps = {
-  /** Kategorija čija je ovo stranica; bez nje su prikazani svi proizvodi. */
-  category?: Category;
+  /** Kolekcija čija je ovo stranica (/kolekcija/{id}); baner je njena fotografija ako je ima i ako je tako izabrano u panelu. */
+  collection?: Collection;
   /** Otvara polje za pretragu (lupa iz zaglavlja). */
   search: boolean;
   /** Proizvodi za izbor iz adrese (filteri, pretraga, redosled, strana), izračunati na serveru. */
@@ -22,16 +20,20 @@ type CollectionViewProps = {
 };
 
 /**
- * Stranica sa proizvodima: /kolekcija (svi) i /kolekcija/{kategorija}. Baner i poziv ispod
- * mreže su iz panela (Izgled sajta → Kolekcija); na stranici kategorije naslov i tekst su njeni.
+ * Stranica sa proizvodima: /kolekcija (svi) i /kolekcija/{kolekcija}. Kategorija je filter u
+ * mreži, bez svoje stranice. Baner i poziv ispod mreže su iz panela (Izgled sajta → Kolekcija);
+ * na stranici kolekcije naslov i tekst su njeni, a može da ima i svoju fotografiju banera.
  */
-export async function CollectionView({ category, search, listing }: CollectionViewProps) {
+export async function CollectionView({ collection, search, listing }: CollectionViewProps) {
   const to = await getShopPath();
   const t = await getShopT();
-  const [settings, categories] = await Promise.all([getShopSettings(), getShopCategories()]);
+  const settings = await getShopSettings();
   const texts = settings.templates.collection;
-  const path = category ? categoryPath(categories, category.id) : [];
-  const intro = category ? category.description : texts.text;
+  const intro = collection ? collection.description : texts.text;
+  const banner =
+    collection?.image && texts.bannerSource === "own"
+      ? { src: collection.image, alt: collection.imageAlt, position: "" }
+      : texts.image;
 
   return (
     <div className="ds" style={DS_STYLE}>
@@ -41,8 +43,8 @@ export async function CollectionView({ category, search, listing }: CollectionVi
       <section style={{ paddingTop: "16px" }}>
         <div className="wrap">
           <div className="ph" style={{ borderRadius: "36px", minHeight: "380px", display: "flex", alignItems: "flex-end", color: "#FFFFFF", background: "var(--ink-deep)" }}>
-            {texts.image.src && (
-              <Photo className="img kb" src={texts.image.src} alt={texts.image.alt} sizes="(max-width: 1320px) 100vw, 1240px" position={texts.image.position || undefined} preload />
+            {banner.src && (
+              <Photo className="img kb" src={banner.src} alt={banner.alt} sizes="(max-width: 1320px) 100vw, 1240px" position={banner.position || undefined} preload />
             )}
             <div style={{ position: "absolute", inset: 0, background: "color-mix(in srgb, var(--ink-deep) 42%, transparent)" }}></div>
             <div
@@ -61,24 +63,18 @@ export async function CollectionView({ category, search, listing }: CollectionVi
                 <nav className="crumbs a1" aria-label={t("Putanja")} style={{ color: "var(--on-dark-soft)" }}>
                   <Link href={to("/")}>{t("Početna")}</Link>
                   <span>/</span>
-                  {path.length === 0 ? (
-                    <span style={{ color: "#FFFFFF" }}>{t("Kolekcija")}</span>
-                  ) : (
-                    <Link href={to("/kolekcija")}>{t("Kolekcija")}</Link>
-                  )}
-                  {path.map((item, index) => (
-                    <Fragment key={item.id}>
+                  {collection ? (
+                    <>
+                      <Link href={to("/kolekcija")}>{t("Kolekcija")}</Link>
                       <span>/</span>
-                      {index === path.length - 1 ? (
-                        <span style={{ color: "#FFFFFF" }}>{item.label}</span>
-                      ) : (
-                        <Link href={to(`/kolekcija/${item.id}`)}>{item.label}</Link>
-                      )}
-                    </Fragment>
-                  ))}
+                      <span style={{ color: "#FFFFFF" }}>{collection.name}</span>
+                    </>
+                  ) : (
+                    <span style={{ color: "#FFFFFF" }}>{t("Kolekcija")}</span>
+                  )}
                 </nav>
                 <h1 className="display h-xl" style={{ fontSize: "clamp(42px, 5.6vw, 84px)" }}>
-                  <span className="ln"><span>{category?.label ?? texts.title}</span></span>
+                  <span className="ln"><span>{collection?.name ?? texts.title}</span></span>
                 </h1>
               </div>
               {intro && (
@@ -93,7 +89,13 @@ export async function CollectionView({ category, search, listing }: CollectionVi
 
       {/* FILTERI + MREŽA */}
       <section style={{ padding: "clamp(28px, 3.6vw, 48px) 0 clamp(72px, 9vw, 128px)" }}>
-        <CollectionGrid category={category?.id ?? ""} search={search} listing={listing} currency={settings.store.currency} key={`${category?.id}-${search}`} />
+        <CollectionGrid
+          collection={collection?.id}
+          search={search}
+          listing={listing}
+          currency={settings.store.currency}
+          key={`${collection?.id}-${search}`}
+        />
       </section>
 
       {/* POZIV */}

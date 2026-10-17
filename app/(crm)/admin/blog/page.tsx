@@ -3,16 +3,17 @@ import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getAllPosts, isVisible } from "@/lib/blog";
 import { getSettings } from "@/lib/content";
 import { getPanelT } from "@/lib/i18n/server";
-import { createPostAction, deletePostAction } from "../blog-actions";
+import { deletePostAction } from "../blog-actions";
 import { ConfirmButton } from "../confirm-button";
-import { buttonClass, cardClass, inputClass, labelClass, PageHeader, quietButtonClass, rowClass, Thumb } from "../ui";
+import { buttonClass, cardClass, PageHeader, Pager, paginate, quietButtonClass, rowClass, Thumb } from "../ui";
 
-type BlogPageProps = { searchParams: Promise<{ greska?: string }> };
+type BlogPageProps = { searchParams: Promise<{ greska?: string; strana?: string }> };
 
 export default async function BlogPage({ searchParams }: BlogPageProps) {
   const t = await getPanelT();
   await requireAdmin("content");
-  const [{ greska }, posts, settings] = await Promise.all([searchParams, getAllPosts(), getSettings()]);
+  const [{ greska, strana }, posts, settings] = await Promise.all([searchParams, getAllPosts(), getSettings()]);
+  const { shown, page, pages } = paginate(posts, strana);
   const date = new Intl.DateTimeFormat(settings.store.locale, { dateStyle: "medium", timeZone: settings.store.timeZone });
   const now = new Date();
 
@@ -22,9 +23,14 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
         title={t("Blog")}
         hint={t("Članci na adresi /blog: saveti, novosti, priče o proizvodima. Link ka blogu dodajete u meni u delu Izgled sajta.")}
         error={greska}
+        action={
+          <Link href={`${ADMIN_PATH}/blog/novi`} className={buttonClass}>
+            {t("Novi članak")}
+          </Link>
+        }
       />
       <div className={cardClass}>
-        {posts.map((post) => (
+        {shown.map((post) => (
           <div key={post.id} className={rowClass}>
             <Thumb src={post.image || undefined} alt="" />
             <div className="min-w-[200px] grow">
@@ -53,15 +59,9 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
         {posts.length === 0 && <p className="text-[15px] text-muted">{t("Još nema članaka.")}</p>}
       </div>
 
-      <form action={createPostAction} className={`${cardClass} mt-[16px] flex flex-wrap items-end gap-[12px]`}>
-        <label className={`${labelClass} min-w-[220px] grow`}>
-          {t("Novi članak")}
-          <input name="title" required maxLength={255} placeholder={t("Naslov članka")} className={inputClass} />
-        </label>
-        <button type="submit" className={buttonClass}>
-          {t("Dodaj članak")}
-        </button>
-      </form>
+      {posts.length > 0 && (
+        <Pager path={`${ADMIN_PATH}/blog`} page={page} pages={pages} summary={t("Članaka: {a}", { a: posts.length })} />
+      )}
     </>
   );
 }

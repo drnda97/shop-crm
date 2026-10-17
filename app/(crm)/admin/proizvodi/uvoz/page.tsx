@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getProducts, getSettings, getStoredValue } from "@/lib/content";
 import { formatMoney } from "@/lib/format";
-import { formatLabels, type ParsedImport } from "@/lib/product-import";
+import { COLUMN_HELP, formatLabels, type ParsedImport } from "@/lib/product-import";
 import { currencyOf } from "@/lib/settings";
 import { applyImportAction, cancelImportAction, startImportAction } from "../../actions";
 import { IMPORT_KEY } from "../../import-key";
@@ -27,7 +27,7 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
       <div className="mt-[12px]">
         <PageHeader
           title={t("Uvoz proizvoda")}
-          hint={t("Uvozi se CSV fajl: izvoz proizvoda iz Shopify-ja ili WooCommerce-a, ili fajl koji je napravio izvoz iz ovog panela. Pre upisa vidite šta će biti dodato i izmenjeno.")}
+          hint={t("Uvozi se Excel (.xlsx) ili CSV fajl: primer ili izvoz iz ovog panela, ili izvoz proizvoda iz Shopify-ja i WooCommerce-a. Pre upisa vidite šta će biti dodato i izmenjeno.")}
           error={greska}
           notice={ok}
         />
@@ -37,13 +37,34 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
         <div className="flex max-w-[820px] flex-col gap-[16px]">
           <form action={startImportAction} className={`${cardClass} flex flex-col gap-[16px]`}>
             <h2 className={panelTitleClass}>{t("Izaberite fajl")}</h2>
-            <input type="file" name="file" accept=".csv,text/csv" required aria-label={t("CSV fajl")} className={fileClass} />
+            <input
+              type="file"
+              name="file"
+              accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              required
+              aria-label={t("CSV ili Excel fajl")}
+              className={fileClass}
+            />
             <div>
               <button type="submit" className={buttonClass}>
                 {t("Pročitaj fajl")}
               </button>
             </div>
           </form>
+          <div className={`${cardClass} flex flex-col gap-[12px] text-[15px]`}>
+            <h2 className={panelTitleClass}>{t("Primer za popunjavanje")}</h2>
+            <p>
+              {t("Primer ima sve kolone i tri popunjena proizvoda: sa opcijama i varijantama, na akciji i nacrt. Drugi list (Uputstvo) objašnjava svaku kolonu. Obrišite primere, upišite svoje proizvode i uvezite fajl.")}
+            </p>
+            <div className="flex flex-wrap gap-[10px]">
+              <a href={`${ADMIN_PATH}/proizvodi/uvoz/primer`} className={buttonClass}>
+                {t("Preuzmi primer (Excel)")}
+              </a>
+              <a href={`${ADMIN_PATH}/proizvodi/uvoz/primer?format=csv`} className={quietButtonClass}>
+                {t("Primer kao CSV")}
+              </a>
+            </div>
+          </div>
           <div className={`${cardClass} flex flex-col gap-[10px] text-[15px]`}>
             <h2 className={panelTitleClass}>{t("Odakle fajl")}</h2>
             <p>
@@ -54,15 +75,34 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
             </p>
             <p>
               <strong>{t("Ovaj panel:")}</strong>{" "}
+              <a href={`${ADMIN_PATH}/proizvodi/izvoz?format=xlsx`} className={textLinkClass}>
+                {t("preuzmite izvoz (Excel)")}
+              </a>{" "}
+              {t("ili")}{" "}
               <a href={`${ADMIN_PATH}/proizvodi/izvoz`} className={textLinkClass}>
-                {t("preuzmite izvoz")}
+                {t("CSV")}
               </a>
               {t(", izmenite ga u Excel-u i uvezite nazad. Proizvod sa oznakom koja već postoji se menja, a nova oznaka pravi nov proizvod.")}
             </p>
             <p className="text-muted">
-              {t("Uvoze se naziv, opis, cene, stanje, kategorije, opcije, varijante i slike. Ne uvoze se utisci, oznake (tagovi), porezi i dostava.")}
+              {t("Iz primera i izvoza ovog panela uvozi se sve što proizvod ima: kategorije, kolekcije, opisi, dodatne sekcije, cene, stanje, opcije, varijante, slike, istaknuti deo, slični proizvodi i podaci za pretraživače. Iz Shopify-ja i WooCommerce-a: naziv, opis, cene, stanje, kategorije, opcije, varijante i slike. Ne uvoze se utisci, porezi i dostava.")}
             </p>
           </div>
+          <details className={`${cardClass} text-[15px]`}>
+            <summary className="cursor-pointer font-display text-[15px] font-bold">{t("Sve kolone ({a})", { a: COLUMN_HELP.length })}</summary>
+            <div className="mt-[12px] overflow-x-auto">
+              <table className="w-full text-left text-[14.5px]">
+                <tbody>
+                  {COLUMN_HELP.map(([column, help]) => (
+                    <tr key={column} className="border-t border-line align-top first:border-t-0">
+                      <td className="py-[8px] pr-[16px] font-mono text-[13.5px] font-semibold whitespace-nowrap">{column}</td>
+                      <td className="py-[8px]">{t(help)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
         </div>
       ) : (
         <div className="flex flex-col gap-[16px]">

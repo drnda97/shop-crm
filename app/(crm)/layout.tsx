@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Red_Hat_Display, Red_Hat_Text } from "next/font/google";
 import type { ReactNode } from "react";
 import { getPanelLang } from "@/lib/i18n/server";
+import { ConfirmProvider } from "./admin/confirm";
 import { PanelI18n } from "./admin/i18n";
 import "./globals.css";
 
@@ -35,7 +36,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang={lang === "sr" ? "sr-Latn" : lang} className={`${display.variable} ${sans.variable}`}>
       <body>
-        <PanelI18n lang={lang}>{children}</PanelI18n>
+        <PanelI18n lang={lang}>
+          <ConfirmProvider>{children}</ConfirmProvider>
+        </PanelI18n>
       </body>
     </html>
   );

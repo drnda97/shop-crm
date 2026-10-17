@@ -3,7 +3,7 @@ import path from "node:path";
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { cache } from "react";
 import { emptyHighlight, type Category, type Collection, type Page, type Product } from "@/lib/catalog";
-import { getBlogImages } from "@/lib/blog";
+import { getBlogImages, getBlogImageUses } from "@/lib/blog";
 import { getDb } from "@/lib/db";
 import type { Discount } from "@/lib/discounts";
 import { detectImage, makeSizes, type ImageFile } from "@/lib/images";
@@ -72,6 +72,19 @@ async function loadProducts(db: Db, slugs?: string[]): Promise<Product[]> {
   const productImages = await select("product_images", "product_slug");
   const productVariants = await select("product_variants", "product_slug");
   const productCategories = await select("product_categories", "product_slug");
+  // Redovi grupisani po proizvodu jednim prolazom, da učitavanje velikog kataloga ne raste kvadratno.
+  const bySlug = (rows: RowDataPacket[]) => {
+    const groups = new Map<string, RowDataPacket[]>();
+    for (const item of rows) {
+      const group = groups.get(item.product_slug);
+      if (group) group.push(item);
+      else groups.set(item.product_slug, [item]);
+    }
+    return (slug: string) => groups.get(slug) ?? [];
+  };
+  const imagesOf = bySlug(productImages);
+  const variantsOf = bySlug(productVariants);
+  const categoriesOf = bySlug(productCategories);
   return products.map((row) => ({
       slug: row.slug,
       name: row.name,
@@ -81,9 +94,7 @@ async function loadProducts(db: Db, slugs?: string[]): Promise<Product[]> {
       categories: [
         ...new Set([
           ...(row.category ? [row.category as string] : []),
-          ...productCategories
-            .filter((item) => item.product_slug === row.slug)
-            .map((item) => item.category_id as string),
+          ...categoriesOf(row.slug).map((item) => item.category_id as string),
         ]),
       ],
       seoTitle: row.seo_title ?? "",
@@ -101,14 +112,10 @@ async function loadProducts(db: Db, slugs?: string[]): Promise<Product[]> {
       lowStockMode: row.low_stock_mode,
       lowStockThreshold: row.low_stock_threshold,
       ...(row.image === null ? {} : { image: row.image }),
-      gallery: productImages
-        .filter((image) => image.product_slug === row.slug)
-        .map((image) => image.src),
+      gallery: imagesOf(row.slug).map((image) => image.src),
       options: JSON.parse(row.options ?? "[]"),
       highlight: { ...emptyHighlight, ...JSON.parse(row.highlight ?? "{}") },
-      variants: productVariants
-        .filter((variant) => variant.product_slug === row.slug)
-        .map((variant) => ({
+      variants: variantsOf(row.slug).map((variant) => ({
           id: variant.id,
           values: JSON.parse(variant.option_values),
           price: variant.price,
@@ -145,6 +152,8 @@ async function loadBase(db: Db): Promise<Omit<Content, "products">> {
       id: row.id,
       name: row.name,
       description: row.description,
+      image: row.image ?? "",
+      imageAlt: row.image_alt ?? "",
       productSlugs: collectionProducts
         .filter((item) => item.collection_id === row.id)
         .map((item) => item.product_slug),
@@ -270,8 +279,8 @@ async function storeContent(connection: PoolConnection, content: Content) {
   );
   await insertRows(
     connection,
-    "INSERT INTO collections (id, position, name, description) VALUES ?",
-    content.collections.map((item, index) => [item.id, index, item.name, item.description]),
+    "INSERT INTO collections (id, position, name, description, image, image_alt) VALUES ?",
+    content.collections.map((item, index) => [item.id, index, item.name, item.description, item.image, item.imageAlt]),
   );
   await insertRows(
     connection,
@@ -539,25 +548,50 @@ export async function listUploads(): Promise<MediaFile[]> {
   return files.sort((a, b) => b.addedAt - a.addedAt);
 }
 
-function usedImages({ products, pages, settings }: Content): Set<string> {
-  const used = new Set<string>();
+/** Gde se slika koristi: vrsta mesta i naziv (proizvod, stranica…), za biblioteku slika. */
+export type ImageUse = { kind: "product" | "collection" | "page" | "template" | "blog" | "logo" | "favicon"; name: string };
+
+function imageUses({ products, collections, pages, settings }: Content): Map<string, ImageUse[]> {
+  const uses = new Map<string, ImageUse[]>();
+  const add = (src: string | undefined, use: ImageUse) => {
+    if (!src) return;
+    const list = uses.get(src) ?? [];
+    if (!list.some((item) => item.kind === use.kind && item.name === use.name)) list.push(use);
+    uses.set(src, list);
+  };
   for (const product of products) {
-    if (product.image) used.add(product.image);
-    if (product.highlight.image) used.add(product.highlight.image);
-    for (const src of product.gallery) used.add(src);
+    const use = { kind: "product", name: product.name } as const;
+    add(product.image, use);
+    add(product.highlight.image, use);
+    for (const src of product.gallery) add(src, use);
   }
+  for (const collection of collections) add(collection.image, { kind: "collection", name: collection.name });
   for (const item of TEMPLATES) {
-    for (const image of collectImages(item.fields, settings.templates[item.id])) used.add(image.src);
+    for (const image of collectImages(item.fields, settings.templates[item.id])) add(image.src, { kind: "template", name: item.label });
   }
   for (const page of pages) {
     for (const section of page.sections) {
       const fields = sectionType(section.type)?.fields ?? [];
-      for (const image of collectImages(fields, section.data)) used.add(image.src);
+      for (const image of collectImages(fields, section.data)) add(image.src, { kind: "page", name: page.title });
     }
   }
-  if (settings.logo) used.add(settings.logo);
-  if (settings.favicon) used.add(settings.favicon);
-  return used;
+  add(settings.logo, { kind: "logo", name: "" });
+  add(settings.favicon, { kind: "favicon", name: "" });
+  return uses;
+}
+
+function usedImages(content: Content): Set<string> {
+  return new Set(imageUses(content).keys());
+}
+
+/** Za svaku sliku koju sadržaj koristi: gde se sve prikazuje. */
+export async function getImageUses(): Promise<Map<string, ImageUse[]>> {
+  const [content, blog] = await Promise.all([readContent(), getBlogImageUses()]);
+  const uses = imageUses(content);
+  for (const [src, titles] of blog) {
+    uses.set(src, [...(uses.get(src) ?? []), ...titles.map((name) => ({ kind: "blog", name }) as const)]);
+  }
+  return uses;
 }
 
 /** Putanje slika koje sadržaj trenutno koristi: proizvodi, stranice, logo i favicon. */

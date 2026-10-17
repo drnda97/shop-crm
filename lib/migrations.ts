@@ -560,6 +560,17 @@ export const MIGRATIONS: Migration[] = [
       await connection.query("ALTER TABLE shop_users ADD COLUMN google_linked TINYINT(1) NOT NULL DEFAULT 0");
     },
   },
+  {
+    id: 23,
+    name: "kolekcije: fotografija banera",
+    up: async (connection) => {
+      await connection.query(
+        `ALTER TABLE collections
+          ADD COLUMN image VARCHAR(255) NOT NULL DEFAULT '',
+          ADD COLUMN image_alt VARCHAR(255) NOT NULL DEFAULT ''`,
+      );
+    },
+  },
 ];
 
 // GET_LOCK važi za ceo MySQL server, pa ime sadrži i bazu (najviše 64 znaka).

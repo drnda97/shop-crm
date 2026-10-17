@@ -6,7 +6,7 @@ import { formatOrderCount } from "@/lib/format";
 import { getOrders } from "@/lib/order-store";
 import { orderStatusLabels, type OrderStatus } from "@/lib/orders";
 import { currencyOf } from "@/lib/settings";
-import { OrderCard } from "../order-card";
+import { OrdersTable } from "../orders-table";
 import { dateFormats } from "../order-ui";
 import {
   buttonClass,
@@ -16,6 +16,8 @@ import {
   chipOnClass,
   inputClass,
   PageHeader,
+  Pager,
+  PANEL_PAGE_SIZE,
   quietButtonClass,
 } from "../ui";
 
@@ -24,7 +26,7 @@ type OrdersPageProps = {
 };
 
 const statuses = Object.keys(orderStatusLabels) as OrderStatus[];
-const PAGE_SIZE = 30;
+const PAGE_SIZE = PANEL_PAGE_SIZE;
 const ORDERS_PATH = `${ADMIN_PATH}/porudzbine`;
 
 /** Adresa spiska sa zadatim filterima; prazne vrednosti se izostavljaju. */
@@ -61,7 +63,6 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const pages = Math.max(1, Math.ceil(orders.length / PAGE_SIZE));
   const page = Math.min(Math.max(Number(strana) || 1, 1), pages);
   const shown = orders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const back = listUrl({ status: active, q: q.trim(), strana: page > 1 ? String(page) : "" });
 
   const tabs = [
     { href: listUrl({ q: q.trim() }), label: t("Sve"), count: found.length, current: !active },
@@ -77,7 +78,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     <>
       <PageHeader
         title={t("Porudžbine")}
-        hint={t("Najnovije su na vrhu. Otkazivanje vraća komade na stanje kod proizvoda kojima se vodi broj.")}
+        hint={t("Najnovije su na vrhu. Klik na porudžbinu otvara detalje: adresu, stavke, belešku i promenu statusa.")}
         action={
           <div className="flex flex-wrap gap-[8px]">
             <a href={`${ORDERS_PATH}/izvoz`} className={quietButtonClass}>
@@ -128,41 +129,16 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         </p>
       )}
 
-      <div className="flex flex-col gap-[12px]">
-        {shown.map((order) => (
-          <OrderCard
-            key={order.number}
-            order={order}
-            currency={currencyOf(settings)}
-            date={orderDate(order.receivedAt)}
-            back={back}
-          />
-        ))}
-      </div>
+      {shown.length > 0 && <OrdersTable orders={shown} currency={currencyOf(settings)} date={orderDate} />}
 
       {orders.length > 0 && (
-        <div className="mt-[16px] flex flex-wrap items-center gap-[12px] text-[14px] text-muted">
-          <span>
-            {t(formatOrderCount(orders.length))}
-            {pages > 1 && ` · strana ${page} od ${pages}`}
-          </span>
-          {page > 1 && (
-            <Link
-              href={listUrl({ status: active, q: q.trim(), strana: String(page - 1) })}
-              className={quietButtonClass}
-            >
-              {t("← Novije")}
-            </Link>
-          )}
-          {page < pages && (
-            <Link
-              href={listUrl({ status: active, q: q.trim(), strana: String(page + 1) })}
-              className={quietButtonClass}
-            >
-              {t("Starije →")}
-            </Link>
-          )}
-        </div>
+        <Pager
+          path={ORDERS_PATH}
+          params={{ status: active ?? "", q: q.trim() }}
+          page={page}
+          pages={pages}
+          summary={t(formatOrderCount(orders.length))}
+        />
       )}
     </>
   );

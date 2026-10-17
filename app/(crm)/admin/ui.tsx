@@ -135,4 +135,14 @@ export function ErrorNote({ message }: { message?: string }) {
 // Delovi sa sopstvenim tekstom su u ui-text.tsx, da prevod radi i u pregledaču.
 import { Tr } from "./ui-text";
 
-export { MailNotice, Thumb, Tr } from "./ui-text";
+export { MailNotice, Pager, Thumb, Tr } from "./ui-text";
+
+/** Koliko stavki staje na jednu stranu spiska u panelu (Proizvodi imaju svoje podešavanje). */
+export const PANEL_PAGE_SIZE = 20;
+
+/** Deo spiska za stranu iz adrese (?strana=N); strana preko kraja je poslednja. */
+export function paginate<Item>(items: Item[], strana: string | undefined, size = PANEL_PAGE_SIZE) {
+  const pages = Math.max(1, Math.ceil(items.length / size));
+  const page = Math.min(Math.max(Math.floor(Number(strana)) || 1, 1), pages);
+  return { shown: items.slice((page - 1) * size, page * size), page, pages };
+}

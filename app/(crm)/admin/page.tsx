@@ -1,7 +1,7 @@
 import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ADMIN_PATH, getCurrentAdmin, roleCan } from "@/lib/admin-auth";
+import { ADMIN_PATH, getCurrentAdmin, getRoles, roleCan } from "@/lib/admin-auth";
 import { hasPrice, isSoldOut, lowStockUnits, soldOutVariants } from "@/lib/catalog";
 import { getProducts, getSettings } from "@/lib/content";
 import { formatMoney, formatOrderCount, formatPieces } from "@/lib/format";
@@ -59,7 +59,7 @@ export default async function DashboardPage() {
   const user = await getCurrentAdmin();
   if (!user) return null;
   // Pregled prodaje je za uloge koje vide porudžbine; ostale idu na svoj deo panela.
-  if (!roleCan(user.role, "orders")) redirect(`${ADMIN_PATH}/stranice`);
+  if (!roleCan(user.role, "orders", await getRoles())) redirect(`${ADMIN_PATH}/stranice`);
 
   const [orders, products, settings, openReturns, pendingReviews] = await Promise.all([
     getOrders(),
@@ -99,7 +99,7 @@ export default async function DashboardPage() {
     },
     !isMailConfigured(settings) && {
       text: t("Email nije podešen — za nove porudžbine ne stiže poruka ni vama ni kupcu"),
-      href: `${ADMIN_PATH}/podesavanja`,
+      href: `${ADMIN_PATH}/podesavanja/email`,
     },
     emailFailed > 0 && {
       text: t("Email nije poslat: {a}", { a: formatOrderCount(emailFailed) }),

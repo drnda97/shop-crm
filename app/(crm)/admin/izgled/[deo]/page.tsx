@@ -1,33 +1,59 @@
 import { getPanelT } from "@/lib/i18n/server";
-import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/admin-auth";
+import { notFound, redirect } from "next/navigation";
+import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
-import { SITE_FIELDS } from "@/lib/site";
+import { FOOTER_FIELDS, HEADER_FIELDS, THEME_FIELDS } from "@/lib/site";
 import { TEMPLATES, type TemplateId } from "@/lib/templates";
 import { PageHeader } from "../../ui";
-import { editorOptions, HOME_PREVIEW, previewUrl, tabs } from "../parts";
+import { editorOptions, HOME_PREVIEW, previewUrl } from "../parts";
 import { SettingsEditor } from "../settings-editor";
 
 type SitePartPageProps = { params: Promise<{ deo: string }> };
 
-/** Meni i podnožje, ili tekstovi jedne stranice sa stalnim rasporedom (lib/templates.ts). */
+/** Zaglavlje, podnožje, ili tekstovi jedne stranice sa stalnim rasporedom (lib/templates.ts). */
 export default async function SitePartPage({ params }: SitePartPageProps) {
   const t = await getPanelT();
   await requireAdmin("content");
   const { deo } = await params;
   const [settings, { sampleProduct, ...options }] = await Promise.all([getSettings(), editorOptions()]);
 
-  if (deo === "meni") {
+  // Boje, fontovi i sopstveni CSS aktivne teme.
+  if (deo === "boje") {
     return (
       <>
-        <PageHeader title={t("Izgled sajta")} />
+        <PageHeader title={t("Boje i fontovi")} />
         <SettingsEditor
-          key="meni"
-          tabs={tabs("meni")}
+          key="boje"
+          target={{ part: "theme" }}
+          hint={t("Četiri boje i dva fonta aktivne teme. Nijanse, tekst na tamnim sekcijama i tekst na dugmadima sajt računa sam, da ostane čitljiv. Boje važe i za email o porudžbini.")}
+          fields={THEME_FIELDS}
+          value={{ ...settings.colors, fontDisplay: settings.fonts.display, fontBody: settings.fonts.body, customCss: settings.customCss }}
+          previewUrl={await previewUrl(HOME_PREVIEW)}
+          options={options}
+        />
+      </>
+    );
+  }
+
+  // Ranija adresa „Meni i podnožje" vodi na zaglavlje.
+  if (deo === "meni") redirect(`${ADMIN_PATH}/izgled/zaglavlje`);
+  // Zaglavlje i podnožje su, kao u Shopify-ju, isti na svakoj stranici sajta.
+  const group = deo === "zaglavlje" ? HEADER_FIELDS : deo === "podnozje" ? FOOTER_FIELDS : null;
+  if (group) {
+    const value = Object.fromEntries(group.map((field) => [field.key, settings.site[field.key as keyof typeof settings.site]]));
+    return (
+      <>
+        <PageHeader title={deo === "zaglavlje" ? t("Zaglavlje") : t("Podnožje")} />
+        <SettingsEditor
+          key={deo}
           target={{ part: "site" }}
-          hint={t("Delovi koji su isti na svakoj stranici: glavni meni, podnožje i traka sa obaveštenjem.")}
-          fields={SITE_FIELDS}
-          value={settings.site}
+          hint={
+            deo === "zaglavlje"
+              ? t("Isto na svakoj stranici sajta: traka sa obaveštenjima na vrhu i glavni meni.")
+              : t("Isto na svakoj stranici sajta: opis prodavnice, kolone sa linkovima i red pri dnu.")
+          }
+          fields={group}
+          value={value}
           previewUrl={await previewUrl(HOME_PREVIEW)}
           options={options}
         />
@@ -48,10 +74,9 @@ export default async function SitePartPage({ params }: SitePartPageProps) {
 
   return (
     <>
-      <PageHeader title={t("Izgled sajta")} />
+      <PageHeader title={t(template.label)} />
       <SettingsEditor
         key={template.id}
-        tabs={tabs(template.slug)}
         target={{ part: "template", id: template.id }}
         hint={t(template.hint)}
         fields={template.fields}

@@ -17,6 +17,7 @@ import {
   unsubscribeNewsletterAction,
   type OrderView,
 } from "@/app/(shop)/actions";
+import { ConfirmDialog } from "./confirm-dialog";
 import { ERROR_STYLE, Field } from "./field";
 
 const stack = { display: "flex", flexDirection: "column", gap: "18px", maxWidth: "520px", width: "100%" } as const;
@@ -120,26 +121,32 @@ export function AddressForm({ address }: { address: ShopAddress }) {
   );
 }
 
-/** Brisanje naloga, uz potvrdu. */
+/** Brisanje naloga, uz potvrdu u prozoru prodavnice. */
 export function DeleteAccount() {
   const t = useT();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [asking, setAsking] = useState(false);
   return (
-    <button
-      className="txt-btn"
-      type="button"
-      disabled={pending}
-      onClick={() => {
-        if (!window.confirm(t("Obrisati nalog? Porudžbine ostaju u evidenciji prodavnice; za njihovo brisanje nam pišite."))) return;
-        startTransition(async () => {
-          await deleteAccountAction();
-          router.refresh();
-        });
-      }}
-    >
-      {t("Obriši nalog")}
-    </button>
+    <>
+      <button className="txt-btn" type="button" disabled={pending} onClick={() => setAsking(true)}>
+        {t("Obriši nalog")}
+      </button>
+      <ConfirmDialog
+        open={asking}
+        question={t("Obrisati nalog?")}
+        detail={t("Porudžbine ostaju u evidenciji prodavnice; za njihovo brisanje nam pišite.")}
+        confirmLabel={t("Obriši nalog")}
+        onCancel={() => setAsking(false)}
+        onConfirm={() => {
+          setAsking(false);
+          startTransition(async () => {
+            await deleteAccountAction();
+            router.refresh();
+          });
+        }}
+      />
+    </>
   );
 }
 

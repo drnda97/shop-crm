@@ -9,9 +9,9 @@ import { getCodeCounts, getCodeUses } from "@/lib/order-store";
 import { currencyOf } from "@/lib/settings";
 import { deleteDiscountAction, toggleDiscountAction } from "../actions";
 import { ConfirmButton } from "../confirm-button";
-import { buttonClass, cardClass, PageHeader, quietButtonClass, rowClass } from "../ui";
+import { buttonClass, cardClass, PageHeader, Pager, paginate, quietButtonClass, rowClass } from "../ui";
 
-type DiscountsPageProps = { searchParams: Promise<{ greska?: string }> };
+type DiscountsPageProps = { searchParams: Promise<{ greska?: string; strana?: string }> };
 
 /** Uslov pravila rečima, npr. „posle porudžbine od 3.000 RSD". */
 function describeTrigger(t: T, discount: Discount, currency: Currency): string {
@@ -26,7 +26,7 @@ function describeTrigger(t: T, discount: Discount, currency: Currency): string {
 export default async function DiscountsPage({ searchParams }: DiscountsPageProps) {
   const t = await getPanelT();
   await requireAdmin("discounts");
-  const { greska } = await searchParams;
+  const { greska, strana } = await searchParams;
   const [discounts, counts, uses, settings] = await Promise.all([
     getDiscounts(),
     getCodeCounts(),
@@ -34,6 +34,7 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
     getSettings(),
   ]);
   const currency = currencyOf(settings);
+  const list = paginate(discounts, strana);
 
   return (
     <>
@@ -48,7 +49,7 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
         }
       />
       <div className={cardClass}>
-        {discounts.map((discount) => {
+        {list.shown.map((discount) => {
           const active = discount.status === "active";
           const expired = isExpired(discount, settings.store.timeZone);
           const count = counts[discount.id] ?? { sent: 0, used: 0 };
@@ -110,6 +111,9 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
           </p>
         )}
       </div>
+      {discounts.length > 0 && (
+        <Pager path={`${ADMIN_PATH}/popusti`} page={list.page} pages={list.pages} summary={t("Popusta: {a}", { a: discounts.length })} />
+      )}
     </>
   );
 }

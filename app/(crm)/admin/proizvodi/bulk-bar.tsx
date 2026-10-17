@@ -1,8 +1,9 @@
 "use client";
 
 import { useT } from "@/lib/i18n/client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { bulkProductsAction } from "../actions";
+import { useConfirm } from "../confirm";
 import { buttonClass, cardClass, inputClass, labelClass, quietButtonClass } from "../ui";
 
 type BulkBarProps = {
@@ -26,7 +27,10 @@ const OPERATIONS = [
  */
 export function BulkBar({ categories, back }: BulkBarProps) {
   const t = useT();
+  const ask = useConfirm();
   const [operation, setOperation] = useState("publish");
+  // Posle potvrde brisanja forma se šalje ponovo, ovaj put bez pitanja.
+  const confirmed = useRef(false);
 
   function selectAll(checked: boolean) {
     for (const box of document.querySelectorAll<HTMLInputElement>('input[form="bulk"][name="slugs"]')) {
@@ -39,11 +43,21 @@ export function BulkBar({ categories, back }: BulkBarProps) {
       id="bulk"
       action={bulkProductsAction}
       className={`${cardClass} mt-[16px] flex flex-wrap items-end gap-[12px]`}
-      onSubmit={(event) => {
-        const count = document.querySelectorAll('input[form="bulk"][name="slugs"]:checked').length;
-        if (operation === "delete" && !window.confirm(t("Obrisati označene proizvode ({a})? Ne može da se vrati.", { a: count }))) {
-          event.preventDefault();
+      onSubmit={async (event) => {
+        if (operation !== "delete" || confirmed.current) {
+          confirmed.current = false;
+          return;
         }
+        event.preventDefault();
+        const form = event.currentTarget;
+        const count = document.querySelectorAll('input[form="bulk"][name="slugs"]:checked').length;
+        const yes = await ask({
+          question: t("Obrisati označene proizvode ({a})?", { a: count }),
+          confirmLabel: t("Obriši ({a})", { a: count }),
+        });
+        if (!yes) return;
+        confirmed.current = true;
+        form.requestSubmit();
       }}
     >
       <input type="hidden" name="back" value={back} />

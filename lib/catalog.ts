@@ -67,7 +67,7 @@ export type Variant = {
   values: string[];
   /** Sopstvena cena; null: važe cena i akcija proizvoda. */
   price: number | null;
-  /** Akcijska cena varijante; gleda se samo uz sopstvenu cenu. */
+  /** Akcijska cena samo ove varijante: od njene cene, a bez nje od cene proizvoda. */
   salePrice: number | null;
   sku: string;
   /** Broj komada ove varijante; null: broj se ne vodi i važi ručno stanje proizvoda. */
@@ -198,7 +198,11 @@ export function inCategory(product: Product, id: string, categories: Category[])
 }
 
 /** Ručno složena grupa proizvoda, npr. „Izdvojeno" ili „Za poklon". */
-export type Collection = { id: string; name: string; description: string; productSlugs: string[] };
+/**
+ * Kolekcija: izbor proizvoda sa svojom stranicom na sajtu (/kolekcija/{id}), oznaka na kartici
+ * proizvoda i izvor proizvoda za sekcije. `image` je fotografija banera na njenoj stranici.
+ */
+export type Collection = { id: string; name: string; description: string; image: string; imageAlt: string; productSlugs: string[] };
 
 /** Stranica sajta, složena od sekcija. Na sajtu je na adresi /{slug}; početna je HOME_SLUG. */
 export type Page = {
@@ -278,10 +282,15 @@ export function findVariant(product: Product, id: string | undefined): Variant |
   return product.variants.find((variant) => variant.id === id);
 }
 
-/** Redovna i akcijska cena onoga što kupac kupuje: iz varijante ako ima svoju cenu, inače iz proizvoda. */
+/**
+ * Redovna i akcijska cena onoga što kupac kupuje: varijanta sa svojom cenom ima svoju cenu i
+ * akciju; varijanta bez svoje cene, a sa svojom akcijom, je na akciji sama, od cene proizvoda;
+ * inače važe cena i akcija proizvoda.
+ */
 function offer(product: Product, variant?: Variant): { price: number | null; salePrice: number | null } {
-  const source = variant && variant.price !== null ? variant : product;
-  return { price: source.price, salePrice: source.salePrice };
+  if (variant && variant.price !== null) return { price: variant.price, salePrice: variant.salePrice };
+  if (variant && variant.salePrice !== null) return { price: product.price, salePrice: variant.salePrice };
+  return { price: product.price, salePrice: product.salePrice };
 }
 
 export function isOnSale(product: Product, variant?: Variant): boolean {

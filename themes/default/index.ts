@@ -9,6 +9,7 @@ export { ArticlePage, BlogPage } from "./pages/blog";
 export { CheckoutPage } from "./pages/checkout";
 export { CollectionPage } from "./pages/collection";
 export { ContentPage } from "./pages/content";
+export { NotFoundPage } from "./pages/not-found";
 export { PaymentResultPage } from "./pages/payment-result";
 export { ProductPage } from "./pages/product";
 export { Shell } from "./pages/shell";

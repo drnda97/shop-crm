@@ -6,16 +6,20 @@ import {
   syncVariants,
   variantLabel,
   MAX_VARIANTS,
+  parsePairs,
   type Category,
+  type Collection,
+  type LowStockMode,
   type Product,
   type ProductOption,
   type Variant,
 } from "@/lib/catalog";
 import { csvRecords, parseCsv } from "@/lib/csv";
+import { isXlsx, readXlsx } from "@/lib/xlsx";
 import { MAX_MINOR, toMinor } from "@/lib/format";
 
 /**
- * Uvoz i izvoz proizvoda u CSV-u. Uvoz čita tri oblika: sopstveni (isti koji izvoz pravi),
+ * Uvoz i izvoz proizvoda u CSV-u ili Excel-u (.xlsx). Uvoz čita tri oblika: sopstveni (isti koji izvoz pravi),
  * Shopify-jev izvoz proizvoda i WooCommerce-ov izvoz proizvoda. Sva tri se svode na
  * ImportProduct, koji se zatim upisuje u katalog (applyImport).
  *
@@ -62,6 +66,20 @@ export type ImportProduct = {
   images: string[];
   seoTitle: string;
   seoDescription: string;
+  /*
+   * Polja koja nosi samo sopstveni oblik. Nema ih (undefined) kada fajl nema tu kolonu: tada
+   * postojeći proizvod zadržava svoje (Shopify, WooCommerce i stariji izvoz ih ne menjaju).
+   */
+  /** Kolekcije po nazivu ili oznaci; nepostojeće se prave. */
+  collections?: string[];
+  /** Slični proizvodi (oznake). */
+  related?: string[];
+  /** Dodatne sekcije stranice proizvoda. */
+  attributes?: { title: string; text: string }[];
+  lowStockMode?: LowStockMode;
+  lowStockThreshold?: number | null;
+  /** Istaknuti deo; `image` je adresa slike iz fajla. */
+  highlight?: { heading: string; text: string; specs: { label: string; value: string }[]; image?: string };
 };
 
 export type ParsedImport = { format: ImportFormat; products: ImportProduct[]; warnings: string[] };
@@ -140,53 +158,127 @@ export const EXPORT_HEADER = [
   "naziv",
   "status",
   "kategorije",
+  "kolekcije",
   "sifra",
   "kratak_opis",
   "opis",
+  "detalji",
   "cena",
   "cena_na_akciji",
   "tezina_g",
   "na_stanju",
   "komada",
+  "pri_kraju",
+  "prag",
   "opcije",
   "varijanta",
   "u_ponudi",
   "slike",
+  "istaknuto_naslov",
+  "istaknuto_tekst",
+  "istaknuto_mere",
+  "istaknuto_slika",
+  "slicni",
   "seo_naslov",
   "seo_opis",
+];
+
+/** Oznaka „pri kraju" u fajlu: reči koje se upisuju u kolonu pri_kraju. */
+const LOW_STOCK_WORDS: Record<LowStockMode, string> = { off: "ne", always: "uvek", auto: "ispod praga" };
+
+function lowStockMode(value: string): LowStockMode {
+  const word = value.trim().toLowerCase();
+  if (/^(uvek|always|da)$/.test(word)) return "always";
+  if (/^(ispod praga|ispod|auto|prag)$/.test(word)) return "auto";
+  return "off";
+}
+
+/** Spisak u jednoj ćeliji: stavke razdvojene sa „|" (ili novim redom). */
+const list = (value: string) => value.split(/\s*[|\n]\s*/).map((item) => item.trim()).filter(Boolean);
+
+/**
+ * Opis svake kolone sopstvenog oblika, za list „Uputstvo" u primeru i za stranicu uvoza.
+ * Kolona koje nema u fajlu se ne menja kod postojećeg proizvoda.
+ */
+export const COLUMN_HELP: [string, string][] = [
+  ["oznaka", "Adresa proizvoda na sajtu (/proizvod/oznaka): mala slova, cifre i crtice. Postojeća oznaka menja proizvod, nova pravi nov. Prazno: pravi se iz naziva."],
+  ["naziv", "Naziv proizvoda. Obavezno u redu proizvoda."],
+  ["status", "objavljen ili nacrt. Nacrt se ne vidi na sajtu."],
+  ["kategorije", "Putanja kategorija sa „>\": Nameštaj > Fotelje. Više kategorija razdvojite sa „|\"; prva je glavna. Nepostojeće se prave."],
+  ["kolekcije", "Nazivi kolekcija razdvojeni sa „|\": Bestseler | Novo. Nepostojeće se prave. Prazno: proizvod nije ni u jednoj."],
+  ["sifra", "Šifra artikla (SKU). U redu varijante: šifra te varijante."],
+  ["kratak_opis", "Kratak opis na kartici proizvoda; kod proizvoda sa opcijama to je i podrazumevani izbor."],
+  ["opis", "Opis na stranici proizvoda. Prelaz u nov red u ćeliji pravi nov pasus."],
+  ["detalji", "Dodatne sekcije na stranici proizvoda, „Naslov: tekst\", razdvojene sa „|\": Dimenzije: 72 × 84 cm | Održavanje: Brisati suvom krpom."],
+  ["cena", "Redovna cena, broj (npr. 39900 ili 49.90). U redu varijante: sopstvena cena varijante; prazno je cena proizvoda."],
+  ["cena_na_akciji", "Cena na akciji, niža od redovne. Prazno: nije na akciji."],
+  ["tezina_g", "Težina u gramima, za dostavu po težini i popuste."],
+  ["na_stanju", "da ili ne, kada se ne vodi broj komada."],
+  ["komada", "Broj komada na stanju; smanjuje se sam sa svakom porudžbinom. Prazno: broj se ne vodi. U redu varijante: komada te varijante."],
+  ["pri_kraju", "Oznaka „Još malo na stanju\": ne, uvek ili ispod praga."],
+  ["prag", "Broj komada ispod kog se oznaka pri_kraju prikazuje (uz „ispod praga\")."],
+  ["opcije", "Opcije koje kupac bira, „Naziv: vrednost, vrednost\", razdvojene sa „|\": Tkanina: Pesak #b9ab98, Grafit | Postolje: Hrast, Orah. Boja posle vrednosti (#rrggbb) je kružić na sajtu."],
+  ["varijanta", "Samo u redu varijante: vrednosti opcija redom, odvojene zarezom (Pesak, Hrast). Red varijante ima istu oznaku kao proizvod i stoji ispod njega."],
+  ["u_ponudi", "U redu varijante: da ili ne. Kombinacija koja nije u ponudi ne može da se izabere."],
+  ["slike", "Adrese slika (https://…), razdvojene razmakom; prva je glavna. U redu varijante: slika te varijante (mora biti i među slikama proizvoda)."],
+  ["istaknuto_naslov", "Istaknuti deo stranice proizvoda (tamna traka): naslov. Prazno: istaknutog dela nema."],
+  ["istaknuto_tekst", "Istaknuti deo: tekst."],
+  ["istaknuto_mere", "Istaknuti deo: mere, „Naziv: vrednost\" razdvojene sa „|\" (najviše 8): Širina: 72 cm | Visina: 104 cm."],
+  ["istaknuto_slika", "Istaknuti deo: adresa slike."],
+  ["slicni", "Oznake sličnih proizvoda razdvojene sa „|\" (najviše 12). Prazno: biraju se iz iste kategorije."],
+  ["seo_naslov", "Naslov za pretraživače. Prazno: naziv proizvoda."],
+  ["seo_opis", "Opis za pretraživače. Prazno: početak opisa."],
 ];
 
 /**
  * Redovi za izvoz: prvi red proizvoda nosi sve njegove podatke, a svaka varijanta zatim svoj
  * red (ista oznaka, popunjena kolona „varijanta") sa sopstvenom cenom, šifrom i stanjem.
  */
-export function exportRows(products: Product[], categories: Category[], decimals: number, base: string): string[][] {
+export function exportRows(
+  products: Product[],
+  categories: Category[],
+  decimals: number,
+  base: string,
+  collections: Collection[] = [],
+): string[][] {
   const amount = (value: number | null) => (value === null ? "" : (value / 10 ** decimals).toFixed(decimals));
+  const url = (src: string | undefined) => (src ? `${base}${src}` : "");
   const rows: string[][] = [EXPORT_HEADER];
   for (const product of products) {
-    rows.push([
-      product.slug,
-      product.name,
-      product.active ? "objavljen" : "nacrt",
-      product.categories
+    const cells: Record<string, string> = {
+      oznaka: product.slug,
+      naziv: product.name,
+      status: product.active ? "objavljen" : "nacrt",
+      kategorije: product.categories
         .map((id) => categoryPath(categories, id).map((category) => category.label).join(" > "))
         .filter(Boolean)
         .join(" | "),
-      product.sku,
-      product.summary,
-      product.description,
-      amount(product.price),
-      amount(product.salePrice),
-      product.weight === null ? "" : String(product.weight),
-      product.inStock ? "da" : "ne",
-      product.stockQty === null ? "" : String(product.stockQty),
-      formatOptions(product.options).replace(/\n/g, " | "),
-      "",
-      "",
-      [product.image, ...product.gallery].flatMap((src) => (src ? [`${base}${src}`] : [])).join(" "),
-      product.seoTitle,
-      product.seoDescription,
-    ]);
+      kolekcije: collections
+        .filter((collection) => collection.productSlugs.includes(product.slug))
+        .map((collection) => collection.name)
+        .join(" | "),
+      sifra: product.sku,
+      kratak_opis: product.summary,
+      opis: product.description,
+      detalji: product.attributes.map((item) => `${item.title}: ${item.text}`).join(" | "),
+      cena: amount(product.price),
+      cena_na_akciji: amount(product.salePrice),
+      tezina_g: product.weight === null ? "" : String(product.weight),
+      na_stanju: product.inStock ? "da" : "ne",
+      komada: product.stockQty === null ? "" : String(product.stockQty),
+      pri_kraju: LOW_STOCK_WORDS[product.lowStockMode],
+      prag: product.lowStockThreshold === null ? "" : String(product.lowStockThreshold),
+      opcije: formatOptions(product.options).replace(/\n/g, " | "),
+      slike: [product.image, ...product.gallery].flatMap((src) => (src ? [url(src)] : [])).join(" "),
+      istaknuto_naslov: product.highlight.heading,
+      istaknuto_tekst: product.highlight.text,
+      istaknuto_mere: product.highlight.specs.map((spec) => (spec.value ? `${spec.label}: ${spec.value}` : spec.label)).join(" | "),
+      istaknuto_slika: url(product.highlight.image),
+      slicni: product.related.join(" | "),
+      seo_naslov: product.seoTitle,
+      seo_opis: product.seoDescription,
+    };
+    rows.push(EXPORT_HEADER.map((column) => cells[column] ?? ""));
     for (const variant of product.variants) {
       const row = EXPORT_HEADER.map(() => "");
       const set = (column: string, value: string) => (row[EXPORT_HEADER.indexOf(column)] = value);
@@ -234,7 +326,25 @@ function fromShopcrm(records: Record<string, string>[], decimals: number, warnin
       warnings.push(`Red ${line}: proizvod „${slug}" nema naziv, preskočen.`);
       continue;
     }
+    // Kolona koje nema u zaglavlju nema ni u zapisu: tada se to polje postojećeg proizvoda ne menja.
+    const has = (column: string) => column in record;
+    const highlight = ["istaknuto_naslov", "istaknuto_tekst", "istaknuto_mere", "istaknuto_slika"].some(has)
+      ? {
+          heading: record.istaknuto_naslov ?? "",
+          text: record.istaknuto_tekst ?? "",
+          specs: parsePairs(list(record.istaknuto_mere ?? "").join("\n"))
+            .slice(0, 8)
+            .map(([label, value]) => ({ label, value })),
+          ...(record.istaknuto_slika ? { image: record.istaknuto_slika.split(/\s+/)[0] } : {}),
+        }
+      : undefined;
     products.push({
+      ...(has("kolekcije") ? { collections: list(record.kolekcije) } : {}),
+      ...(has("slicni") ? { related: list(record.slicni).map(slugify).filter(Boolean).slice(0, 12) } : {}),
+      ...(has("detalji") ? { attributes: parsePairs(list(record.detalji).join("\n")).map(([title, text]) => ({ title, text })) } : {}),
+      ...(has("pri_kraju") ? { lowStockMode: lowStockMode(record.pri_kraju) } : {}),
+      ...(has("prag") ? { lowStockThreshold: wholeNumber(record.prag) } : {}),
+      ...(highlight ? { highlight } : {}),
       slug,
       name: record.naziv,
       active: record.status ? truthy(record.status) : true,
@@ -442,7 +552,20 @@ function fromWoo(records: Record<string, string>[], header: string[], decimals: 
 
 /** Čita CSV u jednom od tri oblika. Vraća null kada zaglavlje ne odgovara nijednom. */
 export function parseImport(text: string, decimals: number): ParsedImport | null {
-  const rows = parseCsv(text);
+  return parseImportRows(parseCsv(text), decimals);
+}
+
+/** Čita fajl iz forme: Excel (.xlsx, prvi list) ili CSV. */
+export function parseImportFile(bytes: Uint8Array, decimals: number): ParsedImport | null {
+  if (isXlsx(bytes)) {
+    const rows = readXlsx(bytes);
+    return rows ? parseImportRows(rows, decimals) : null;
+  }
+  return parseImport(new TextDecoder().decode(bytes), decimals);
+}
+
+/** Redovi tabele (iz CSV-a ili Excel-a) u proizvode. */
+export function parseImportRows(rows: string[][], decimals: number): ParsedImport | null {
   const format = detectFormat(rows[0] ?? []);
   if (!format) return null;
   const records = csvRecords(rows);
@@ -470,7 +593,7 @@ export function parseImport(text: string, decimals: number): ParsedImport | null
 
 /* ---------- Upis u katalog ---------- */
 
-export type ImportStats = { created: number; updated: number; categories: number };
+export type ImportStats = { created: number; updated: number; categories: number; collections: number };
 
 /** Kategorija po putanji naziva; one koje ne postoje se prave. Vraća id poslednje u putanji. */
 function ensureCategory(categories: Category[], path: string[], stats: ImportStats): string {
@@ -498,11 +621,11 @@ function ensureCategory(categories: Category[], path: string[], stats: ImportSta
  * ubačene slike; slike se menjaju samo kada je bar jedna preuzeta.
  */
 export function applyImport(
-  content: { products: Product[]; categories: Category[] },
+  content: { products: Product[]; categories: Category[]; collections?: Collection[] },
   items: ImportProduct[],
   images: Map<string, string>,
 ): ImportStats {
-  const stats: ImportStats = { created: 0, updated: 0, categories: 0 };
+  const stats: ImportStats = { created: 0, updated: 0, categories: 0, collections: 0 };
   for (const item of items) {
     const existing = content.products.find((product) => product.slug === item.slug);
     const categories = [...new Set(item.categories.map((path) => ensureCategory(content.categories, path, stats)))];
@@ -519,7 +642,8 @@ export function applyImport(
         id: variant.id,
         values: variant.values,
         price: row.price,
-        salePrice: row.price !== null && row.salePrice !== null && row.salePrice < row.price ? row.salePrice : null,
+        // Akcija varijante važi od njene cene, a bez nje od cene proizvoda.
+        salePrice: row.salePrice !== null && (row.price ?? item.price) !== null && row.salePrice < (row.price ?? item.price)! ? row.salePrice : null,
         sku: row.sku.slice(0, 64),
         stockQty: row.stockQty,
         enabled: row.enabled,
@@ -527,6 +651,7 @@ export function applyImport(
       };
     });
 
+    const highlightImage = item.highlight?.image ? images.get(item.highlight.image) : undefined;
     const product: Product = {
       attributes: [],
       lowStockMode: "off",
@@ -534,6 +659,21 @@ export function applyImport(
       highlight: { heading: "", text: "", specs: [] },
       related: [],
       ...existing,
+      ...(item.attributes ? { attributes: item.attributes.map((entry) => ({ title: entry.title.slice(0, 120), text: entry.text })) } : {}),
+      ...(item.lowStockMode ? { lowStockMode: item.lowStockMode } : {}),
+      ...(item.lowStockThreshold !== undefined ? { lowStockThreshold: item.lowStockThreshold } : {}),
+      ...(item.related ? { related: item.related.filter((slug) => slug !== item.slug) } : {}),
+      ...(item.highlight
+        ? {
+            highlight: {
+              heading: item.highlight.heading.slice(0, 200),
+              text: item.highlight.text.slice(0, 2000),
+              specs: item.highlight.specs,
+              // Slika koja nije preuzeta: ostaje dosadašnja.
+              ...(highlightImage ? { image: highlightImage } : existing?.highlight.image ? { image: existing.highlight.image } : {}),
+            },
+          }
+        : {}),
       slug: item.slug,
       name: item.name.slice(0, 255),
       sku: item.sku.slice(0, 64),
@@ -561,6 +701,36 @@ export function applyImport(
       content.products.push(product);
       stats.created++;
     }
+    if (item.collections && content.collections) placeInCollections(content.collections, item.slug, item.collections, stats);
+  }
+  // Slični proizvodi mogu biti i oni iz istog fajla, pa se proveravaju tek kada su svi upisani.
+  const known = new Set(content.products.map((product) => product.slug));
+  for (const item of items) {
+    if (!item.related) continue;
+    const product = content.products.find((candidate) => candidate.slug === item.slug);
+    if (product) product.related = product.related.filter((slug) => known.has(slug));
   }
   return stats;
+}
+
+/** Proizvod ulazi u navedene kolekcije (po nazivu ili oznaci; nepostojeće se prave) i izlazi iz ostalih. */
+function placeInCollections(collections: Collection[], slug: string, wanted: string[], stats: ImportStats) {
+  const chosen = new Set<string>();
+  for (const name of wanted) {
+    const key = name.toLowerCase();
+    let collection = collections.find((candidate) => candidate.id === slugify(name) || candidate.name.toLowerCase() === key);
+    if (!collection) {
+      let id = slugify(name) || "kolekcija";
+      for (let n = 2; collections.some((candidate) => candidate.id === id); n++) id = `${slugify(name) || "kolekcija"}-${n}`;
+      collection = { id, name: name.slice(0, 255), description: "", image: "", imageAlt: "", productSlugs: [] };
+      collections.push(collection);
+      stats.collections++;
+    }
+    chosen.add(collection.id);
+  }
+  for (const collection of collections) {
+    const inside = collection.productSlugs.includes(slug);
+    if (chosen.has(collection.id) && !inside) collection.productSlugs.push(slug);
+    if (!chosen.has(collection.id) && inside) collection.productSlugs = collection.productSlugs.filter((item) => item !== slug);
+  }
 }

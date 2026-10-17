@@ -2,7 +2,7 @@ import { getPanelT } from "@/lib/i18n/server";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin-auth";
 import { findVariant, variantLabel } from "@/lib/catalog";
-import { getCategories, getProduct, getProducts, getSettings } from "@/lib/content";
+import { getCategories, getCollections, getProduct, getProducts, getSettings } from "@/lib/content";
 import { currencyOf } from "@/lib/settings";
 import { getStockLog } from "@/lib/stock";
 import { ProductForm } from "../../product-form";
@@ -17,10 +17,11 @@ export default async function EditProductPage({ params, searchParams }: EditProd
   const t = await getPanelT();
   await requireAdmin("catalog");
   const [{ slug }, { greska }] = await Promise.all([params, searchParams]);
-  const [product, products, categories, settings, log] = await Promise.all([
+  const [product, products, categories, collections, settings, log] = await Promise.all([
     getProduct(slug),
     getProducts(),
     getCategories(),
+    getCollections(),
     getSettings(),
     getStockLog(slug),
   ]);
@@ -36,7 +37,8 @@ export default async function EditProductPage({ params, searchParams }: EditProd
     <ProductForm
       product={product}
       categories={categories}
-      others={products.filter((other) => other.slug !== slug).map(({ slug, name }) => ({ slug, name }))}
+      collections={collections}
+      others={products.filter((other) => other.slug !== slug).map(({ slug, name, image, salePrice, price }) => ({ slug, name, image, price: salePrice ?? price }))}
       currency={currencyOf(settings)}
       error={greska}
     >

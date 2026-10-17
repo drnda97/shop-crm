@@ -4,6 +4,7 @@ import {
   currentPrice,
   hasPrice,
   isAvailable,
+  isOnSale,
   isSoldOut,
   isVariantAvailable,
   lowStockLabel,
@@ -11,6 +12,7 @@ import {
   MAX_VARIANTS,
   parseOptions,
   priceRange,
+  regularPrice,
   soldOutVariants,
   stockUnits,
   syncVariants,
@@ -72,6 +74,15 @@ describe("cena i stanje varijante", () => {
     expect(currentPrice(item, inherits)).toBe(8000);
     expect(currentPrice(item, own)).toBe(12000);
     expect(currentPrice(item, sale)).toBe(9000);
+  });
+
+  it("varijanta bez svoje cene, a sa svojom akcijom, je na akciji sama, od cene proizvoda", () => {
+    const plain = product({ price: 10000, variants: [variant("crna-s", { salePrice: 7000 }), variant("bela-s")] });
+    const [onSale, regular] = plain.variants;
+    expect([regularPrice(plain, onSale), currentPrice(plain, onSale), isOnSale(plain, onSale)]).toEqual([10000, 7000, true]);
+    expect([currentPrice(plain, regular), isOnSale(plain, regular)]).toEqual([10000, false]);
+    // Akcija varijante viša od cene proizvoda ne važi.
+    expect(currentPrice(product({ price: 5000, variants: [variant("a", { salePrice: 6000 })] }), variant("a", { salePrice: 6000 }))).toBe(5000);
   });
 
   it("stanje se gleda po varijanti; broj komada uz proizvod tada ne važi", () => {

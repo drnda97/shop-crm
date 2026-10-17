@@ -48,7 +48,7 @@ export const panelExtra: Dict = {
   "Ukupno": "Total",
   "Ulica i broj": "Street and number",
   "Utisci kupaca": "Customer reviews",
-  "Uvezeno: novih proizvoda {a}, izmenjenih {b}, novih kategorija {c}.": "Imported: {a} new products, {b} updated, {c} new categories.",
+  "Uvezeno: novih proizvoda {a}, izmenjenih {b}, novih kategorija {c}, novih kolekcija {d}.": "Imported: {a} new products, {b} updated, {c} new categories, {d} new collections.",
   "Veličina: S, M, L\nBoja: Pesak #B9AB98, Grafit #3C4346": "Size: S, M, L\nColour: Sand #B9AB98, Graphite #3C4346",
   "Širina: 72 cm\nNosivost: 130 kg": "Width: 72 cm\nLoad capacity: 130 kg",
   "od": "of",

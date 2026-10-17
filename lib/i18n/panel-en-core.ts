@@ -207,7 +207,7 @@ export const panelCore: Dict = {
   "Stoji iza „Potvrdom prihvatate uslove kupovine.”": "Follows “By confirming you accept the terms of purchase.”",
   "Stolice": "Chairs",
   "Stranica na kojoj kupac upisuje podatke i potvrđuje porudžbinu. Načini dostave (naziv, cena, zona) i načini plaćanja su u Podešavanjima.": "The page where the customer enters their details and confirms the order. Delivery methods (name, price, zone) and payment methods are in Settings.",
-  "Stranica sa svim proizvodima: baner na vrhu i poziv ispod mreže proizvoda.": "The page with all products: a banner at the top and a call-out below the product grid.",
+  "Stranica sa svim proizvodima, stranice kategorija i kolekcija: baner na vrhu i poziv ispod mreže proizvoda.": "The page with all products, category and collection pages: a banner at the top and a call-out below the product grid.",
   "Stranica za prijavu i registraciju.": "The sign-in and registration page.",
   "Svaki red je jedan red naslova.": "Each line is one line of the title.",
   "Sve kolekcije": "All collections",

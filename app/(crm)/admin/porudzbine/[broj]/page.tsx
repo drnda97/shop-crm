@@ -66,7 +66,7 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
         </a>
       </div>
       <ErrorNote message={greska} />
-      <MailNotice configured={isMailConfigured(settings)} settingsPath={`${ADMIN_PATH}/podesavanja`} />
+      <MailNotice configured={isMailConfigured(settings)} settingsPath={`${ADMIN_PATH}/podesavanja/email`} />
 
       <div className="flex flex-col gap-[16px]">
         <OrderCard order={order} currency={currency} date={orderDate(order.receivedAt)} back={path} detail />

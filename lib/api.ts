@@ -32,7 +32,11 @@ import { fontStack, themeVars } from "@/lib/theme";
  * objekat podešavanja (u njemu je i lozinka za SMTP).
  */
 
-/** Zaglavlja koja sajtu na drugoj adresi dozvoljavaju da zove API iz pregledača. */
+/**
+ * Zaglavlja koja sajtu na drugoj adresi dozvoljavaju da zove API iz pregledača. Dozvolu dobija
+ * samo sajt sa spiska (Podešavanja → Opšte); dok je spisak prazan, nijedan drugi sajt je nema,
+ * a isti sajt (panel, prodavnica, /demo.html) CORS ionako ne traži.
+ */
 export function corsHeaders(request: Request, settings: Settings): Record<string, string> {
   const origins = allowedOrigins(settings.store);
   const headers: Record<string, string> = {
@@ -40,10 +44,6 @@ export function corsHeaders(request: Request, settings: Settings): Record<string
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Max-Age": "86400",
   };
-  if (origins.length === 0) {
-    headers["Access-Control-Allow-Origin"] = "*";
-    return headers;
-  }
   const origin = request.headers.get("origin");
   headers["Vary"] = "Origin";
   if (origin && origins.includes(origin)) headers["Access-Control-Allow-Origin"] = origin;
@@ -192,7 +192,9 @@ function withImageUrls(value: unknown, base: string): unknown {
 export function publicSite(settings: Settings, base: string) {
   const { site, colors, fonts } = settings;
   return {
-    announcement: { text: site.announcement, href: site.announcementHref },
+    // Prva poruka i kao `announcement`, za sajtove napravljene pre više poruka.
+    announcement: { text: site.announcements[0]?.text ?? "", href: site.announcements[0]?.href ?? "" },
+    announcements: { items: site.announcements, mode: site.announcementMode, seconds: Number(site.announcementSpeed) || 6, tone: site.announcementTone },
     menu: site.menu,
     footer: { tagline: site.tagline, columns: site.footerColumns, note: site.footerNote, legalLinks: site.legalLinks },
     colors,

@@ -4,7 +4,7 @@ import type { ListingSort } from "@/lib/listing";
 /**
  * Spisak proizvoda na stranici kolekcije: filtere, pretragu, redosled i strane računa baza
  * (lib/listing.ts), a server i pregledač dobijaju samo proizvode koji se prikazuju. Izbor kupca je
- * u adresi (?pretraga=, ?cena-od=, ?cena-do=, ?opcija=Boja:Pesak, ?sortiraj=, ?strana=), pa se
+ * u adresi (?kategorija=, ?pretraga=, ?cena-od=, ?cena-do=, ?opcija=Boja:Pesak, ?sortiraj=, ?strana=), pa se
  * filtrirana stranica može podeliti linkom.
  */
 
@@ -17,6 +17,8 @@ export const PAGE_SIZE = 12;
 const MAX_PAGES = 500;
 
 export type ListingQuery = {
+  /** Kategorija (id) kao filter; prazno: sve. Kategorije nemaju svoje stranice. */
+  category: string;
   search: string;
   /** Cena u valuti prodavnice, kako je kupac upisuje; null: bez granice. */
   min: number | null;
@@ -58,7 +60,9 @@ export function parseListingQuery(params: Params): ListingQuery {
     const value = entry.slice(at + 1).slice(0, 100);
     if (value && !(options[name] ??= []).includes(value) && options[name].length < 30) options[name].push(value);
   }
+  const category = first(params.kategorija).trim().toLowerCase();
   return {
+    category: /^[a-z0-9-]{1,191}$/.test(category) ? category : "",
     search: first(params.pretraga).trim().slice(0, 100),
     min: amount(first(params["cena-od"])),
     max: amount(first(params["cena-do"])),
@@ -71,6 +75,7 @@ export function parseListingQuery(params: Params): ListingQuery {
 /** Deo adrese posle upitnika za dati izbor; prazno kada je sve podrazumevano. `keepSearch` čuva otvoreno polje pretrage. */
 export function listingSearch(query: ListingQuery, keepSearch = false): string {
   const parts: string[] = [];
+  if (query.category) parts.push(`kategorija=${query.category}`);
   if (query.search) parts.push(`pretraga=${encodeURIComponent(query.search)}`);
   else if (keepSearch) parts.push("pretraga");
   if (query.min !== null) parts.push(`cena-od=${query.min}`);

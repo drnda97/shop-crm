@@ -9,7 +9,7 @@ import { getOrders } from "@/lib/order-store";
 import { currencyOf } from "@/lib/settings";
 import { eraseCustomerAction, saveCustomerNoteAction } from "../../actions";
 import { ConfirmButton } from "../../confirm-button";
-import { OrderCard } from "../../order-card";
+import { OrdersTable } from "../../orders-table";
 import { dateFormats } from "../../order-ui";
 import {
   buttonClass,
@@ -123,25 +123,14 @@ export default async function CustomerPage({ params, searchParams }: CustomerPag
         </a>
         <form action={eraseCustomerAction}>
           <input type="hidden" name="key" value={customer.key} />
-          <ConfirmButton question={t("Obrisati podatke kupca „{a}\"? Ne može da se vrati.", { a: customer.name })} className={quietButtonClass}>
+          <ConfirmButton question={t("Obrisati podatke kupca „{a}\"?", { a: customer.name })} className={quietButtonClass}>
             {t("Obriši podatke")}
           </ConfirmButton>
         </form>
       </div>
 
       <h2 className="mt-[24px] mb-[12px] text-[20px]">{t("Porudžbine")}</h2>
-      <div className="flex flex-col gap-[12px]">
-        {customer.orders.map((order) => (
-          <OrderCard
-            key={order.number}
-            order={order}
-            currency={currency}
-            date={orderDate(order.receivedAt)}
-            back={`${ADMIN_PATH}/kupci/${customer.key}`}
-            hideCustomer
-          />
-        ))}
-      </div>
+      <OrdersTable orders={customer.orders} currency={currency} date={orderDate} hideCustomer />
     </>
   );
 }

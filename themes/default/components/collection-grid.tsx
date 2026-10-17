@@ -22,8 +22,8 @@ function categoryRows(categories: ShopCategory[], current: string): { parent: st
 }
 
 type CollectionGridProps = {
-  /** Kategorija čija je ovo stranica (id); prazno: svi proizvodi. */
-  category: string;
+  /** Kolekcija čija je ovo stranica (id); bez nje svi proizvodi. Kategorija je filter iz `listing.query`. */
+  collection?: string;
   /** Otvoreno polje pretrage. */
   search: boolean;
   /** Proizvodi koje je server izabrao za izbor iz adrese, ukupan broj i opcije za filtere. */
@@ -37,7 +37,7 @@ type CollectionGridProps = {
  * Filtere računa server nad celim katalogom (lib/storefront/collection.ts): svaki izbor menja
  * adresu, a stranica stiže sa novim spiskom.
  */
-export function CollectionGrid({ category: cat, search, listing, currency }: CollectionGridProps) {
+export function CollectionGrid({ collection, search, listing, currency }: CollectionGridProps) {
   const to = usePath();
   const t = useT();
   const router = useRouter();
@@ -52,7 +52,12 @@ export function CollectionGrid({ category: cat, search, listing, currency }: Col
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
 
+  const cat = query.category;
   const rows = categoryRows(config.categories, cat);
+  const base = collection ? `/kolekcija/${collection}` : "/kolekcija";
+  /** Adresa iste stranice sa drugom kategorijom; ostali filteri ostaju, strana se vraća na prvu. */
+  const categoryHref = (category: string) =>
+    to(`${base}${((part) => (part ? `?${part}` : ""))(listingSearch({ ...query, category, page: 1 }, search))}`);
   const path = rows.map((row) => row.parent);
   const picked = query.options;
   const shown = list.length;
@@ -61,7 +66,7 @@ export function CollectionGrid({ category: cat, search, listing, currency }: Col
   /** Otvara istu stranicu sa novim izborom, bez pomeranja na vrh. Svaka izmena filtera vraća na prvu stranu. */
   function go(change: Partial<ListingQuery>, delay = 0) {
     const next = { ...query, page: 1, ...change };
-    const href = to(`/kolekcija${cat ? `/${cat}` : ""}${((part) => (part ? `?${part}` : ""))(listingSearch(next, search))}`);
+    const href = to(`${base}${((part) => (part ? `?${part}` : ""))(listingSearch(next, search))}`);
     if (timer.current) clearTimeout(timer.current);
     const open = () => startTransition(() => router.replace(href, { scroll: false }));
     if (delay > 0) timer.current = setTimeout(open, delay);
@@ -105,21 +110,22 @@ export function CollectionGrid({ category: cat, search, listing, currency }: Col
       )}
 
       <div className="a3" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "14px 24px" }}>
-        {/* Kategorije su linkovi: svaka ima svoju stranicu, pa adresa može da se podeli. */}
+        {/* Kategorije su filter: link na istu stranicu sa ?kategorija=, pa se izbor može podeliti adresom. */}
         <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start" }}>
           {rows.map((row, level) => (
             <nav className="seg" aria-label={level === 0 ? t("Kategorije") : t("Podkategorije")} key={row.parent}>
               {level === 0 && (
-                <Link className={cat === "" ? "chip on" : "chip"} href={to("/kolekcija")} scroll={false}>
+                <Link className={cat === "" ? "chip on" : "chip"} href={categoryHref("")} scroll={false} replace>
                   {t("Sve")}
                 </Link>
               )}
               {row.items.map((c) => (
                 <Link
                   className={c.id === cat || path.includes(c.id) ? "chip on" : "chip"}
-                  href={to(`/kolekcija/${c.id}`)}
+                  href={categoryHref(c.id)}
                   scroll={false}
-                  aria-current={c.id === cat ? "page" : undefined}
+                  replace
+                  aria-current={c.id === cat ? "true" : undefined}
                   key={c.id}
                 >
                   {c.label}

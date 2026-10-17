@@ -114,14 +114,21 @@ export async function getShopList(filter: ListingFilter, limit: number): Promise
   return { items: (await getShopProductsBySlugs(slugs)).map(toCardProduct), total };
 }
 
-/** Proizvodi za stranicu kolekcije: filteri, pretraga, redosled i strana iz adrese. */
-export async function getListing(category: string, params: Record<string, string | string[] | undefined>): Promise<Listing<CardProduct>> {
-  const [settings, rawFacets] = await Promise.all([getSettings(), listFacets(category)]);
-  const query = parseListingQuery(params);
+/**
+ * Proizvodi za /kolekcija (`collection` prazno) ili stranicu jedne kolekcije: kategorija,
+ * filteri, pretraga, redosled i strana iz adrese.
+ */
+export async function getListing(collection: string, params: Record<string, string | string[] | undefined>): Promise<Listing<CardProduct>> {
+  const parsed = parseListingQuery(params);
+  // Nepostojeća kategorija iz starog linka se zanemaruje.
+  const known = parsed.category && (await getCategories()).some((category) => category.id === parsed.category);
+  const query = known ? parsed : { ...parsed, category: "" };
+  const [settings, rawFacets] = await Promise.all([getSettings(), listFacets({ category: query.category, collection })]);
   // Kupac upisuje cenu u valuti, a u bazi je u najmanjim jedinicama.
   const unit = 10 ** settings.store.currencyDecimals;
   const filter: ListingFilter = {
-    category,
+    category: query.category,
+    collection,
     search: query.search,
     min: query.min === null ? null : query.min * unit,
     max: query.max === null ? null : query.max * unit,
@@ -164,6 +171,11 @@ export async function getUpsell(): Promise<CardProduct | null> {
 /** Kategorije na jeziku stranice. */
 export async function getShopCategories(): Promise<Category[]> {
   return translateForShop(await getCategories());
+}
+
+/** Kolekcije na jeziku sajta, za njihove stranice. */
+export async function getShopCollections(): Promise<Collection[]> {
+  return translateForShop(await getCollections());
 }
 
 export async function getShopConfig(): Promise<ShopConfig> {

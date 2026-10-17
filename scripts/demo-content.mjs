@@ -105,7 +105,11 @@ export const placeholderValues = {
   "[BROJ RAČUNA]": "160-0000000000000-00",
 };
 
-export const announcement = "Ovo je demo prodavnica: porudžbine se ne isporučuju i ništa se ne naplaćuje.";
+// Traka sa obaveštenjima: dve poruke, da se vidi slider.
+export const announcements = [
+  { text: "Ovo je demo prodavnica: porudžbine se ne isporučuju i ništa se ne naplaćuje.", href: "" },
+  { text: "Besplatna dostava sa unošenjem i montažom za porudžbine preko 50.000 RSD", href: "/pitanja?tema=Dostava" },
+];
 
 export const legalLinks = [
   { label: "Uslovi kupovine", href: "/uslovi-kupovine" },

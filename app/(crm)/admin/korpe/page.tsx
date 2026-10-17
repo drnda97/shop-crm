@@ -15,18 +15,21 @@ import {
   labelClass,
   MailNotice,
   PageHeader,
+  Pager,
+  paginate,
   panelClass,
   panelTitleClass,
   quietButtonClass,
 } from "../ui";
 
-type CartsPageProps = { searchParams: Promise<{ greska?: string; ok?: string }> };
+type CartsPageProps = { searchParams: Promise<{ greska?: string; ok?: string; strana?: string }> };
 
 export default async function CartsPage({ searchParams }: CartsPageProps) {
   const t = await getPanelT();
   await requireAdmin("orders");
-  const { greska, ok } = await searchParams;
+  const { greska, ok, strana } = await searchParams;
   const [carts, settings, products] = await Promise.all([listCarts(), getSettings(), getProducts()]);
+  const list = paginate(carts, strana);
   const { abandoned } = settings;
   const currency = currencyOf(settings);
   const { orderDate } = dateFormats(settings.store);
@@ -40,7 +43,7 @@ export default async function CartsPage({ searchParams }: CartsPageProps) {
         error={greska}
         notice={ok}
       />
-      <MailNotice configured={isMailConfigured(settings)} settingsPath={`${ADMIN_PATH}/podesavanja`} />
+      <MailNotice configured={isMailConfigured(settings)} settingsPath={`${ADMIN_PATH}/podesavanja/email`} />
 
       <div className="grid items-start gap-[16px] xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
         <form action={saveAbandonedAction} className={panelClass}>
@@ -86,7 +89,7 @@ export default async function CartsPage({ searchParams }: CartsPageProps) {
           <p className="mb-[8px] text-[14px] text-muted">
             {t("Podsetnici se šalju sami, na svakih desetak minuta dok server radi. Dugme šalje odmah one kojima je vreme.")}
           </p>
-          {carts.map((cart) => (
+          {list.shown.map((cart) => (
             <div key={cart.token} className="flex flex-wrap items-baseline justify-between gap-x-[16px] gap-y-[2px] border-t border-line py-[10px] text-[15px]">
               <div className="min-w-[220px] grow">
                 <div className="font-display font-bold">
@@ -109,6 +112,9 @@ export default async function CartsPage({ searchParams }: CartsPageProps) {
             </div>
           ))}
           {carts.length === 0 && <p className="text-[15px] text-muted">{t("Nema napuštenih korpi.")}</p>}
+          {list.pages > 1 && (
+            <Pager path={`${ADMIN_PATH}/korpe`} page={list.page} pages={list.pages} summary={t("Korpi: {a}", { a: carts.length })} />
+          )}
         </div>
       </div>
     </>

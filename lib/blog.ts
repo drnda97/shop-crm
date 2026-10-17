@@ -165,13 +165,19 @@ export async function deletePost(id: number) {
 
 /** Slike koje članci koriste: naslovne i one u tekstu. Takva slika se ne briše iz biblioteke. */
 export async function getBlogImages(): Promise<Set<string>> {
-  const [rows] = await (await getDb()).query<RowDataPacket[]>("SELECT image, body FROM blog_posts");
-  const used = new Set<string>();
+  return new Set((await getBlogImageUses()).keys());
+}
+
+/** Slike iz članaka, sa naslovima članaka u kojima su. */
+export async function getBlogImageUses(): Promise<Map<string, string[]>> {
+  const [rows] = await (await getDb()).query<RowDataPacket[]>("SELECT title, image, body FROM blog_posts");
+  const uses = new Map<string, string[]>();
   for (const row of rows) {
-    if (row.image) used.add(row.image);
-    for (const src of richTextImages(row.body)) used.add(src);
+    for (const src of new Set([row.image, ...richTextImages(row.body)].filter(Boolean))) {
+      uses.set(src, [...(uses.get(src) ?? []), row.title]);
+    }
   }
-  return used;
+  return uses;
 }
 
 /** Sve oznake vidljivih članaka, po broju članaka. */

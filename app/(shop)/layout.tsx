@@ -43,7 +43,8 @@ export default async function ShopLayout({ children }: { children: ReactNode }) 
     getShopPrefix(),
     getShopCustomDict(),
   ]);
-  const { announcement, announcementHref } = settings.site;
+  const { announcements, announcementMode, announcementSpeed, announcementTone } = settings.site;
+  const announcement = { items: announcements, mode: announcementMode, seconds: Number(announcementSpeed) || 6, tone: announcementTone };
   const stylesHref = await themeCssHref(await getThemeId());
 
   return (
@@ -52,9 +53,11 @@ export default async function ShopLayout({ children }: { children: ReactNode }) 
       <head>
         {/* Stilovi izabrane teme; ostale teme se ne učitavaju. */}
         <link rel="stylesheet" href={stylesHref} />
+        {/* Sopstveni CSS aktivne teme, posle stilova teme da ih može menjati. */}
+        {settings.customCss && <style data-custom-css dangerouslySetInnerHTML={{ __html: settings.customCss }} />}
       </head>
       <body>
-        <Shell lang={lang} prefix={prefix} custom={custom} announcement={announcement} announcementHref={announcementHref} upsell={upsell} config={config}>
+        <Shell lang={lang} prefix={prefix} custom={custom} announcement={announcement} upsell={upsell} config={config}>
           {children}
         </Shell>
       </body>

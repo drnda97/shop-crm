@@ -1,20 +1,25 @@
 import { getPanelT } from "@/lib/i18n/server";
 import Link from "next/link";
-import { requireAdmin } from "@/lib/admin-auth";
+import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getProducts, getSettings } from "@/lib/content";
 import { getAllReviews, type ReviewStatus } from "@/lib/reviews";
 import { deleteReviewAction, reviewStatusAction } from "../actions";
 import { ConfirmButton } from "../confirm-button";
 import { dateFormats } from "../order-ui";
-import { cardClass, PageHeader, quietButtonClass, rowClass } from "../ui";
+import { cardClass, PageHeader, Pager, paginate, quietButtonClass, rowClass } from "../ui";
 
 const statusLabels: Record<ReviewStatus, string> = { pending: "čeka odobrenje", approved: "objavljen", rejected: "odbijen" };
 const badge = "rounded-full px-[12px] font-display text-[12.5px] leading-[26px] font-bold";
 
-export default async function ReviewsPage() {
+type ReviewsPageProps = { searchParams: Promise<{ strana?: string }> };
+
+export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
   const t = await getPanelT();
   await requireAdmin("orders");
-  const [reviews, products, settings] = await Promise.all([getAllReviews(), getProducts(), getSettings()]);
+  const [{ strana }, reviews, products, settings] = await Promise.all([searchParams, getAllReviews(), getProducts(), getSettings()]);
+  const list = paginate(reviews, strana);
+  // Posle odobravanja ili brisanja panel se vraća na istu stranu.
+  const back = `${ADMIN_PATH}/utisci${list.page > 1 ? `?strana=${list.page}` : ""}`;
   const { orderDate } = dateFormats(settings.store);
   const waiting = reviews.filter((review) => review.status === "pending").length;
 
@@ -28,7 +33,7 @@ export default async function ReviewsPage() {
         <p className="mb-[8px] text-[15px] text-muted">
           {waiting > 0 ? t("Čeka odobrenje: {a}.", { a: waiting }) : t("Nijedan utisak ne čeka odobrenje.")}
         </p>
-        {reviews.map((review) => {
+        {list.shown.map((review) => {
           const product = products.find((candidate) => candidate.slug === review.productSlug);
           return (
             <div key={review.id} className={`${rowClass} items-start`}>
@@ -57,6 +62,7 @@ export default async function ReviewsPage() {
                 {review.status !== "approved" && (
                   <form action={reviewStatusAction}>
                     <input type="hidden" name="id" value={review.id} />
+                    <input type="hidden" name="back" value={back} />
                     <input type="hidden" name="status" value="approved" />
                     <button type="submit" className={quietButtonClass}>
                       {t("Odobri")}
@@ -66,6 +72,7 @@ export default async function ReviewsPage() {
                 {review.status !== "rejected" && (
                   <form action={reviewStatusAction}>
                     <input type="hidden" name="id" value={review.id} />
+                    <input type="hidden" name="back" value={back} />
                     <input type="hidden" name="status" value="rejected" />
                     <button type="submit" className={quietButtonClass}>
                       {review.status === "approved" ? t("Skloni") : t("Odbij")}
@@ -74,6 +81,7 @@ export default async function ReviewsPage() {
                 )}
                 <form action={deleteReviewAction}>
                   <input type="hidden" name="id" value={review.id} />
+                  <input type="hidden" name="back" value={back} />
                   <ConfirmButton question={t("Obrisati ovaj utisak?")} className={quietButtonClass}>
                     {t("Obriši")}
                   </ConfirmButton>
@@ -84,6 +92,9 @@ export default async function ReviewsPage() {
         })}
         {reviews.length === 0 && <p className="text-[15px] text-muted">{t("Još nema utisaka.")}</p>}
       </div>
+      {reviews.length > 0 && (
+        <Pager path={`${ADMIN_PATH}/utisci`} page={list.page} pages={list.pages} summary={t("Utisaka: {a}", { a: reviews.length })} />
+      )}
     </>
   );
 }

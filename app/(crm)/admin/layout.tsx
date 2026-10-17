@@ -2,7 +2,7 @@ import { getPanelT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
-import { ADMIN_PATH, announceSetupCode, getCurrentAdmin, needsSetup, roleCan } from "@/lib/admin-auth";
+import { ADMIN_PATH, announceSetupCode, AREAS, getCurrentAdmin, getRoles, needsSetup, roleCan } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { countNewOrders } from "@/lib/order-store";
 import { logout } from "./actions";
@@ -11,6 +11,7 @@ import { LoginForm } from "./login-form";
 import { SetupForm } from "./setup-form";
 import { Sidebar } from "./nav";
 import { NAV_COOKIE } from "./nav-cookie";
+import { designParts } from "./izgled/parts";
 
 export const metadata: Metadata = {
   title: "Admin panel",
@@ -42,6 +43,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const { name, storefrontUrl } = settings.store;
 
   // Da li je meni skupljen pamti se u kolačiću, pa se stranica odmah iscrta u tom obliku.
+  const roles = await getRoles();
   const collapsed = (await cookies()).get(NAV_COOKIE)?.value === "1";
 
   return (
@@ -53,9 +55,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         waiting={waiting}
         siteUrl={storefrontUrl || "/"}
         initialCollapsed={collapsed}
+        designParts={designParts()}
         user={user.name || user.username}
         // Stavke menija za delove panela u koje uloga ne sme se ne prikazuju.
-        areas={(["orders", "catalog", "discounts", "content", "settings", "users"] as const).filter((area) => roleCan(user.role, area))}
+        areas={AREAS.filter((area) => roleCan(user.role, area, roles))}
         logout={logout}
       />
 

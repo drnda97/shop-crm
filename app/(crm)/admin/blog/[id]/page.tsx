@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
-import { getPost, toLocalInput } from "@/lib/blog";
+import { getPost, toLocalInput, type Post } from "@/lib/blog";
 import { getSettings } from "@/lib/content";
 import { getPanelT } from "@/lib/i18n/server";
 import { savePostAction } from "../../blog-actions";
@@ -31,11 +31,32 @@ type EditPostPageProps = {
 
 const hintClass = "font-sans text-[14px] font-normal text-muted";
 
+/** Adresa za novi članak: ista forma kao za izmenu, a članak nastaje tek na „Sačuvaj". */
+const NEW_POST = "novi";
+
 export default async function EditPostPage({ params, searchParams }: EditPostPageProps) {
   const t = await getPanelT();
-  await requireAdmin("content");
+  const user = await requireAdmin("content");
   const [{ id }, { greska, ok }, settings] = await Promise.all([params, searchParams, getSettings()]);
-  const post = await getPost(Number(id));
+  const isNew = id === NEW_POST;
+  const post: Post | null = isNew
+    ? {
+        id: 0,
+        slug: "",
+        title: "",
+        excerpt: "",
+        body: "",
+        image: "",
+        imageAlt: "",
+        author: user.name,
+        tags: [],
+        status: "draft",
+        publishedAt: new Date().toISOString(),
+        seoTitle: "",
+        seoDescription: "",
+        updatedAt: new Date().toISOString(),
+      }
+    : await getPost(Number(id));
   if (!post) notFound();
   const backPath = `${ADMIN_PATH}/blog`;
 
@@ -46,19 +67,21 @@ export default async function EditPostPage({ params, searchParams }: EditPostPag
       </Link>
       <div className="mt-[12px]">
         <PageHeader
-          title={post.title}
+          title={isNew ? t("Novi članak") : post.title}
           error={greska}
           notice={ok}
           action={
-            <Link href={`/blog/${post.slug}`} target="_blank" className={quietButtonClass}>
-              {t("Otvori na sajtu")}
-            </Link>
+            !isNew && (
+              <Link href={`/blog/${post.slug}`} target="_blank" className={quietButtonClass}>
+                {t("Otvori na sajtu")}
+              </Link>
+            )
           }
         />
       </div>
 
       <form action={savePostAction} className="flex flex-col gap-[16px]">
-        <input type="hidden" name="id" value={post.id} />
+        <input type="hidden" name="id" value={isNew ? "" : post.id} />
         <div className={formGridClass}>
           <div className={stackClass}>
             <section className={panelClass}>
@@ -142,8 +165,8 @@ export default async function EditPostPage({ params, searchParams }: EditPostPag
               <h2 className={panelTitleClass}>{t("Adresa i pretraživači")}</h2>
               <label className={labelClass}>
                 {t("Adresa članka")}
-                <input name="slug" required maxLength={150} defaultValue={post.slug} className={inputClass} />
-                <span className={hintClass}>/blog/{post.slug}</span>
+                <input name="slug" required={!isNew} maxLength={150} defaultValue={post.slug} className={inputClass} />
+                <span className={hintClass}>{isNew ? t("Prazno: pravi se iz naslova.") : `/blog/${post.slug}`}</span>
               </label>
               <label className={labelClass}>
                 {t("Naslov za pretraživače")}

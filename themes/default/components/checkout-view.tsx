@@ -413,6 +413,10 @@ function Confirmation({ order, lines }: { order: PlacedOrder; lines: CartItem[] 
           <div className="panel a2" style={{ padding: "18px 22px", borderRadius: "20px", fontSize: "15.5px", whiteSpace: "pre-wrap" }}>
             <div className="lab" style={{ marginBottom: "6px" }}>{t("Podaci za uplatu")}</div>
             {order.paymentInstructions}
+            {/* Iznos i poziv na broj su iz porudžbine, da kupac ne mora da ih traži. */}
+            <div style={{ marginTop: "10px" }}>
+              {t("Iznos:")} <strong>{formatPrice(order.total)}</strong> · {t("Poziv na broj:")} <strong>{order.number}</strong>
+            </div>
           </div>
         )}
         <div className="a2" style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>

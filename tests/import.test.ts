@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { parseOptions, syncVariants, type Category, type Product } from "@/lib/catalog";
 import { csvRecords, parseCsv, toCsv } from "@/lib/csv";
-import { applyImport, detectFormat, exportRows, htmlToText, parseImport } from "@/lib/product-import";
+import { applyImport, detectFormat, exportRows, htmlToText, parseImport, parseImportFile } from "@/lib/product-import";
+import { readXlsx, writeXlsx } from "@/lib/xlsx";
 import { stockDiff } from "@/lib/stock";
 import { product } from "./helpers";
 
@@ -140,7 +141,7 @@ describe("upis u katalog", () => {
     const content = { products: [] as Product[], categories: [category("odeca", "Odeća")] };
     const images = new Map([["https://cdn.example.com/a.jpg", "/media/a-full.webp"], ["https://cdn.example.com/b.jpg", "/media/b-full.webp"]]);
     const stats = applyImport(content, [...parseImport(SHOPIFY, 0)!.products, ...parseImport(WOO, 0)!.products], images);
-    expect(stats).toEqual({ created: 4, updated: 0, categories: 4 });
+    expect(stats).toEqual({ created: 4, updated: 0, categories: 4, collections: 0 });
     expect(content.categories.map((item) => `${item.parent}/${item.id}`)).toEqual(["/odeca", "/majice", "/soap", "odeca/duksevi", "/akcija"]);
 
     const shirt = content.products.find((item) => item.slug === "majica")!;
@@ -198,6 +199,68 @@ describe("upis u katalog", () => {
     applyImport(content, parsed.products, new Map([["https://shop.rs/media/a-full.webp", "/media/a-full.webp"], ["https://shop.rs/media/b-full.webp", "/media/b-full.webp"]]));
     expect(content.categories).toEqual(categories);
     expect(content.products).toEqual(original);
+  });
+});
+
+describe("sva polja proizvoda u sopstvenom obliku", () => {
+  const category = (id: string, label: string): Category => ({ id, label, parent: "", description: "", seoTitle: "", seoDescription: "" });
+  const full = () => [
+    product({
+      slug: "fotelja",
+      name: "Fotelja",
+      categories: ["fotelje"],
+      category: "fotelje",
+      attributes: [
+        { title: "Dimenzije", text: "72 × 84 cm" },
+        { title: "Održavanje", text: "Brisati suvom krpom: bez vode." },
+      ],
+      lowStockMode: "auto",
+      lowStockThreshold: 3,
+      stockQty: 10,
+      related: ["stolica"],
+      highlight: { heading: "Traje", text: "Delovi se menjaju.", specs: [{ label: "Širina", value: "72 cm" }, { label: "Bez mere", value: "" }], image: "/media/h-full.webp" },
+    }),
+    product({ slug: "stolica", name: "Stolica", lowStockMode: "always" }),
+  ];
+  const collections = () => [{ id: "novo", name: "Novo", description: "", image: "", imageAlt: "", productSlugs: ["fotelja"] }];
+
+  it("izvoz i uvoz vraćaju detalje, oznaku pri kraju, istaknuti deo, slične i kolekcije", () => {
+    const rows = exportRows(full(), [category("fotelje", "Fotelje")], 0, "https://shop.rs", collections());
+    const parsed = parseImport(toCsv(rows), 0)!;
+    const content = { products: [] as Product[], categories: [category("fotelje", "Fotelje")], collections: collections().map((item) => ({ ...item, productSlugs: [] })) };
+    applyImport(content, parsed.products, new Map([["https://shop.rs/media/h-full.webp", "/media/h-full.webp"]]));
+    expect(content.products).toEqual(full());
+    expect(content.collections[0].productSlugs).toEqual(["fotelja"]);
+  });
+
+  it("kolekcija koje nema se pravi, a proizvod izlazi iz kolekcije koja nije navedena", () => {
+    const content = { products: [] as Product[], categories: [] as Category[], collections: collections() };
+    const csv = "oznaka;naziv;kolekcije\nfotelja;Fotelja;Bestseler | Za poklon\n";
+    const stats = applyImport(content, parseImport(csv, 0)!.products, new Map());
+    expect(stats.collections).toBe(2);
+    expect(content.collections.map((item) => [item.id, item.productSlugs])).toEqual([
+      ["novo", []],
+      ["bestseler", ["fotelja"]],
+      ["za-poklon", ["fotelja"]],
+    ]);
+  });
+
+  it("fajl bez novih kolona ne menja ta polja postojećeg proizvoda", () => {
+    const content = { products: full(), categories: [category("fotelje", "Fotelje")], collections: collections() };
+    applyImport(content, parseImport("oznaka;naziv;cena\nfotelja;Fotelja nova;5000\n", 0)!.products, new Map());
+    expect(content.products[0]).toMatchObject({ name: "Fotelja nova", price: 5000, related: ["stolica"], lowStockThreshold: 3 });
+    expect(content.products[0].highlight.image).toBe("/media/h-full.webp");
+    expect(content.collections[0].productSlugs).toEqual(["fotelja"]);
+  });
+
+  it("Excel fajl se čita isto kao CSV", () => {
+    const rows = exportRows(full(), [category("fotelje", "Fotelje")], 2, "https://shop.rs", collections());
+    const bytes = writeXlsx([{ name: "Proizvodi", rows, header: true }, { name: "Uputstvo", rows: [["a"]] }]);
+    expect(readXlsx(bytes)).toEqual(rows.map((row) => {
+      const last = row.findLastIndex((cell) => cell !== "");
+      return row.slice(0, last + 1);
+    }));
+    expect(parseImportFile(bytes, 2)!.products).toEqual(parseImport(toCsv(rows), 2)!.products);
   });
 });
 

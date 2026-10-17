@@ -1,18 +1,16 @@
 "use client";
 
 import { useT } from "@/lib/i18n/client";
-import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import type { Field, SectionData } from "@/lib/sections";
 import { saveSettingsPartAction, saveSettingsPreviewAction, type SettingsPart } from "../actions";
 import { Fields, LinkOptions, type FieldOptions } from "../fields";
-import { buttonClass, cardClass, chipClass, chipOffClass, chipOnClass } from "../ui";
+import { buttonClass, cardClass } from "../ui";
 
 /** Koji deo podešavanja forma uređuje. */
 type Part = { part: "theme" } | { part: "site" } | { part: "template"; id: string };
 
 type SettingsEditorProps = {
-  tabs: { href: string; label: string; current: boolean }[];
   target: Part;
   /** Objašnjenje iznad polja. */
   hint: string;
@@ -27,7 +25,7 @@ type SettingsEditorProps = {
  * Uređivač izgleda sajta: tema, meni i podnožje, i tekstovi stranica sa stalnim rasporedom.
  * Levo polja, desno pregled sajta koji prati izmene; kupci ih vide tek posle „Sačuvaj".
  */
-export function SettingsEditor({ tabs, target, hint, fields, value: saved, previewUrl, options }: SettingsEditorProps) {
+export function SettingsEditor({ target, hint, fields, value: saved, previewUrl, options }: SettingsEditorProps) {
   const t = useT();
   const [value, setValue] = useState(saved);
   const [media, setMedia] = useState(options.media);
@@ -97,22 +95,6 @@ export function SettingsEditor({ tabs, target, hint, fields, value: saved, previ
 
   return (
     <>
-      <nav aria-label={t("Delovi izgleda sajta")} className="mb-[16px] flex flex-wrap gap-[6px]">
-        {tabs.map((tab) => (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            aria-current={tab.current ? "page" : undefined}
-            className={`${chipClass} ${tab.current ? chipOnClass : chipOffClass}`}
-            onClick={(event) => {
-              if (dirty && !window.confirm(t("Imate nesačuvane izmene. Napustiti ovu stranicu?"))) event.preventDefault();
-            }}
-          >
-            {t(tab.label)}
-          </Link>
-        ))}
-      </nav>
-
       <div className="grid items-start gap-[16px] xl:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
         <LinkOptions links={options.links} />
         <div className="flex min-w-0 flex-col gap-[16px]">

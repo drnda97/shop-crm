@@ -56,7 +56,7 @@ describe("oznaka „pri kraju”", () => {
 describe("kolekcija", () => {
   it("čuva svoj redosled i preskače obrisane proizvode", () => {
     const products = [product({ slug: "a" }), product({ slug: "b" })];
-    const collection = { id: "k", name: "K", description: "", productSlugs: ["b", "nema", "a"] };
+    const collection = { id: "k", name: "K", description: "", image: "", imageAlt: "", productSlugs: ["b", "nema", "a"] };
     expect(getCollectionProducts(collection, products).map((item) => item.slug)).toEqual(["b", "a"]);
   });
 });

@@ -31,7 +31,7 @@ Prvo otvorite **Podešavanja**: naziv prodavnice, valuta i zapis iznosa (celi iz
 | Utisci | utisci kupaca o proizvodima, sa odobravanjem |
 | Izveštaji | prodaja za izabrani period po danima, proizvodima, plaćanju, dostavi i popustima; izvoz u CSV |
 | Proizvodi | cena i akcija, šifra, stanje (ručno ili po broju komada) sa istorijom promena, oznaka „pri kraju", slike, opcije i varijante (cena, šifra, stanje i slika po varijanti), slični proizvodi, podaci za pretraživače, nacrt/objavljen, redosled; izmena više proizvoda odjednom; uvoz i izvoz u CSV-u |
-| Kategorije, Kolekcije | kategorije sa podkategorijama, proizvod može biti u više njih; kolekcija je ručno složena grupa |
+| Kategorije, Kolekcije | kategorije sa podkategorijama, proizvod može biti u više njih; na sajtu su filter na `/kolekcija`. Kolekcija je ručno složena grupa sa svojom stranicom (`/kolekcija/{id}`) i fotografijom banera |
 | Popusti | promo kodovi i automatski popusti (procenat, fiksni iznos ili besplatna dostava; cela korpa ili izabrani proizvodi i kategorije; broj korišćenja i rok) i nagrade: kod koji kupac dobija emailom posle porudžbine |
 | Stranice | stranice sajta složene od sekcija, sa pregledom pre čuvanja; naslov i opis za pretraživače |
 | Blog | članci na `/blog`: naslov, kratak opis, tekst sa naslovima, spiskovima, citatima, linkovima i slikama, naslovna fotografija, autor, oznake, nacrt ili objavljen, zakazana objava, podaci za pretraživače |
@@ -89,7 +89,7 @@ Iznosi u API-ju su celi brojevi u najmanjim jedinicama valute (uz `currency.deci
 
 Proizvod sa opcijama (`options`) ima `variants`: po jednu za svaku kombinaciju, sa svojim `id`, cenom (`currentPrice`), dostupnošću (`available`, `maxQty`) i slikom. Takav proizvod ulazi u korpu samo uz `variant` (id varijante); njegov `currentPrice` je najniža cena među varijantama, a `priceVaries` kaže da je treba ispisati kao „od".
 
-Cene, stanje, popust i dostava se uvek računaju u CRM-u; sajt šalje samo šta je u korpi. Kada sajt bude objavljen, upišite njegovu adresu u Podešavanja → Prodavnica → „Sajtovi koji smeju da zovu API".
+Cene, stanje, popust i dostava se uvek računaju u CRM-u; sajt šalje samo šta je u korpi. API iz pregledača sme da zove samo sajt koji je upisan u Podešavanja → Prodavnica → Opšte → „Sajtovi koji smeju da zovu API iz pregledača" (i „Adresa sajta"); dok nijedan nije upisan, nijedan drugi sajt nema dozvolu. Upišite adresu svog sajta pre nego što ga povežete.
 
 ## Email
 

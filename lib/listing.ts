@@ -149,15 +149,25 @@ export async function listSlugs(filter: ListingFilter, limit: number, offset = 0
   return { slugs: rows.map((row) => String(row.slug)), total: Number(count[0].total) };
 }
 
-/** Opcije i njihove vrednosti među proizvodima kategorije (ili svim), za filtere. */
-export async function listFacets(category: string): Promise<{ name: string; values: string[] }[]> {
+/** Opcije i njihove vrednosti među proizvodima kategorije ili kolekcije (ili svim), za filtere. */
+export async function listFacets(scope: { category?: string; collection?: string }): Promise<{ name: string; values: string[] }[]> {
   const db = await getDb();
   await ensureListing(db);
+  const joins: string[] = [];
+  const params: string[] = [];
+  if (scope.category) {
+    joins.push("JOIN product_listing_categories c ON c.slug = o.slug AND c.category_id = ?");
+    params.push(scope.category);
+  }
+  if (scope.collection) {
+    joins.push("JOIN collection_products cp ON cp.product_slug = o.slug AND cp.collection_id = ?");
+    params.push(scope.collection);
+  }
   const [rows] = await db.query<RowDataPacket[]>(
     `SELECT o.name, o.value, MIN(o.position) AS first FROM product_listing_options o
-     ${category ? "JOIN product_listing_categories c ON c.slug = o.slug AND c.category_id = ?" : ""}
+     ${joins.join(" ")}
      GROUP BY o.name, o.value ORDER BY first`,
-    category ? [category] : [],
+    params,
   );
   const facets = new Map<string, string[]>();
   for (const row of rows) facets.set(row.name, [...(facets.get(row.name) ?? []), row.value]);

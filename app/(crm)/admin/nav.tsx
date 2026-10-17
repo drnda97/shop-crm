@@ -144,7 +144,18 @@ const item =
   "relative flex min-h-[44px] items-center gap-[12px] rounded-full px-[14px] font-display text-[15px] font-semibold transition-colors duration-300 md:group-data-[collapsed=true]/nav:justify-center md:group-data-[collapsed=true]/nav:px-0";
 const quiet = "text-ink hover:bg-band hover:text-ink";
 
-type NavItem = { href: string; label: string; icon: ReactNode; exact?: boolean; badge?: number; area?: string };
+type NavLink = { href: string; label: string };
+
+type NavItem = {
+  href: string;
+  label: string;
+  icon: ReactNode;
+  exact?: boolean;
+  badge?: number;
+  area?: string;
+  /** Podstavke: vide se ispod stavke dok je otvoren njen deo panela; prva je adresa same stavke. */
+  children?: NavLink[];
+};
 
 type SidebarProps = {
   /** Koren panela (ADMIN_PATH). */
@@ -155,6 +166,8 @@ type SidebarProps = {
   /** Adresa sajta za kupce. */
   siteUrl: string;
   initialCollapsed: boolean;
+  /** Delovi izgleda sajta (Tema, Zaglavlje, Podnožje…), podstavke stavke „Izgled sajta". */
+  designParts: NavLink[];
   /** Ime prijavljenog korisnika, i delovi panela u koje njegova uloga sme. */
   user: string;
   areas: string[];
@@ -162,7 +175,7 @@ type SidebarProps = {
 };
 
 /** Bočni meni panela. Dugme u zaglavlju ga skuplja na same ikonice. */
-export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, areas, logout }: SidebarProps) {
+export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, designParts, user, areas, logout }: SidebarProps) {
   const t = useT();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(initialCollapsed);
@@ -180,7 +193,17 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
         { href: `${base}/porudzbine`, label: t("Porudžbine"), icon: icons.orders, badge: waiting, area: "orders" },
         { href: `${base}/kupci`, label: t("Kupci"), icon: icons.customers, area: "orders" },
         { href: `${base}/korpe`, label: t("Napuštene korpe"), icon: icons.carts, area: "orders" },
-        { href: `${base}/poruke`, label: t("Poruke"), icon: icons.messages, area: "orders" },
+        {
+          href: `${base}/poruke`,
+          label: t("Poruke"),
+          icon: icons.messages,
+          area: "orders",
+          children: [
+            { href: `${base}/poruke`, label: t("Kontakt forma") },
+            { href: `${base}/poruke/novosti`, label: t("Novosti") },
+            { href: `${base}/poruke/prijavljeni`, label: t("Prijavljeni") },
+          ],
+        },
         { href: `${base}/utisci`, label: t("Utisci"), icon: icons.reviews, area: "orders" },
         { href: `${base}/izvestaji`, label: t("Izveštaji"), icon: icons.reports, area: "orders" },
       ],
@@ -199,7 +222,13 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
       items: [
         { href: `${base}/stranice`, label: t("Stranice"), icon: icons.pages, area: "content" },
         { href: `${base}/blog`, label: t("Blog"), icon: icons.messages, area: "content" },
-        { href: `${base}/izgled`, label: t("Izgled sajta"), icon: icons.layout, area: "content" },
+        {
+          href: `${base}/izgled`,
+          label: t("Izgled sajta"),
+          icon: icons.layout,
+          area: "content",
+          children: designParts.map((part) => ({ ...part, label: t(part.label) })),
+        },
         { href: `${base}/slike`, label: t("Slike"), icon: icons.images, area: "content" },
         { href: `${base}/prevodi`, label: t("Prevodi"), icon: icons.messages, area: "content" },
       ],
@@ -207,7 +236,21 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
     {
       title: t("Podešavanja"),
       items: [
-        { href: `${base}/podesavanja`, label: t("Opšte"), icon: icons.settings, area: "settings" },
+        {
+          href: `${base}/podesavanja`,
+          label: t("Prodavnica"),
+          icon: icons.settings,
+          area: "settings",
+          children: [
+            { href: `${base}/podesavanja`, label: t("Opšte") },
+            { href: `${base}/podesavanja/dostava`, label: t("Dostava") },
+            { href: `${base}/podesavanja/placanje`, label: t("Plaćanje") },
+            { href: `${base}/podesavanja/porez`, label: t("Porez i račun") },
+            { href: `${base}/podesavanja/email`, label: t("Email kupcima") },
+            { href: `${base}/podesavanja/nalozi`, label: t("Nalozi kupaca") },
+            { href: `${base}/podesavanja/analitika`, label: t("Analitika") },
+          ],
+        },
         { href: `${base}/integracije`, label: t("Integracije"), icon: icons.layout, area: "settings" },
         { href: `${base}/korisnici`, label: t("Korisnici"), icon: icons.customers, area: "users" },
         { href: `${base}/dnevnik`, label: t("Dnevnik"), icon: icons.pages, area: "users" },
@@ -259,14 +302,14 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
                 ? pathname === link.href
                 : pathname === link.href || pathname.startsWith(`${link.href}/`);
               return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  aria-current={active ? "page" : undefined}
-                  // Dok su nazivi skriveni, naziv stavke se vidi kad se pređe mišem.
-                  title={collapsed ? link.label : undefined}
-                  className={`${item} ${active ? "bg-ink text-paper hover:text-paper" : quiet}`}
-                >
+                <div key={link.href} className="contents">
+                  <Link
+                    href={link.href}
+                    aria-current={active ? "page" : undefined}
+                    // Dok su nazivi skriveni, naziv stavke se vidi kad se pređe mišem.
+                    title={collapsed ? link.label : undefined}
+                    className={`${item} ${active ? "bg-ink text-paper hover:text-paper" : quiet}`}
+                  >
                   {link.icon}
                   <span className={`grow whitespace-nowrap ${whenCollapsedHide}`}>{link.label}</span>
                   {link.badge ? (
@@ -279,7 +322,40 @@ export function Sidebar({ base, name, waiting, siteUrl, initialCollapsed, user, 
                       <span className="absolute top-[7px] right-[9px] hidden size-[10px] rounded-full bg-gold ring-2 ring-paper md:group-data-[collapsed=true]/nav:block" />
                     </>
                   ) : null}
-                </Link>
+                    {link.children && (
+                      <svg
+                        {...stroke}
+                        width={16}
+                        height={16}
+                        aria-hidden
+                        className={`shrink-0 transition-transform duration-300 ${active ? "rotate-180" : ""} ${whenCollapsedHide}`}
+                      >
+                        <path d="M5 8l5 5 5-5" />
+                      </svg>
+                    )}
+                  </Link>
+                  {link.children && active && (
+                    // Podstavke se ne vide u skupljenom meniju: tamo stavka vodi na prvu.
+                    <div className={`ml-[26px] flex flex-col gap-[2px] border-l border-line py-[4px] pl-[10px] max-md:w-full ${whenCollapsedHide}`}>
+                      {link.children.map((child, index) => {
+                        // Prva podstavka je adresa same stavke, pa ne sme da bude označena i na ostalim.
+                        const current = index === 0 ? pathname === child.href : pathname === child.href || pathname.startsWith(`${child.href}/`);
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            aria-current={current ? "page" : undefined}
+                            className={`flex min-h-[36px] items-center rounded-full px-[12px] font-display text-[14px] whitespace-nowrap transition-colors duration-300 ${
+                              current ? "bg-band font-bold text-ink" : "font-semibold text-muted hover:bg-band hover:text-ink"
+                            }`}
+                          >
+                            {child.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

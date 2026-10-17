@@ -27,7 +27,8 @@ izvozi isto što i `themes/default/index.ts` (TypeScript javlja ako nešto fali)
 | `dict` | rečnici teme po jeziku (`i18n/`) | sve |
 | `Shell` | traka sa obaveštenjem, korpa, merenje poseta | sve |
 | `ContentPage` | stranica složena od sekcija | `/`, `/{oznaka}` |
-| `CollectionPage` | mreža proizvoda sa filterima | `/kolekcija`, `/kolekcija/{kategorija}` |
+| `NotFoundPage` | stranica koja ne postoji (404) | svaka nepostojeća adresa sajta |
+| `CollectionPage` | mreža proizvoda sa filterima (kategorija je filter, `?kategorija=`) | `/kolekcija`, `/kolekcija/{kolekcija}` |
 | `ProductPage` | | `/proizvod/{slug}` |
 | `BlogPage`, `ArticlePage` | spisak članaka i članak | `/blog`, `/blog/{adresa}` |
 | `AccountPage` | | `/nalog` |

@@ -4,6 +4,7 @@ import { useT } from "@/lib/i18n/client";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { newSection, sectionType, SECTION_TYPES, type Section } from "@/lib/sections";
 import { savePageAction, savePreviewAction } from "../../actions";
+import { useConfirm } from "../../confirm";
 import { Fields, LinkOptions, type FieldOptions } from "../../fields";
 import { buttonClass, cardClass, inputClass, labelClass, panelTitleClass, quietButtonClass } from "../../ui";
 
@@ -44,6 +45,7 @@ function summary(section: Section): string {
  */
 export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProps) {
   const t = useT();
+  const ask = useConfirm();
   const [sections, setSections] = useState(page.sections);
   const [meta, setMeta] = useState({
     title: page.title,
@@ -209,8 +211,12 @@ export function PageEditor({ page, isHome, previewUrl, options }: PageEditorProp
                     type="button"
                     className={smallButton}
                     aria-label={t("Ukloni sekciju: {a}", { a: t(definition.label) })}
-                    onClick={() => {
-                      if (!window.confirm(t("Ukloniti sekciju „{a}”?", { a: t(definition.label) }))) return;
+                    onClick={async () => {
+                      const yes = await ask({
+                        question: t("Ukloniti sekciju „{a}”? Uklanja se i sa sajta kada sačuvate stranicu.", { a: t(definition.label) }),
+                        confirmLabel: t("Ukloni"),
+                      });
+                      if (!yes) return;
                       change(sections.filter((item) => item.id !== section.id));
                       setSelected(null);
                     }}

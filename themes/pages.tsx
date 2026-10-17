@@ -1,6 +1,5 @@
 import type { ComponentProps, JSX, JSXElementConstructor } from "react";
 import { cache } from "react";
-import { getSettings } from "@/lib/content";
 import { themeId } from "./list";
 import { loadTheme, type Theme } from "./registry";
 
@@ -9,8 +8,12 @@ import { loadTheme, type Theme } from "./registry";
  * tema je iscrtava odlučuje podešavanje iz panela (Podešavanja → Tema sajta). Samo za server.
  */
 
-/** Id teme koju je vlasnik izabrao. */
-export const getThemeId = cache(async () => themeId((await getSettings()).themeId));
+/** Id teme iz koda na kojoj je aktivna tema; u pregledu teme iz biblioteke, njena osnova. */
+export const getThemeId = cache(async () => {
+  // Uvoz pri pozivu: lib/storefront/pages preko prevoda već uvozi ovaj modul.
+  const { getPreviewSettings } = await import("@/lib/storefront/pages");
+  return themeId((await getPreviewSettings()).themeId);
+});
 
 /** Tema koju je vlasnik izabrao. */
 export const getTheme = cache(async (): Promise<Theme> => loadTheme(await getThemeId()));
@@ -35,6 +38,7 @@ export const ContentPage = themed("ContentPage");
 export const ForgotPasswordPage = themed("ForgotPasswordPage");
 export const NewPasswordPage = themed("NewPasswordPage");
 export const NewsletterUnsubscribePage = themed("NewsletterUnsubscribePage");
+export const NotFoundPage = themed("NotFoundPage");
 export const PaymentResultPage = themed("PaymentResultPage");
 export const ProductPage = themed("ProductPage");
 export const RestoreCartPage = themed("RestoreCartPage");

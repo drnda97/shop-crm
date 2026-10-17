@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isValidUsername, roleCan } from "@/lib/admin-auth";
+import { isValidUsername, normalizeRoles, roleCan, roleName } from "@/lib/admin-auth";
 import { DUMMY_HASH, hashPassword, passwordMatches } from "@/lib/password";
 import { base32Decode, base32Encode, generateRecoveryCodes, generateSecret, otpauthUrl, totpCode, totpStep, verifyTotp } from "@/lib/totp";
 
@@ -21,6 +21,23 @@ describe("uloge u panelu", () => {
       expect(roleCan(role, "settings")).toBe(false);
       expect(roleCan(role, "users")).toBe(false);
     }
+  });
+
+  it("uloge koje pravi vlasnik: svoji delovi panela; korisnici i uloge nikad, vlasnik se ne menja", () => {
+    const roles = normalizeRoles([
+      { id: "magacin", name: "Magacin", areas: ["orders", "catalog", "users", "nesto"] },
+      { id: "owner", name: "Lažni vlasnik", areas: [] },
+      { id: 5, name: "bez oznake" },
+    ]);
+    expect(roles.map((role) => role.id)).toEqual(["owner", "magacin"]);
+    expect(roles[0].name).toBe("Vlasnik");
+    expect(roles[1].areas).toEqual(["orders", "catalog"]);
+    expect(roleCan("magacin", "orders", roles)).toBe(true);
+    expect(roleCan("magacin", "users", roles)).toBe(false);
+    expect(roleCan("owner", "users", roles)).toBe(true);
+    // Obrisana uloga ne vidi ništa.
+    expect(roleCan("sales", "orders", roles)).toBe(false);
+    expect(roleName("magacin", roles)).toBe("Magacin");
   });
 
   it("korisničko ime: mala slova, cifre i email, bez razmaka", () => {

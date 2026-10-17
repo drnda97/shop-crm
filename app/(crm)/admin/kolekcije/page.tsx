@@ -3,25 +3,18 @@ import Link from "next/link";
 import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getCollections } from "@/lib/content";
 import { formatProductCount } from "@/lib/format";
-import { createCollectionAction, deleteCollectionAction } from "../actions";
+import { deleteCollectionAction } from "../actions";
 import { ConfirmButton } from "../confirm-button";
-import {
-  buttonClass,
-  cardClass,
-  inputClass,
-  labelClass,
-  PageHeader,
-  quietButtonClass,
-  rowClass,
-} from "../ui";
+import { buttonClass, cardClass, PageHeader, Pager, paginate, quietButtonClass, rowClass } from "../ui";
 
-type CollectionsPageProps = { searchParams: Promise<{ greska?: string }> };
+type CollectionsPageProps = { searchParams: Promise<{ greska?: string; strana?: string }> };
 
 export default async function CollectionsPage({ searchParams }: CollectionsPageProps) {
   const t = await getPanelT();
   await requireAdmin("catalog");
-  const { greska } = await searchParams;
+  const { greska, strana } = await searchParams;
   const collections = await getCollections();
+  const list = paginate(collections, strana);
 
   return (
     <>
@@ -29,9 +22,14 @@ export default async function CollectionsPage({ searchParams }: CollectionsPageP
         title={t("Kolekcije")}
         hint={t("Kolekcija je ručno složena grupa proizvoda, npr. „Izdvojeno“ za početnu stranu ili „Za poklon“. Proizvod može biti u više kolekcija.")}
         error={greska}
+        action={
+          <Link href={`${ADMIN_PATH}/kolekcije/nova`} className={buttonClass}>
+            {t("Nova kolekcija")}
+          </Link>
+        }
       />
       <div className={cardClass}>
-        {collections.map((collection) => (
+        {list.shown.map((collection) => (
           <div key={collection.id} className={rowClass}>
             <div className="min-w-[180px] grow">
               <div className="text-[17px]">{collection.name}</div>
@@ -57,18 +55,9 @@ export default async function CollectionsPage({ searchParams }: CollectionsPageP
         {collections.length === 0 && <p className="text-[15px] text-muted">{t("Još nema kolekcija.")}</p>}
       </div>
 
-      <form
-        action={createCollectionAction}
-        className={`${cardClass} mt-[16px] flex flex-wrap items-end gap-[12px]`}
-      >
-        <label className={`${labelClass} min-w-[220px] grow`}>
-          {t("Nova kolekcija")}
-          <input name="name" required placeholder={t("npr. Izdvojeno")} className={inputClass} />
-        </label>
-        <button type="submit" className={buttonClass}>
-          {t("Dodaj kolekciju")}
-        </button>
-      </form>
+      {collections.length > 0 && (
+        <Pager path={`${ADMIN_PATH}/kolekcije`} page={list.page} pages={list.pages} summary={t("Kolekcija: {a}", { a: collections.length })} />
+      )}
     </>
   );
 }

@@ -1,15 +1,22 @@
 import { getPanelT } from "@/lib/i18n/server";
-import { requireAdmin } from "@/lib/admin-auth";
+import { ADMIN_PATH, requireAdmin } from "@/lib/admin-auth";
 import { getAuditLog } from "@/lib/audit";
 import { getSettings } from "@/lib/content";
 import { dateFormats } from "../order-ui";
-import { cardClass, PageHeader } from "../ui";
+import { cardClass, PageHeader, Pager, PANEL_PAGE_SIZE } from "../ui";
 
 /** Dnevnik izmena: ko je i kada šta uradio u panelu. Samo za vlasnika. */
-export default async function AuditPage() {
+type AuditPageProps = { searchParams: Promise<{ strana?: string }> };
+
+export default async function AuditPage({ searchParams }: AuditPageProps) {
   const t = await getPanelT();
   await requireAdmin("users");
-  const [entries, settings] = await Promise.all([getAuditLog(), getSettings()]);
+  const wanted = Math.max(1, Math.floor(Number((await searchParams).strana)) || 1);
+  const [{ entries: first, total }, settings] = await Promise.all([getAuditLog(wanted, PANEL_PAGE_SIZE), getSettings()]);
+  const pages = Math.max(1, Math.ceil(total / PANEL_PAGE_SIZE));
+  const page = Math.min(wanted, pages);
+  // Strana preko kraja (zapisi su u međuvremenu obrisani) prikazuje poslednju.
+  const entries = page === wanted ? first : (await getAuditLog(page, PANEL_PAGE_SIZE)).entries;
   const { orderDate } = dateFormats(settings.store);
 
   return (
@@ -46,6 +53,7 @@ export default async function AuditPage() {
           </div>
         )}
       </div>
+      {total > 0 && <Pager path={`${ADMIN_PATH}/dnevnik`} page={page} pages={pages} summary={t("Zapisa: {a}", { a: total })} />}
     </>
   );
 }

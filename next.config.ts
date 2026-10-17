@@ -50,6 +50,9 @@ const nextConfig: NextConfig = {
     // Admin panel šalje fotografije kroz server akcije; podrazumevano je 1 MB.
     // Mora biti nešto više od MAX_IMAGE_BYTES u lib/content.ts.
     serverActions: { bodySizeLimit: "16mb" },
+    // Sajt i panel imaju svaki svoj root layout, pa adresu koju nijedna ruta ne prepoznaje
+    // prikazuje app/global-not-found.tsx (stranica 404 prodavnice).
+    globalNotFound: true,
   },
 };
 

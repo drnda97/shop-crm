@@ -76,9 +76,24 @@ const products = [
 ];
 
 // Naziv kolekcije je oznaka na kartici proizvoda (lib/storefront/catalog.ts).
+// Svaka kolekcija ima i svoju stranicu (/kolekcija/{id}) sa fotografijom banera.
 const collections = [
-  { id: "bestseler", name: "Bestseler", slugs: ["okretna-fotelja-mio"] },
-  { id: "novo", name: "Novo", slugs: ["fotelja-vera", "par-fotelja-oblak"] },
+  {
+    id: "bestseler",
+    name: "Bestseler",
+    slugs: ["okretna-fotelja-mio"],
+    description: "Komadi koje kupci najčešće biraju i kojima se vraćaju kada opremaju sledeću sobu.",
+    image: "ds-cognac.jpg",
+    imageAlt: "Kožna sofa u dnevnoj sobi",
+  },
+  {
+    id: "novo",
+    name: "Novo",
+    slugs: ["fotelja-vera", "par-fotelja-oblak"],
+    description: "Modeli koji su ove sezone izašli iz radionice, posle meseci probe u našim domovima.",
+    image: "ds-living-art.jpg",
+    imageAlt: "Dnevna soba sa sofom, foteljama i umetničkom slikom",
+  },
 ];
 
 const discount = { id: "dobrodoslica", name: "Dobrodošlica", code: "DOBRODOSLI10", percent: 10 };
@@ -242,10 +257,21 @@ try {
   position = await nextPosition("collections");
   for (const collection of collections) {
     const [result] = await db.query(
-      "INSERT IGNORE INTO collections (id, position, name, description) VALUES (?, ?, ?, '')",
-      [collection.id, position, collection.name],
+      "INSERT IGNORE INTO collections (id, position, name, description, image, image_alt) VALUES (?, ?, ?, ?, ?, ?)",
+      [collection.id, position, collection.name, collection.description, await media(collection.image), collection.imageAlt],
     );
-    if (result.affectedRows === 0) continue;
+    if (result.affectedRows === 0) {
+      // Kolekcija iz ranije verzije skripte dobija opis i fotografiju, ako ih vlasnik nije upisao.
+      const [filled] = await db.query(
+        // MySQL dodeljuje kolone redom, pa se opis slike upisuje pre same slike.
+        `UPDATE collections SET description = IF(description = '', ?, description),
+          image_alt = IF(image = '' AND image_alt = '', ?, image_alt), image = IF(image = '', ?, image)
+          WHERE id = ? AND (description = '' OR image = '')`,
+        [collection.description, collection.imageAlt, await media(collection.image), collection.id],
+      );
+      if (filled.affectedRows > 0) added.kolekcije++;
+      continue;
+    }
     position++;
     added.kolekcije++;
     for (const [index, slug] of collection.slugs.entries()) {
@@ -269,7 +295,7 @@ try {
   const [saved] = await db.query("SELECT value FROM settings WHERE name = 'settings'");
   if (saved.length === 0) {
     await db.query("INSERT INTO settings (name, value) VALUES ('settings', ?)", [
-      JSON.stringify({ ...settings, site: { ...mergeSettings({}).site, announcement: demo.announcement, legalLinks: demo.legalLinks } }),
+      JSON.stringify({ ...settings, site: { ...mergeSettings({}).site, announcements: demo.announcements, legalLinks: demo.legalLinks } }),
     ]);
     added.podešavanja++;
   } else {
@@ -294,8 +320,8 @@ try {
       changed = true;
     }
     value.site = mergeSettings(value).site;
-    if (!value.site.announcement) {
-      value.site.announcement = demo.announcement;
+    if (value.site.announcements.length === 0) {
+      value.site.announcements = demo.announcements;
       changed = true;
     }
     if (value.site.legalLinks.length === 0) {

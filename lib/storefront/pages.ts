@@ -27,7 +27,7 @@ export type PreviewDraft =
   | { kind: "settings"; settings: SettingsDraft };
 
 /** Deo podešavanja koji se uređuje u Izgledu sajta; od šablona samo onaj koji je otvoren. */
-export type SettingsDraft = Partial<Pick<Settings, "colors" | "fonts" | "site">> & {
+export type SettingsDraft = Partial<Pick<Settings, "colors" | "fonts" | "site" | "themeId" | "customCss">> & {
   templates?: Partial<Templates>;
 };
 
@@ -54,15 +54,21 @@ export const getShopSettings = cache(async (): Promise<Settings> => {
   return { ...settings, ...(await translateForShop({ site, templates, shipping })) };
 });
 
+/** Podešavanja sa nesačuvanim izmenama iz pregleda, bez prevoda (npr. za izbor teme iz koda). */
+export const getPreviewSettings = cache(() => rawShopSettings());
+
 async function rawShopSettings(): Promise<Settings> {
   const [settings, draft] = await Promise.all([getSettings(), getDraft()]);
   if (draft?.kind !== "settings") return settings;
-  const { colors, fonts, site, templates } = draft.settings;
+  const { colors, fonts, site, templates, themeId, customCss } = draft.settings;
   return mergeSettings({
     ...settings,
     ...(colors ? { colors } : {}),
     ...(fonts ? { fonts } : {}),
     ...(site ? { site } : {}),
+    // Pregled teme iz biblioteke (Izgled sajta → Teme): njena osnova i njen CSS.
+    ...(themeId ? { themeId } : {}),
+    ...(customCss !== undefined ? { customCss } : {}),
     ...(templates ? { templates: { ...settings.templates, ...templates } } : {}),
   });
 }

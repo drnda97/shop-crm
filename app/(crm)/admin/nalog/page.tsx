@@ -1,6 +1,6 @@
 import { getPanelT } from "@/lib/i18n/server";
 import QRCode from "qrcode";
-import { PASSWORD_MIN, pendingTotpSecret, requireAdmin, roleHints, roleLabels } from "@/lib/admin-auth";
+import { areaLabels, getRoles, PASSWORD_MIN, pendingTotpSecret, requireAdmin, roleName } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/content";
 import { otpauthUrl } from "@/lib/totp";
 import { buttonClass, inputClass, labelClass, PageHeader, panelClass, panelTitleClass, quietButtonClass } from "../ui";
@@ -15,6 +15,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const t = await getPanelT();
   const user = await requireAdmin();
   const [{ greska, ok, korak }, settings] = await Promise.all([searchParams, getSettings()]);
+  const roles = await getRoles();
   // Tajna postoji samo dok je podešavanje u toku; prikazuje se kao QR kod i kao tekst.
   const secret = !user.totpEnabled && korak === "kod" ? await pendingTotpSecret(user.id) : null;
   const qr = secret ? await QRCode.toDataURL(otpauthUrl(secret, user.username, settings.store.name), { margin: 1, width: 220 }) : null;
@@ -23,7 +24,9 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
     <>
       <PageHeader
         title={t("Moj nalog")}
-        hint={`${user.name} · ${user.username} · ${t(roleLabels[user.role])}: ${t(roleHints[user.role])}.`}
+        hint={`${user.name} · ${user.username} · ${t(roleName(user.role, roles))}: ${(roles.find((role) => role.id === user.role)?.areas ?? [])
+          .map((area) => t(areaLabels[area].label))
+          .join(", ")}.`}
         error={greska}
         notice={ok}
       />
