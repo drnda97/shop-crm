@@ -62,15 +62,16 @@ export default async function ThemesPage({ searchParams }: ThemesPageProps) {
     </details>
   );
 
-  const copyAndDownload = (theme: ThemePackage) => (
+  // Ista dugmad u kartici aktivne teme (pune veličine) i u karticama biblioteke (manja).
+  const copyAndDownload = (theme: ThemePackage, buttonClass = small) => (
     <>
-      <form action={duplicateThemeAction}>
+      <form action={duplicateThemeAction} className="flex">
         <input type="hidden" name="id" value={theme.id} />
-        <button type="submit" className={small}>
+        <button type="submit" className={buttonClass}>
           {t("Dupliraj")}
         </button>
       </form>
-      <a href={`${ADMIN_PATH}/izgled/preuzmi?tema=${theme.id}`} className={small}>
+      <a href={`${ADMIN_PATH}/izgled/preuzmi?tema=${theme.id}`} className={buttonClass}>
         {t("Preuzmi .zip")}
       </a>
     </>
@@ -101,7 +102,7 @@ export default async function ThemesPage({ searchParams }: ThemesPageProps) {
             <a href="/" target="_blank" rel="noreferrer" className={quietButtonClass}>
               {t("Pogledaj sajt")}
             </a>
-            {copyAndDownload(active)}
+            {copyAndDownload(active, quietButtonClass)}
           </div>
           {rename(active)}
         </div>
